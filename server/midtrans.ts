@@ -56,10 +56,12 @@ export async function createMidtransTransaction(params: CreateTransactionParams)
 
   const itemDetails = [
     {
-      id: plan,
-      name: `Paket ${planConfig.name}`,
-      quantity: 1,
+      id: `upgrade_${plan}`,
       price: planConfig.price,
+      quantity: 1,
+      name: planConfig.name,
+      brand: 'BotBuilder AI',
+      category: 'subscription',
     },
   ];
 
@@ -72,31 +74,27 @@ export async function createMidtransTransaction(params: CreateTransactionParams)
     secure: true,
   };
 
-  // Minimal parameter structure to avoid validation errors
   const parameter = {
-    transaction_details: {
-      order_id: orderId,
-      gross_amount: planConfig.price,
-    },
-    customer_details: {
-      first_name: userName.replace(/[^a-zA-Z0-9\s]/g, '').trim(),
-      email: userEmail,
+    transaction_details: transactionDetails,
+    credit_card: creditCards,
+    item_details: itemDetails,
+    customer_details: customerDetails,
+    callbacks: {
+      finish: `${process.env.FRONTEND_URL || 'http://localhost:5000'}/dashboard?payment=success`,
+      error: `${process.env.FRONTEND_URL || 'http://localhost:5000'}/dashboard?payment=error`,
+      pending: `${process.env.FRONTEND_URL || 'http://localhost:5000'}/dashboard?payment=pending`,
     },
   };
 
-  console.log('Midtrans parameter:', JSON.stringify(parameter, null, 2));
-
   try {
     const transaction = await snap.createTransaction(parameter);
-    console.log('Midtrans transaction created successfully:', transaction.token);
     return {
       token: transaction.token,
       redirectUrl: transaction.redirect_url,
     };
   } catch (error) {
     console.error('Midtrans transaction creation error:', error);
-    console.error('Error details:', JSON.stringify(error, null, 2));
-    throw new Error(`Failed to create payment transaction: ${error.message || error}`);
+    throw new Error('Failed to create payment transaction');
   }
 }
 
@@ -126,6 +124,6 @@ export function verifySignatureKey(
 }
 
 export function generateOrderId(userId: number, plan: PlanType): string {
-  const timestamp = Date.now().toString();
-  return `TXN${timestamp.slice(-6)}${userId}`;
+  const timestamp = Date.now();
+  return `UPGRADE-${userId}-${plan.toUpperCase()}-${timestamp}`;
 }

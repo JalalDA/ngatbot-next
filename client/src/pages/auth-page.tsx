@@ -39,8 +39,9 @@ export default function AuthPage() {
     defaultValues: { username: "", email: "", fullName: "", password: "", confirmPassword: "" },
   });
 
-  // Return null if already logged in (redirect handled by useEffect)
+  // Redirect if already logged in
   if (user) {
+    setLocation("/dashboard");
     return null;
   }
 
