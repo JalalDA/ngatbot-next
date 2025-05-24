@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -40,11 +40,10 @@ export default function AuthPage() {
   });
 
   // Redirect if already logged in
-  useEffect(() => {
-    if (user) {
-      setLocation("/dashboard");
-    }
-  }, [user, setLocation]);
+  if (user) {
+    setLocation("/dashboard");
+    return null;
+  }
 
   const onLogin = async (data: LoginData) => {
     try {

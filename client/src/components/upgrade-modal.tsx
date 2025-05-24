@@ -23,7 +23,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
 
   const upgradeMutation = useMutation({
     mutationFn: async (plan: string) => {
-      const res = await apiRequest("POST", "/api/upgrade", { plan });
+      const res = await apiRequest("POST", "/api/upgrade-plan", { plan });
       return await res.json();
     },
     onSuccess: (data) => {
@@ -31,7 +31,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
         // Load Midtrans Snap
         const script = document.createElement('script');
         script.src = 'https://app.sandbox.midtrans.com/snap/snap.js';
-        script.setAttribute('data-client-key', 'SB-Mid-client-yLqr4RdgcHZxWQ1C');
+        script.setAttribute('data-client-key', data.clientKey);
         document.head.appendChild(script);
         
         script.onload = () => {
