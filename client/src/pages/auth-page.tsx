@@ -41,7 +41,7 @@ export default function AuthPage() {
 
   // Redirect if already logged in
   if (user) {
-    setLocation("/");
+    setLocation("/dashboard");
     return null;
   }
 
@@ -52,7 +52,7 @@ export default function AuthPage() {
         title: "Welcome back!",
         description: "You have been logged in successfully.",
       });
-      setLocation("/");
+      setLocation("/dashboard");
     } catch (error) {
       // Error is handled in the mutation
     }
@@ -66,7 +66,7 @@ export default function AuthPage() {
         title: "Account created!",
         description: "Welcome to BotBuilder AI. You can now create your first bot.",
       });
-      setLocation("/");
+      setLocation("/dashboard");
     } catch (error) {
       // Error is handled in the mutation
     }
