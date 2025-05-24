@@ -116,6 +116,6 @@ export function verifySignatureKey(
 }
 
 export function generateOrderId(userId: number, plan: PlanType): string {
-  const timestamp = Date.now();
-  return `ORDER-${timestamp}-${userId}`;
+  const timestamp = Date.now().toString().slice(-8); // Last 8 digits
+  return `${timestamp}${userId}`;
 }
