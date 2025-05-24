@@ -16,8 +16,8 @@ function Router() {
     <Switch>
       <Route path="/auth" component={AuthPage} />
       <Route path="/ilmiadmin" component={AdminPage} />
-      <ProtectedRoute path="/" component={DashboardPage} />
-      <Route path="/landing" component={LandingPage} />
+      <ProtectedRoute path="/dashboard" component={DashboardPage} />
+      <Route path="/" component={LandingPage} />
       <Route component={NotFound} />
     </Switch>
   );
