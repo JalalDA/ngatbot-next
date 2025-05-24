@@ -424,7 +424,7 @@ export function registerRoutes(app: Express): Server {
 
       res.json({
         success: true,
-        token: midtransResult.token,
+        snapToken: midtransResult.token,
         redirectUrl: midtransResult.redirectUrl,
         orderId: orderId,
         plan: planConfig

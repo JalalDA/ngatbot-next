@@ -24,9 +24,12 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
   const upgradeMutation = useMutation({
     mutationFn: async (plan: string) => {
       const res = await apiRequest("POST", "/api/upgrade", { plan });
-      return await res.json();
+      const data = await res.json();
+      console.log("Upgrade response:", data); // Debug log
+      return data;
     },
     onSuccess: (data) => {
+      console.log("Success data:", data); // Debug log
       if (data.snapToken) {
         // Load Midtrans Snap
         const script = document.createElement('script');
@@ -61,12 +64,19 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
             }
           });
         };
+      } else {
+        toast({
+          title: "Error",
+          description: "Tidak dapat membuat pembayaran. Silakan coba lagi.",
+          variant: "destructive",
+        });
       }
     },
     onError: (error: Error) => {
+      console.error("Upgrade error:", error); // Debug log
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Terjadi kesalahan saat memproses upgrade.",
         variant: "destructive",
       });
     },
