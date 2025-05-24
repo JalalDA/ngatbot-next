@@ -35,29 +35,30 @@ export function Navigation() {
             </div>
           </div>
           
-          <div className="flex items-center space-x-4">
-            {/* Credits Display */}
-            <div className="flex items-center space-x-2 px-4 py-2 bg-slate-100 rounded-lg">
-              <Coins className="h-4 w-4 text-amber-600" />
-              <span className="text-sm font-medium text-slate-700">
-                {user?.credits || 0} credits
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            {/* Credits Display - responsive */}
+            <div className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 bg-slate-100 rounded-lg">
+              <Coins className="h-3 w-3 sm:h-4 sm:w-4 text-amber-600" />
+              <span className="text-xs sm:text-sm font-medium text-slate-700">
+                <span className="hidden xs:inline">{user?.credits || 0} credits</span>
+                <span className="xs:hidden">{user?.credits || 0}</span>
               </span>
             </div>
             
-            {/* User Menu */}
+            {/* User Menu - responsive */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center space-x-2">
-                  <Avatar className="h-8 w-8">
+                <Button variant="ghost" className="flex items-center space-x-1 sm:space-x-2 p-1 sm:p-2">
+                  <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
                     <AvatarFallback className="bg-primary/10 text-primary">
-                      <User className="h-4 w-4" />
+                      <User className="h-3 w-3 sm:h-4 sm:w-4" />
                     </AvatarFallback>
                   </Avatar>
-                  <span className="hidden sm:block">{user?.fullName || user?.username}</span>
-                  <ChevronDown className="h-4 w-4" />
+                  <span className="hidden md:block text-sm">{user?.fullName || user?.username}</span>
+                  <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-48 sm:w-56">
                 <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                   <LogOut className="mr-2 h-4 w-4" />
                   Logout

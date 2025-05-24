@@ -131,26 +131,26 @@ export default function DashboardPage() {
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* Account Status Card */}
+        {/* Account Status Card - Mobile Responsive */}
         <Card className="mb-8">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+              <div className="min-w-0 flex-1">
                 <h3 className="text-lg font-semibold text-slate-900 mb-2">Account Status</h3>
-                <div className="flex items-center space-x-4">
-                  <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
+                <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
+                  <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 w-fit">
                     {profile?.level || 'Basic'} Plan
                   </Badge>
                   <div className="flex items-center space-x-2 text-slate-600">
                     <Coins className="h-4 w-4 text-amber-600" />
-                    <span>{profile?.credits || 0} credits remaining</span>
+                    <span className="text-sm sm:text-base">{profile?.credits || 0} credits remaining</span>
                   </div>
                 </div>
               </div>
               <Button 
                 onClick={() => handleUpgrade("pro")}
                 disabled={upgradePlanMutation.isPending}
-                className="bg-primary text-white hover:bg-primary/90"
+                className="bg-primary text-white hover:bg-primary/90 w-full sm:w-auto"
               >
                 {upgradePlanMutation.isPending ? (
                   <>
@@ -257,45 +257,51 @@ export default function DashboardPage() {
               <div className="space-y-4">
                 {bots.map((bot) => (
                   <div key={bot.id} className="border border-slate-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                          <BotIcon className="h-6 w-6 text-primary" />
+                    {/* Mobile-first responsive layout */}
+                    <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+                      {/* Bot Info Section */}
+                      <div className="flex items-center space-x-3 min-w-0 flex-1">
+                        <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <BotIcon className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                         </div>
-                        <div>
-                          <h4 className="font-medium text-slate-900">{bot.botName}</h4>
-                          <p className="text-sm text-slate-500">@{bot.botUsername}</p>
-                          <div className="flex items-center space-x-2 mt-1">
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-medium text-slate-900 truncate">{bot.botName}</h4>
+                          <p className="text-sm text-slate-500 truncate">@{bot.botUsername}</p>
+                          {/* Status badges - responsive layout */}
+                          <div className="flex flex-col space-y-1 mt-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
                             <Badge 
                               variant={bot.isActive ? "default" : "secondary"}
-                              className={bot.isActive ? "bg-emerald-100 text-emerald-800" : ""}
+                              className={`w-fit ${bot.isActive ? "bg-emerald-100 text-emerald-800" : ""}`}
                             >
                               <div className={`w-1.5 h-1.5 rounded-full mr-1 ${bot.isActive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                               {bot.isActive ? "Active" : "Inactive"}
                             </Badge>
                             <div className="flex items-center space-x-1 text-xs text-slate-500">
                               <MessageSquare className="h-3 w-3" />
-                              <span>{bot.messageCount} messages handled</span>
+                              <span>{bot.messageCount} messages</span>
                             </div>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      
+                      {/* Action Buttons - responsive */}
+                      <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2 md:flex-shrink-0">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleManageKnowledge(bot.id)}
-                          className="text-primary border-primary hover:bg-primary/5"
+                          className="text-primary border-primary hover:bg-primary/5 w-full sm:w-auto"
                         >
                           <Settings className="mr-1 h-4 w-4" />
-                          Manage Knowledge
+                          <span className="sm:hidden md:inline">Manage Knowledge</span>
+                          <span className="hidden sm:inline md:hidden">Knowledge</span>
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleDeleteBot(bot.id)}
                           disabled={deleteBotMutation.isPending}
-                          className="text-destructive border-destructive hover:bg-destructive/5"
+                          className="text-destructive border-destructive hover:bg-destructive/5 w-full sm:w-auto"
                         >
                           <Trash2 className="mr-1 h-4 w-4" />
                           Delete
