@@ -364,7 +364,48 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Payment routes (mock implementation)
+  // Real upgrade endpoint with Midtrans integration
+  app.post("/api/upgrade", requireAuth, async (req, res) => {
+    try {
+      const { plan } = req.body;
+      
+      if (!plan || !UPGRADE_PLANS[plan as PlanType]) {
+        return res.status(400).json({ message: "Invalid plan selected" });
+      }
+
+      const orderId = generateOrderId(req.user!.id, plan as PlanType);
+      const user = req.user!;
+
+      // Create Midtrans transaction
+      const transaction = await createMidtransTransaction({
+        orderId,
+        userId: user.id,
+        userName: user.fullName || user.username,
+        userEmail: user.email,
+        plan: plan as PlanType,
+      });
+
+      // Save transaction to database
+      await storage.createTransaction({
+        orderId,
+        userId: user.id,
+        plan,
+        amount: UPGRADE_PLANS[plan as PlanType].price,
+        status: "pending",
+      });
+
+      res.json({
+        snapToken: transaction.token,
+        clientKey: process.env.MIDTRANS_CLIENT_KEY,
+        orderId,
+      });
+    } catch (error) {
+      console.error("Upgrade endpoint error:", error);
+      res.status(500).json({ message: "Failed to create payment transaction" });
+    }
+  });
+
+  // Payment routes (mock implementation) 
   app.post("/api/payments/upgrade", requireAuth, async (req, res) => {
     try {
       const { plan } = req.body;
