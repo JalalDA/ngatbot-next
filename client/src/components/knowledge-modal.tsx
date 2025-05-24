@@ -21,7 +21,10 @@ import {
   Link as LinkIcon, 
   Upload, 
   Package,
-  Loader2 
+  Loader2,
+  Edit2,
+  Save,
+  X
 } from "lucide-react";
 import { z } from "zod";
 
@@ -35,6 +38,8 @@ interface KnowledgeModalProps {
 export function KnowledgeModal({ botId, onClose }: KnowledgeModalProps) {
   const { toast } = useToast();
   const [knowledgeType, setKnowledgeType] = useState<string>("text");
+  const [editingKnowledge, setEditingKnowledge] = useState<Knowledge | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   const knowledgeForm = useForm<KnowledgeFormData>({
     resolver: zodResolver(insertKnowledgeSchema),
@@ -79,6 +84,39 @@ export function KnowledgeModal({ botId, onClose }: KnowledgeModalProps) {
     onError: (error: Error) => {
       toast({
         title: "Failed to add knowledge",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update knowledge mutation
+  const updateKnowledgeMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: KnowledgeFormData }) => {
+      const res = await apiRequest("PUT", `/api/knowledge/${id}`, data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/knowledge/${botId}`] });
+      setIsEditing(false);
+      setEditingKnowledge(null);
+      knowledgeForm.reset({
+        botId,
+        type: "text",
+        content: "",
+        url: "",
+        fileName: "",
+        productName: "",
+        productPrice: "",
+      });
+      toast({
+        title: "Knowledge updated",
+        description: "The knowledge has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update knowledge",
         description: error.message,
         variant: "destructive",
       });
@@ -137,7 +175,45 @@ export function KnowledgeModal({ botId, onClose }: KnowledgeModalProps) {
         break;
     }
     
-    addKnowledgeMutation.mutate(knowledgeData);
+    if (isEditing && editingKnowledge) {
+      // Update existing knowledge
+      updateKnowledgeMutation.mutate({ id: editingKnowledge.id, data: knowledgeData });
+    } else {
+      // Add new knowledge
+      addKnowledgeMutation.mutate(knowledgeData);
+    }
+  };
+
+  const handleEditKnowledge = (knowledge: Knowledge) => {
+    setEditingKnowledge(knowledge);
+    setIsEditing(true);
+    setKnowledgeType(knowledge.type);
+    
+    // Pre-fill form with existing data
+    knowledgeForm.reset({
+      botId: knowledge.botId,
+      type: knowledge.type,
+      content: knowledge.content || "",
+      url: knowledge.url || "",
+      fileName: knowledge.fileName || "",
+      productName: knowledge.productName || "",
+      productPrice: knowledge.productPrice || "",
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditingKnowledge(null);
+    setKnowledgeType("text");
+    knowledgeForm.reset({
+      botId,
+      type: "text",
+      content: "",
+      url: "",
+      fileName: "",
+      productName: "",
+      productPrice: "",
+    });
   };
 
   const handleDeleteKnowledge = (knowledgeId: number) => {
