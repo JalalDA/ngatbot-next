@@ -41,10 +41,15 @@ interface AdminStats {
   revenue: number;
 }
 
+interface OpenAIStatus {
+  hasApiKey: boolean;
+  isConnected: boolean;
+  status: "connected" | "key_invalid" | "not_configured";
+}
+
 export default function AdminPage() {
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [openAIKey, setOpenAIKey] = useState("");
 
   // Fetch admin users
   const { data: users, isLoading: usersLoading } = useQuery<AdminUser[]>({
@@ -58,26 +63,11 @@ export default function AdminPage() {
     enabled: isAuthenticated,
   });
 
-  // Update OpenAI key mutation
-  const updateOpenAIKeyMutation = useMutation({
-    mutationFn: async (apiKey: string) => {
-      const res = await apiRequest("PUT", "/api/admin/settings/openai-key", { apiKey });
-      return await res.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "OpenAI API Key Updated",
-        description: "The API key has been updated successfully.",
-      });
-      setOpenAIKey("");
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to update API key",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
+  // Fetch OpenAI status
+  const { data: openAIStatus } = useQuery<OpenAIStatus>({
+    queryKey: ["/api/admin/openai-status"],
+    enabled: isAuthenticated,
+    refetchInterval: 30000, // Check every 30 seconds
   });
 
   // Update user mutation
@@ -140,17 +130,30 @@ export default function AdminPage() {
     },
   });
 
-  const handleUpdateOpenAIKey = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!openAIKey.trim()) {
-      toast({
-        title: "Invalid API key",
-        description: "Please enter a valid OpenAI API key.",
-        variant: "destructive",
-      });
-      return;
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "connected":
+        return "text-green-400";
+      case "key_invalid":
+        return "text-red-400";
+      case "not_configured":
+        return "text-yellow-400";
+      default:
+        return "text-slate-400";
     }
-    updateOpenAIKeyMutation.mutate(openAIKey);
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "connected":
+        return "Connected & Working";
+      case "key_invalid":
+        return "Invalid API Key";
+      case "not_configured":
+        return "Not Configured";
+      default:
+        return "Unknown";
+    }
   };
 
   const handleEditUser = (user: AdminUser) => {
@@ -223,7 +226,7 @@ export default function AdminPage() {
       {/* Admin Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* OpenAI Configuration */}
+        {/* OpenAI Status */}
         <Card className="bg-slate-800 border-slate-700 mb-8">
           <CardHeader>
             <CardTitle className="text-white flex items-center space-x-2">
@@ -231,41 +234,54 @@ export default function AdminPage() {
               <span>OpenAI Configuration</span>
             </CardTitle>
             <CardDescription className="text-slate-400">
-              Manage the global OpenAI API key for all bots
+              OpenAI API key status and connection monitoring
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleUpdateOpenAIKey} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="openai-key" className="text-slate-300">
-                  OpenAI API Key
-                </Label>
-                <Input
-                  id="openai-key"
-                  type="password"
-                  value={openAIKey}
-                  onChange={(e) => setOpenAIKey(e.target.value)}
-                  placeholder="sk-..."
-                  className="bg-slate-700 border-slate-600 text-white focus:ring-red-500 focus:border-red-500"
-                  disabled={updateOpenAIKeyMutation.isPending}
-                />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-slate-700 rounded-lg">
+                <div>
+                  <p className="text-slate-300 font-medium">API Key Status</p>
+                  <p className="text-sm text-slate-400">
+                    {openAIStatus?.hasApiKey ? "API key is configured in Replit Secrets" : "API key not found"}
+                  </p>
+                </div>
+                <div className={`font-medium ${getStatusColor(openAIStatus?.status || "not_configured")}`}>
+                  {getStatusText(openAIStatus?.status || "not_configured")}
+                </div>
               </div>
-
-              <Button 
-                type="submit"
-                disabled={updateOpenAIKeyMutation.isPending}
-                className="bg-red-600 text-white hover:bg-red-700"
-              >
-                {updateOpenAIKeyMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  "Update API Key"
-                )}
-              </Button>
-            </form>
+              
+              {openAIStatus?.status === "not_configured" && (
+                <div className="p-4 bg-yellow-900/20 border border-yellow-600/30 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-5 h-5 text-yellow-400 mt-0.5">⚠️</div>
+                    <div>
+                      <p className="text-yellow-200 font-medium">OpenAI API Key Required</p>
+                      <p className="text-yellow-300 text-sm mt-1">
+                        Add your OpenAI API key to Replit Secrets with the name <code className="bg-slate-700 px-1 rounded">OPENAI_API_KEY</code>
+                      </p>
+                      <p className="text-yellow-300 text-sm mt-2">
+                        Get your API key from <a href="https://platform.openai.com/account/api-keys" target="_blank" rel="noopener noreferrer" className="underline">OpenAI Platform</a>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {openAIStatus?.status === "key_invalid" && (
+                <div className="p-4 bg-red-900/20 border border-red-600/30 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-5 h-5 text-red-400 mt-0.5">❌</div>
+                    <div>
+                      <p className="text-red-200 font-medium">Invalid API Key</p>
+                      <p className="text-red-300 text-sm mt-1">
+                        The OpenAI API key in Replit Secrets is invalid or expired
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 

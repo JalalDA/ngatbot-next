@@ -1,12 +1,17 @@
 import OpenAI from "openai";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
-});
+function getOpenAIClient() {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("OpenAI API Key is not configured. Please contact the system administrator.");
+  }
+  return new OpenAI({ apiKey });
+}
 
 export async function generateBotResponse(userMessage: string, knowledgeBase: string): Promise<string> {
   try {
+    const openai = getOpenAIClient();
     const prompt = `You are a helpful AI assistant for a Telegram bot. Use the following knowledge base to answer user questions accurately and helpfully. If the question is not covered by the knowledge base, provide a general helpful response.
 
 Knowledge Base:
@@ -43,6 +48,20 @@ export async function validateOpenAIKey(apiKey: string): Promise<boolean> {
   try {
     const testClient = new OpenAI({ apiKey });
     await testClient.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: "test" }],
+      max_tokens: 1,
+    });
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+export async function checkOpenAIConnection(): Promise<boolean> {
+  try {
+    const openai = getOpenAIClient();
+    await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: "test" }],
       max_tokens: 1,

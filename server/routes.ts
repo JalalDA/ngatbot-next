@@ -277,26 +277,32 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.put("/api/admin/settings/openai-key", async (req, res) => {
+  app.get("/api/admin/openai-status", async (req, res) => {
     try {
       if (!req.session.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
       
-      const { apiKey } = req.body;
-      if (!apiKey) {
-        return res.status(400).json({ message: "API key is required" });
+      const hasApiKey = !!process.env.OPENAI_API_KEY;
+      let isConnected = false;
+      
+      if (hasApiKey) {
+        try {
+          const { checkOpenAIConnection } = await import("./openai");
+          isConnected = await checkOpenAIConnection();
+        } catch (error) {
+          console.error("OpenAI connection check failed:", error);
+        }
       }
       
-      await storage.setSetting({ key: "openai_api_key", value: apiKey });
-      
-      // Update environment variable for current session
-      process.env.OPENAI_API_KEY = apiKey;
-      
-      res.json({ message: "OpenAI API key updated successfully" });
+      res.json({ 
+        hasApiKey,
+        isConnected,
+        status: hasApiKey ? (isConnected ? "connected" : "key_invalid") : "not_configured"
+      });
     } catch (error) {
-      console.error("Update OpenAI key error:", error);
-      res.status(500).json({ message: "Failed to update OpenAI API key" });
+      console.error("Check OpenAI status error:", error);
+      res.status(500).json({ message: "Failed to check OpenAI status" });
     }
   });
 
