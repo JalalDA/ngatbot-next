@@ -4,6 +4,7 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { telegramBotManager } from "./telegram";
 import { insertBotSchema, insertKnowledgeSchema, insertSettingSchema } from "@shared/schema";
+import { createMidtransTransaction, generateOrderId, verifySignatureKey, getTransactionStatus, UPGRADE_PLANS, type PlanType } from "./midtrans";
 import { z } from "zod";
 
 function requireAuth(req: any, res: any, next: any) {
@@ -377,6 +378,162 @@ export function registerRoutes(app: Express): Server {
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to create payment" });
+    }
+  });
+
+  // Upgrade Plan Endpoints
+  app.post("/api/upgrade-plan", requireAuth, async (req, res) => {
+    try {
+      const { plan } = req.body;
+      
+      if (!plan || !UPGRADE_PLANS[plan as PlanType]) {
+        return res.status(400).json({ message: "Invalid plan selected" });
+      }
+
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check if user already has this plan or higher
+      if (user.level === plan || (user.level === 'business' && plan === 'pro')) {
+        return res.status(400).json({ message: "You already have this plan or higher" });
+      }
+
+      const orderId = generateOrderId(user.id, plan as PlanType);
+      const planConfig = UPGRADE_PLANS[plan as PlanType];
+
+      // Create transaction record
+      await storage.createTransaction({
+        userId: user.id,
+        plan,
+        amount: planConfig.price,
+        status: "pending",
+        midtransOrderId: orderId,
+        paymentInfo: JSON.stringify({ plan, credits: planConfig.credits })
+      });
+
+      // Create Midtrans transaction
+      const midtransResult = await createMidtransTransaction({
+        orderId,
+        userId: user.id,
+        userName: user.fullName,
+        userEmail: user.email,
+        plan: plan as PlanType
+      });
+
+      res.json({
+        success: true,
+        token: midtransResult.token,
+        redirectUrl: midtransResult.redirectUrl,
+        orderId: orderId,
+        plan: planConfig
+      });
+
+    } catch (error) {
+      console.error("Upgrade plan error:", error);
+      res.status(500).json({ message: "Failed to create upgrade plan" });
+    }
+  });
+
+  // Midtrans Payment Callback
+  app.post("/api/payment-callback", async (req, res) => {
+    try {
+      const {
+        order_id,
+        status_code,
+        gross_amount,
+        signature_key,
+        transaction_status,
+        fraud_status
+      } = req.body;
+
+      // Verify signature
+      const isValidSignature = verifySignatureKey(
+        order_id,
+        status_code,
+        gross_amount,
+        signature_key
+      );
+
+      if (!isValidSignature) {
+        console.error("Invalid signature for order:", order_id);
+        return res.status(400).json({ message: "Invalid signature" });
+      }
+
+      // Get transaction from database
+      const transactions = await storage.getTransactionsByUserId(0); // We'll need to implement getTransactionByOrderId
+      const transaction = transactions.find(t => t.midtransOrderId === order_id);
+      
+      if (!transaction) {
+        console.error("Transaction not found for order:", order_id);
+        return res.status(404).json({ message: "Transaction not found" });
+      }
+
+      let newStatus = "pending";
+      
+      // Handle payment status
+      if (transaction_status === 'capture' || transaction_status === 'settlement') {
+        if (fraud_status === 'accept' || !fraud_status) {
+          newStatus = "success";
+          
+          // Update user level and credits
+          const planConfig = UPGRADE_PLANS[transaction.plan as PlanType];
+          await storage.updateUser(transaction.userId, {
+            level: planConfig.level,
+            credits: (await storage.getUser(transaction.userId))?.credits + planConfig.credits
+          });
+        }
+      } else if (transaction_status === 'cancel' || transaction_status === 'deny' || transaction_status === 'expire') {
+        newStatus = "failed";
+      }
+
+      // Update transaction status
+      await storage.updateTransaction(transaction.id, {
+        status: newStatus,
+        paymentInfo: JSON.stringify({
+          ...JSON.parse(transaction.paymentInfo || '{}'),
+          midtrans_response: req.body
+        })
+      });
+
+      res.json({ success: true });
+
+    } catch (error) {
+      console.error("Payment callback error:", error);
+      res.status(500).json({ message: "Payment callback failed" });
+    }
+  });
+
+  // Get available upgrade plans
+  app.get("/api/upgrade-plans", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const availablePlans = Object.entries(UPGRADE_PLANS)
+        .filter(([planKey, planConfig]) => {
+          // Don't show plans user already has or lower plans
+          if (user.level === 'business') return false;
+          if (user.level === 'pro' && planKey === 'pro') return false;
+          return true;
+        })
+        .map(([key, config]) => ({
+          key,
+          ...config
+        }));
+
+      res.json({
+        currentLevel: user.level,
+        currentCredits: user.credits,
+        availablePlans
+      });
+
+    } catch (error) {
+      console.error("Get upgrade plans error:", error);
+      res.status(500).json({ message: "Failed to get upgrade plans" });
     }
   });
 

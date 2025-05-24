@@ -43,6 +43,7 @@ export const transactions = pgTable("transactions", {
   plan: text("plan").notNull(), // pro, business
   amount: integer("amount").notNull(),
   status: text("status").notNull().default("pending"), // pending, success, failed
+  midtransOrderId: text("midtrans_order_id").unique(),
   paymentInfo: text("payment_info"), // JSON string for payment details
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
