@@ -588,6 +588,96 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Check payment status manually (for frontend polling)
+  app.get("/api/payment-status/:orderId", requireAuth, async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      
+      // Get transaction from database
+      const transaction = await storage.getTransactionByOrderId(orderId);
+      
+      if (!transaction) {
+        return res.status(404).json({ message: "Transaction not found" });
+      }
+      
+      // Check if transaction belongs to current user
+      if (transaction.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      console.log(`🔍 Checking payment status for order: ${orderId}`);
+      
+      // Get status from Midtrans
+      const midtransStatus = await getTransactionStatus(orderId);
+      
+      if (midtransStatus && midtransStatus.transaction_status) {
+        const transactionStatus = midtransStatus.transaction_status;
+        let newStatus = transaction.status;
+        
+        console.log(`💳 Midtrans status for ${orderId}: ${transactionStatus}`);
+        
+        // Process payment status similar to callback with improved logic
+        const successStatuses = ['capture', 'settlement', 'success'];
+        const failedStatuses = ['cancel', 'deny', 'expire', 'failure'];
+        
+        if (successStatuses.includes(transactionStatus)) {
+          if (!midtransStatus.fraud_status || midtransStatus.fraud_status === 'accept') {
+            newStatus = "success";
+            
+            // Update user level and credits if not already done
+            if (transaction.status !== 'success') {
+              console.log(`🎉 Payment successful! Upgrading user account...`);
+              
+              const planConfig = UPGRADE_PLANS[transaction.plan as PlanType];
+              const currentUser = await storage.getUser(transaction.userId);
+              
+              if (currentUser && planConfig) {
+                const newCredits = currentUser.credits + planConfig.credits;
+                
+                const updatedUser = await storage.updateUser(transaction.userId, {
+                  level: planConfig.level,
+                  credits: newCredits
+                });
+                
+                console.log(`✅ User ${currentUser.id} upgraded successfully!`);
+                console.log(`   - New level: ${planConfig.level}`);
+                console.log(`   - Total credits: ${newCredits}`);
+              }
+            }
+          }
+        } else if (failedStatuses.includes(transactionStatus)) {
+          newStatus = "failed";
+          console.log(`❌ Payment failed with status: ${transactionStatus}`);
+        }
+        
+        // Update transaction status if changed
+        if (newStatus !== transaction.status) {
+          await storage.updateTransaction(transaction.id, { status: newStatus });
+          console.log(`📝 Transaction ${orderId} status updated to: ${newStatus}`);
+        }
+        
+        res.json({
+          orderId,
+          status: newStatus,
+          midtransStatus: transactionStatus,
+          amount: transaction.amount,
+          plan: transaction.plan
+        });
+      } else {
+        console.log(`⚠️ No Midtrans status found for ${orderId}, using database status: ${transaction.status}`);
+        res.json({
+          orderId,
+          status: transaction.status,
+          amount: transaction.amount,
+          plan: transaction.plan
+        });
+      }
+    } catch (error) {
+      console.error("❌ Payment status check error:", error);
+      res.status(500).json({ message: "Failed to check payment status" });
+    }
+  });
+
   // Get available upgrade plans
   app.get("/api/upgrade-plans", requireAuth, async (req, res) => {
     try {

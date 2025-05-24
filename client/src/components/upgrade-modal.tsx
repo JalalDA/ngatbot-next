@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Crown, Zap, Loader2 } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface UpgradeModalProps {
@@ -19,7 +19,72 @@ declare global {
 
 export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [checkingPayment, setCheckingPayment] = useState(false);
   const { toast } = useToast();
+
+  // Function to check payment status
+  const checkPaymentStatus = async (orderId: string, maxAttempts = 10) => {
+    setCheckingPayment(true);
+    let attempts = 0;
+    
+    const pollStatus = async () => {
+      try {
+        attempts++;
+        console.log(`🔍 Checking payment status (attempt ${attempts}/${maxAttempts})...`);
+        
+        const res = await apiRequest("GET", `/api/payment-status/${orderId}`);
+        const data = await res.json();
+        
+        if (data.status === 'success') {
+          console.log('✅ Payment confirmed! Refreshing user data...');
+          
+          // Refresh user data to get updated level and credits
+          await queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+          
+          toast({
+            title: "🎉 Upgrade Berhasil!",
+            description: `Akun Anda telah berhasil diupgrade ke ${data.plan.toUpperCase()}!`,
+          });
+          
+          setCheckingPayment(false);
+          onClose();
+          return;
+        } else if (data.status === 'failed') {
+          console.log('❌ Payment failed');
+          toast({
+            title: "Pembayaran Gagal",
+            description: "Pembayaran tidak berhasil diproses.",
+            variant: "destructive",
+          });
+          setCheckingPayment(false);
+          return;
+        }
+        
+        // If still pending and we have attempts left, try again
+        if (attempts < maxAttempts) {
+          console.log(`⏳ Payment still pending, checking again in 3 seconds...`);
+          setTimeout(pollStatus, 3000);
+        } else {
+          console.log('⏰ Max attempts reached, stopping check');
+          setCheckingPayment(false);
+          toast({
+            title: "Pengecekan Status",
+            description: "Silakan refresh halaman dalam beberapa menit untuk melihat status upgrade.",
+          });
+        }
+      } catch (error) {
+        console.error('Error checking payment status:', error);
+        if (attempts < maxAttempts) {
+          setTimeout(pollStatus, 3000);
+        } else {
+          setCheckingPayment(false);
+        }
+      }
+    };
+    
+    // Start checking after a short delay
+    setTimeout(pollStatus, 2000);
+  };
 
   const upgradeMutation = useMutation({
     mutationFn: async (plan: string) => {
@@ -36,12 +101,15 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
         
         script.onload = () => {
           window.snap.pay(data.snapToken, {
-            onSuccess: function() {
+            onSuccess: function(result: any) {
+              console.log('✅ Payment success callback received:', result);
               toast({
                 title: "Pembayaran Berhasil!",
-                description: "Paket Anda telah berhasil diupgrade.",
+                description: "Mengecek status upgrade akun...",
               });
-              onClose();
+              
+              // Start checking payment status
+              checkPaymentStatus(data.orderId);
             },
             onPending: function() {
               toast({
