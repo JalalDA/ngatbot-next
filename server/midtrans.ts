@@ -82,11 +82,6 @@ export async function createMidtransTransaction(params: CreateTransactionParams)
       first_name: userName.replace(/[^a-zA-Z0-9\s]/g, '').trim(),
       email: userEmail,
     },
-    callbacks: {
-      finish: `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}/`,
-      error: `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}/`,
-      pending: `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}/`
-    }
   };
 
   console.log('Midtrans parameter:', JSON.stringify(parameter, null, 2));

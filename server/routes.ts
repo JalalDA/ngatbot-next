@@ -485,11 +485,9 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Midtrans Payment Callback - Handle webhook notifications
+  // Midtrans Payment Callback
   app.post("/api/payment-callback", async (req, res) => {
     try {
-      console.log("🔔 Webhook received from Midtrans:", JSON.stringify(req.body, null, 2));
-      
       const {
         order_id,
         status_code,
@@ -508,11 +506,9 @@ export function registerRoutes(app: Express): Server {
       );
 
       if (!isValidSignature) {
-        console.error("❌ Invalid signature for order:", order_id);
+        console.error("Invalid signature for order:", order_id);
         return res.status(400).json({ message: "Invalid signature" });
       }
-
-      console.log("✅ Signature verified for order:", order_id);
 
       // Get transaction from database
       const transaction = await storage.getTransactionByOrderId(order_id);
@@ -531,17 +527,10 @@ export function registerRoutes(app: Express): Server {
           
           // Update user level and credits
           const planConfig = UPGRADE_PLANS[transaction.plan as PlanType];
-          const currentUser = await storage.getUser(transaction.userId);
-          
-          if (currentUser) {
-            const newCredits = currentUser.credits + planConfig.credits;
-            await storage.updateUser(transaction.userId, {
-              level: planConfig.level,
-              credits: newCredits
-            });
-            
-            console.log(`User ${transaction.userId} upgraded to ${planConfig.level} with ${newCredits} credits`);
-          }
+          await storage.updateUser(transaction.userId, {
+            level: planConfig.level,
+            credits: (await storage.getUser(transaction.userId))?.credits + planConfig.credits
+          });
         }
       } else if (transaction_status === 'cancel' || transaction_status === 'deny' || transaction_status === 'expire') {
         newStatus = "failed";
