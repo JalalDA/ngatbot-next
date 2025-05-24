@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Crown, Zap, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -20,10 +21,18 @@ declare global {
 export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const upgradeMutation = useMutation({
     mutationFn: async (plan: string) => {
       const res = await apiRequest("POST", "/api/upgrade", { plan });
+      
+      // Check if response is HTML (login page) instead of JSON
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("text/html")) {
+        throw new Error("Anda perlu login terlebih dahulu untuk melakukan upgrade paket");
+      }
+      
       const data = await res.json();
       console.log("Upgrade response:", data); // Debug log
       return data;
@@ -83,6 +92,15 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
   });
 
   const handleSelectPlan = (plan: string) => {
+    if (!user) {
+      toast({
+        title: "Login Diperlukan",
+        description: "Anda perlu login terlebih dahulu untuk melakukan upgrade paket.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setSelectedPlan(plan);
     upgradeMutation.mutate(plan);
   };
