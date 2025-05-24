@@ -72,21 +72,31 @@ export async function createMidtransTransaction(params: CreateTransactionParams)
     secure: true,
   };
 
+  // Minimal parameter structure to avoid validation errors
   const parameter = {
-    transaction_details: transactionDetails,
-    item_details: itemDetails,
-    customer_details: customerDetails,
+    transaction_details: {
+      order_id: orderId,
+      gross_amount: planConfig.price,
+    },
+    customer_details: {
+      first_name: userName.replace(/[^a-zA-Z0-9\s]/g, '').trim(),
+      email: userEmail,
+    },
   };
+
+  console.log('Midtrans parameter:', JSON.stringify(parameter, null, 2));
 
   try {
     const transaction = await snap.createTransaction(parameter);
+    console.log('Midtrans transaction created successfully:', transaction.token);
     return {
       token: transaction.token,
       redirectUrl: transaction.redirect_url,
     };
   } catch (error) {
     console.error('Midtrans transaction creation error:', error);
-    throw new Error('Failed to create payment transaction');
+    console.error('Error details:', JSON.stringify(error, null, 2));
+    throw new Error(`Failed to create payment transaction: ${error.message || error}`);
   }
 }
 
@@ -116,6 +126,6 @@ export function verifySignatureKey(
 }
 
 export function generateOrderId(userId: number, plan: PlanType): string {
-  const timestamp = Date.now().toString().slice(-8); // Last 8 digits
-  return `${timestamp}${userId}`;
+  const timestamp = Date.now().toString();
+  return `TXN${timestamp.slice(-6)}${userId}`;
 }
