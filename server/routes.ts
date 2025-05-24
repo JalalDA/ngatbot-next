@@ -527,10 +527,24 @@ export function registerRoutes(app: Express): Server {
           
           // Update user level and credits
           const planConfig = UPGRADE_PLANS[transaction.plan as PlanType];
-          await storage.updateUser(transaction.userId, {
-            level: planConfig.level,
-            credits: (await storage.getUser(transaction.userId))?.credits + planConfig.credits
-          });
+          const currentUser = await storage.getUser(transaction.userId);
+          
+          if (currentUser && planConfig) {
+            console.log(`Upgrading user ${currentUser.id} from ${currentUser.level} to ${planConfig.level}`);
+            console.log(`Adding ${planConfig.credits} credits to current ${currentUser.credits} credits`);
+            
+            const newCredits = currentUser.credits + planConfig.credits;
+            
+            const updatedUser = await storage.updateUser(transaction.userId, {
+              level: planConfig.level,
+              credits: newCredits
+            });
+            
+            console.log(`User upgrade completed: level=${planConfig.level}, total_credits=${newCredits}`);
+            console.log(`Updated user result:`, updatedUser);
+          } else {
+            console.error(`Failed to upgrade user - User: ${currentUser ? 'found' : 'not found'}, Plan: ${planConfig ? 'found' : 'not found'}`);
+          }
         }
       } else if (transaction_status === 'cancel' || transaction_status === 'deny' || transaction_status === 'expire') {
         newStatus = "failed";
