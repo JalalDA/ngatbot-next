@@ -391,23 +391,46 @@ export function KnowledgeModal({ botId, onClose }: KnowledgeModalProps) {
                 </>
               )}
 
-              <Button 
-                type="submit" 
-                disabled={addKnowledgeMutation.isPending}
-                className="bg-primary text-white hover:bg-primary/90"
-              >
-                {addKnowledgeMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Knowledge
-                  </>
+              <div className="flex items-center space-x-2">
+                <Button 
+                  type="submit" 
+                  disabled={addKnowledgeMutation.isPending || updateKnowledgeMutation.isPending}
+                  className="bg-primary text-white hover:bg-primary/90"
+                >
+                  {(addKnowledgeMutation.isPending || updateKnowledgeMutation.isPending) ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {isEditing ? "Updating..." : "Adding..."}
+                    </>
+                  ) : (
+                    <>
+                      {isEditing ? (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Update Knowledge
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Knowledge
+                        </>
+                      )}
+                    </>
+                  )}
+                </Button>
+                
+                {isEditing && (
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                    disabled={addKnowledgeMutation.isPending || updateKnowledgeMutation.isPending}
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    Cancel
+                  </Button>
                 )}
-              </Button>
+              </div>
             </form>
           </div>
 
@@ -463,15 +486,30 @@ export function KnowledgeModal({ botId, onClose }: KnowledgeModalProps) {
                             </p>
                           )}
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteKnowledge(item.id)}
-                          disabled={deleteKnowledgeMutation.isPending}
-                          className="ml-4 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        
+                        {/* Action buttons - responsive layout */}
+                        <div className="flex flex-col space-y-1 sm:flex-row sm:space-y-0 sm:space-x-1 ml-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditKnowledge(item)}
+                            disabled={updateKnowledgeMutation.isPending || deleteKnowledgeMutation.isPending}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 w-full sm:w-auto"
+                          >
+                            <Edit2 className="h-4 w-4 sm:mr-1" />
+                            <span className="hidden sm:inline">Edit</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteKnowledge(item.id)}
+                            disabled={deleteKnowledgeMutation.isPending || updateKnowledgeMutation.isPending}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 w-full sm:w-auto"
+                          >
+                            <Trash2 className="h-4 w-4 sm:mr-1" />
+                            <span className="hidden sm:inline">Delete</span>
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

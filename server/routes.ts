@@ -138,6 +138,31 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Update knowledge
+  app.put("/api/knowledge/:id", requireAuth, async (req, res) => {
+    try {
+      const knowledgeId = parseInt(req.params.id);
+      const updateData = insertKnowledgeSchema.parse(req.body);
+      
+      const knowledge = await storage.getKnowledge(knowledgeId);
+      if (!knowledge) {
+        return res.status(404).json({ message: "Knowledge not found" });
+      }
+
+      // Verify bot ownership
+      const bot = await storage.getBot(knowledge.botId);
+      if (!bot || bot.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to update this knowledge" });
+      }
+
+      const updatedKnowledge = await storage.updateKnowledge(knowledgeId, updateData);
+      res.json(updatedKnowledge);
+    } catch (error) {
+      console.error("Update knowledge error:", error);
+      res.status(500).json({ message: "Failed to update knowledge" });
+    }
+  });
+
   app.delete("/api/knowledge/:id", requireAuth, async (req, res) => {
     try {
       const knowledgeId = parseInt(req.params.id);
