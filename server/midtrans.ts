@@ -1,15 +1,14 @@
-import pkg from 'midtrans-client';
-const { Snap, CoreApi } = pkg;
+import { MidtransClient } from 'midtrans-client';
 import crypto from 'crypto';
 
 // Initialize Midtrans clients
-const snap = new Snap({
+const snap = new MidtransClient.Snap({
   isProduction: false, // Set to true for production
   serverKey: process.env.MIDTRANS_SERVER_KEY!,
   clientKey: process.env.MIDTRANS_CLIENT_KEY!,
 });
 
-const coreApi = new CoreApi({
+const coreApi = new MidtransClient.CoreApi({
   isProduction: false, // Set to true for production
   serverKey: process.env.MIDTRANS_SERVER_KEY!,
   clientKey: process.env.MIDTRANS_CLIENT_KEY!,

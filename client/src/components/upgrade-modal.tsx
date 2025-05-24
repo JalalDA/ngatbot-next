@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Crown, Zap, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -21,24 +20,13 @@ declare global {
 export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
 
   const upgradeMutation = useMutation({
     mutationFn: async (plan: string) => {
       const res = await apiRequest("POST", "/api/upgrade", { plan });
-      
-      // Check if response is HTML (login page) instead of JSON
-      const contentType = res.headers.get("content-type");
-      if (contentType && contentType.includes("text/html")) {
-        throw new Error("Anda perlu login terlebih dahulu untuk melakukan upgrade paket");
-      }
-      
-      const data = await res.json();
-      console.log("Upgrade response:", data); // Debug log
-      return data;
+      return await res.json();
     },
     onSuccess: (data) => {
-      console.log("Success data:", data); // Debug log
       if (data.snapToken) {
         // Load Midtrans Snap
         const script = document.createElement('script');
@@ -73,34 +61,18 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
             }
           });
         };
-      } else {
-        toast({
-          title: "Error",
-          description: "Tidak dapat membuat pembayaran. Silakan coba lagi.",
-          variant: "destructive",
-        });
       }
     },
     onError: (error: Error) => {
-      console.error("Upgrade error:", error); // Debug log
       toast({
         title: "Error",
-        description: error.message || "Terjadi kesalahan saat memproses upgrade.",
+        description: error.message,
         variant: "destructive",
       });
     },
   });
 
   const handleSelectPlan = (plan: string) => {
-    if (!user) {
-      toast({
-        title: "Login Diperlukan",
-        description: "Anda perlu login terlebih dahulu untuk melakukan upgrade paket.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     setSelectedPlan(plan);
     upgradeMutation.mutate(plan);
   };
