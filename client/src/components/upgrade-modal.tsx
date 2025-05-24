@@ -31,7 +31,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
         // Load Midtrans Snap
         const script = document.createElement('script');
         script.src = 'https://app.sandbox.midtrans.com/snap/snap.js';
-        script.setAttribute('data-client-key', 'SB-Mid-client-yLqr4RdgcHZxWQ1C');
+        script.setAttribute('data-client-key', data.clientKey);
         document.head.appendChild(script);
         
         script.onload = () => {

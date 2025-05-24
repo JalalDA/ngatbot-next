@@ -56,12 +56,10 @@ export async function createMidtransTransaction(params: CreateTransactionParams)
 
   const itemDetails = [
     {
-      id: `upgrade_${plan}`,
-      price: planConfig.price,
+      id: plan,
+      name: `Paket ${planConfig.name}`,
       quantity: 1,
-      name: planConfig.name,
-      brand: 'BotBuilder AI',
-      category: 'subscription',
+      price: planConfig.price,
     },
   ];
 
@@ -76,14 +74,8 @@ export async function createMidtransTransaction(params: CreateTransactionParams)
 
   const parameter = {
     transaction_details: transactionDetails,
-    credit_card: creditCards,
     item_details: itemDetails,
     customer_details: customerDetails,
-    callbacks: {
-      finish: `${process.env.FRONTEND_URL || 'http://localhost:5000'}/dashboard?payment=success`,
-      error: `${process.env.FRONTEND_URL || 'http://localhost:5000'}/dashboard?payment=error`,
-      pending: `${process.env.FRONTEND_URL || 'http://localhost:5000'}/dashboard?payment=pending`,
-    },
   };
 
   try {
@@ -125,5 +117,5 @@ export function verifySignatureKey(
 
 export function generateOrderId(userId: number, plan: PlanType): string {
   const timestamp = Date.now();
-  return `UPGRADE-${userId}-${plan.toUpperCase()}-${timestamp}`;
+  return `ORDER-${timestamp}-${userId}`;
 }
