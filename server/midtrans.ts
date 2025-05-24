@@ -2,6 +2,33 @@ import pkg from 'midtrans-client';
 const { Snap, CoreApi } = pkg;
 import crypto from 'crypto';
 
+// Validate environment variables
+function validateMidtransConfig() {
+  const serverKey = process.env.MIDTRANS_SERVER_KEY;
+  const clientKey = process.env.MIDTRANS_CLIENT_KEY;
+  const merchantId = process.env.MIDTRANS_MERCHANT_ID;
+
+  if (!serverKey || !clientKey || !merchantId) {
+    throw new Error('Midtrans configuration incomplete. Please check your API keys.');
+  }
+
+  if (!serverKey.startsWith('SB-Mid-server-') && !serverKey.startsWith('Mid-server-')) {
+    throw new Error('Invalid Midtrans Server Key format');
+  }
+
+  if (!clientKey.startsWith('SB-Mid-client-') && !clientKey.startsWith('Mid-client-')) {
+    throw new Error('Invalid Midtrans Client Key format');
+  }
+
+  console.log('Midtrans configuration validated successfully');
+  console.log('Server Key:', serverKey.substring(0, 20) + '...');
+  console.log('Client Key:', clientKey.substring(0, 20) + '...');
+  console.log('Merchant ID:', merchantId);
+}
+
+// Validate config on startup
+validateMidtransConfig();
+
 // Initialize Midtrans clients
 const snap = new Snap({
   isProduction: false, // Set to true for production
