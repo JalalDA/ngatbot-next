@@ -51,7 +51,7 @@ export function KnowledgeModal({ botId, onClose }: KnowledgeModalProps) {
 
   // Fetch knowledge for this bot
   const { data: knowledge, isLoading } = useQuery<Knowledge[]>({
-    queryKey: ["/api/knowledge", botId],
+    queryKey: [`/api/knowledge/${botId}`],
   });
 
   // Add knowledge mutation
@@ -61,7 +61,7 @@ export function KnowledgeModal({ botId, onClose }: KnowledgeModalProps) {
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/knowledge", botId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/knowledge/${botId}`] });
       knowledgeForm.reset({
         botId,
         type: "text",
@@ -92,7 +92,7 @@ export function KnowledgeModal({ botId, onClose }: KnowledgeModalProps) {
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/knowledge", botId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/knowledge/${botId}`] });
       toast({
         title: "Knowledge deleted",
         description: "The knowledge item has been removed from your bot.",
