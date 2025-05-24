@@ -367,14 +367,18 @@ export function registerRoutes(app: Express): Server {
   // Real upgrade endpoint with Midtrans integration
   app.post("/api/upgrade", requireAuth, async (req, res) => {
     try {
+      console.log("Upgrade endpoint called with plan:", req.body.plan);
       const { plan } = req.body;
       
       if (!plan || !UPGRADE_PLANS[plan as PlanType]) {
+        console.log("Invalid plan:", plan);
         return res.status(400).json({ message: "Invalid plan selected" });
       }
 
       const orderId = generateOrderId(req.user!.id, plan as PlanType);
       const user = req.user!;
+
+      console.log("Creating Midtrans transaction for order:", orderId);
 
       // Create Midtrans transaction
       const transaction = await createMidtransTransaction({
@@ -385,14 +389,18 @@ export function registerRoutes(app: Express): Server {
         plan: plan as PlanType,
       });
 
+      console.log("Midtrans transaction created successfully");
+
       // Save transaction to database
       await storage.createTransaction({
-        orderId,
+        midtransOrderId: orderId,
         userId: user.id,
         plan,
         amount: UPGRADE_PLANS[plan as PlanType].price,
         status: "pending",
       });
+
+      console.log("Transaction saved to database");
 
       res.json({
         snapToken: transaction.token,
@@ -401,7 +409,7 @@ export function registerRoutes(app: Express): Server {
       });
     } catch (error) {
       console.error("Upgrade endpoint error:", error);
-      res.status(500).json({ message: "Failed to create payment transaction" });
+      res.status(500).json({ message: "Failed to create payment transaction", error: error.message });
     }
   });
 
