@@ -43,7 +43,7 @@ export interface IStorage {
   setSetting(setting: InsertSetting): Promise<Setting>;
   updateSetting(key: string, value: string): Promise<Setting | undefined>;
   
-  sessionStore: any;
+  sessionStore: session.SessionStore;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -96,7 +96,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUser(id: number): Promise<boolean> {
     const result = await db.delete(users).where(eq(users.id, id));
-    return (result.rowCount || 0) > 0;
+    return result.rowCount > 0;
   }
 
   async getAllUsers(): Promise<User[]> {
@@ -105,132 +105,145 @@ export class DatabaseStorage implements IStorage {
 
   // Bot methods
   async getBot(id: number): Promise<Bot | undefined> {
-    const [bot] = await db.select().from(bots).where(eq(bots.id, id));
-    return bot || undefined;
+    return this.bots.get(id);
   }
 
   async getBotsByUserId(userId: number): Promise<Bot[]> {
-    return await db.select().from(bots).where(eq(bots.userId, userId));
+    return Array.from(this.bots.values()).filter(bot => bot.userId === userId);
   }
 
   async getBotByToken(token: string): Promise<Bot | undefined> {
-    const [bot] = await db.select().from(bots).where(eq(bots.token, token));
-    return bot || undefined;
+    return Array.from(this.bots.values()).find(bot => bot.token === token);
   }
 
   async createBot(botData: InsertBot & { userId: number; botName: string; botUsername: string }): Promise<Bot> {
-    const [bot] = await db
-      .insert(bots)
-      .values({
-        userId: botData.userId,
-        token: botData.token,
-        botName: botData.botName,
-        botUsername: botData.botUsername,
-        isActive: true,
-        messageCount: 0,
-      })
-      .returning();
+    const id = this.currentBotId++;
+    const bot: Bot = {
+      id,
+      userId: botData.userId,
+      token: botData.token,
+      botName: botData.botName,
+      botUsername: botData.botUsername,
+      isActive: true,
+      messageCount: 0,
+      createdAt: new Date(),
+    };
+    this.bots.set(id, bot);
     return bot;
   }
 
   async updateBot(id: number, updates: Partial<Bot>): Promise<Bot | undefined> {
-    const [bot] = await db
-      .update(bots)
-      .set(updates)
-      .where(eq(bots.id, id))
-      .returning();
-    return bot || undefined;
+    const bot = this.bots.get(id);
+    if (!bot) return undefined;
+    
+    const updatedBot = { ...bot, ...updates };
+    this.bots.set(id, updatedBot);
+    return updatedBot;
   }
 
   async deleteBot(id: number): Promise<boolean> {
-    const result = await db.delete(bots).where(eq(bots.id, id));
-    return (result.rowCount || 0) > 0;
+    // Also delete associated knowledge
+    const knowledgeItems = Array.from(this.knowledge.values()).filter(k => k.botId === id);
+    knowledgeItems.forEach(k => this.knowledge.delete(k.id));
+    
+    return this.bots.delete(id);
   }
 
   async getAllBots(): Promise<Bot[]> {
-    return await db.select().from(bots);
+    return Array.from(this.bots.values());
   }
 
   // Knowledge methods
   async getKnowledge(id: number): Promise<Knowledge | undefined> {
-    const [knowledgeItem] = await db.select().from(knowledge).where(eq(knowledge.id, id));
-    return knowledgeItem || undefined;
+    return this.knowledge.get(id);
   }
 
   async getKnowledgeByBotId(botId: number): Promise<Knowledge[]> {
-    return await db.select().from(knowledge).where(eq(knowledge.botId, botId));
+    return Array.from(this.knowledge.values()).filter(k => k.botId === botId);
   }
 
   async createKnowledge(insertKnowledge: InsertKnowledge): Promise<Knowledge> {
-    const [knowledgeItem] = await db
-      .insert(knowledge)
-      .values(insertKnowledge)
-      .returning();
+    const id = this.currentKnowledgeId++;
+    const knowledgeItem: Knowledge = {
+      ...insertKnowledge,
+      id,
+      url: insertKnowledge.url || null,
+      fileName: insertKnowledge.fileName || null,
+      productName: insertKnowledge.productName || null,
+      productPrice: insertKnowledge.productPrice || null,
+      createdAt: new Date(),
+    };
+    this.knowledge.set(id, knowledgeItem);
     return knowledgeItem;
   }
 
   async updateKnowledge(id: number, updates: Partial<Knowledge>): Promise<Knowledge | undefined> {
-    const [knowledgeItem] = await db
-      .update(knowledge)
-      .set(updates)
-      .where(eq(knowledge.id, id))
-      .returning();
-    return knowledgeItem || undefined;
+    const knowledgeItem = this.knowledge.get(id);
+    if (!knowledgeItem) return undefined;
+    
+    const updatedKnowledge = { ...knowledgeItem, ...updates };
+    this.knowledge.set(id, updatedKnowledge);
+    return updatedKnowledge;
   }
 
   async deleteKnowledge(id: number): Promise<boolean> {
-    const result = await db.delete(knowledge).where(eq(knowledge.id, id));
-    return (result.rowCount || 0) > 0;
+    return this.knowledge.delete(id);
   }
 
   // Transaction methods
   async getTransaction(id: number): Promise<Transaction | undefined> {
-    const [transaction] = await db.select().from(transactions).where(eq(transactions.id, id));
-    return transaction || undefined;
+    return this.transactions.get(id);
   }
 
   async getTransactionsByUserId(userId: number): Promise<Transaction[]> {
-    return await db.select().from(transactions).where(eq(transactions.userId, userId));
+    return Array.from(this.transactions.values()).filter(t => t.userId === userId);
   }
 
   async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
-    const [transaction] = await db
-      .insert(transactions)
-      .values(insertTransaction)
-      .returning();
+    const id = this.currentTransactionId++;
+    const transaction: Transaction = {
+      ...insertTransaction,
+      id,
+      status: "pending",
+      paymentInfo: null,
+      createdAt: new Date(),
+    };
+    this.transactions.set(id, transaction);
     return transaction;
   }
 
   async updateTransaction(id: number, updates: Partial<Transaction>): Promise<Transaction | undefined> {
-    const [transaction] = await db
-      .update(transactions)
-      .set(updates)
-      .where(eq(transactions.id, id))
-      .returning();
-    return transaction || undefined;
+    const transaction = this.transactions.get(id);
+    if (!transaction) return undefined;
+    
+    const updatedTransaction = { ...transaction, ...updates };
+    this.transactions.set(id, updatedTransaction);
+    return updatedTransaction;
   }
 
   // Settings methods
   async getSetting(key: string): Promise<Setting | undefined> {
-    const [setting] = await db.select().from(settings).where(eq(settings.key, key));
-    return setting || undefined;
+    return this.settings.get(key);
   }
 
   async setSetting(insertSetting: InsertSetting): Promise<Setting> {
-    const [setting] = await db
-      .insert(settings)
-      .values(insertSetting)
-      .returning();
+    const setting: Setting = {
+      id: 1, // Not used in memory storage
+      key: insertSetting.key,
+      value: insertSetting.value,
+      updatedAt: new Date(),
+    };
+    this.settings.set(insertSetting.key, setting);
     return setting;
   }
 
   async updateSetting(key: string, value: string): Promise<Setting | undefined> {
-    const [setting] = await db
-      .update(settings)
-      .set({ value, updatedAt: new Date() })
-      .where(eq(settings.key, key))
-      .returning();
-    return setting || undefined;
+    const setting = this.settings.get(key);
+    if (!setting) return undefined;
+    
+    const updatedSetting = { ...setting, value, updatedAt: new Date() };
+    this.settings.set(key, updatedSetting);
+    return updatedSetting;
   }
 }
 
