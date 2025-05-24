@@ -488,6 +488,8 @@ export function registerRoutes(app: Express): Server {
   // Midtrans Payment Callback
   app.post("/api/payment-callback", async (req, res) => {
     try {
+      console.log("Midtrans callback received:", req.body);
+      
       const {
         order_id,
         status_code,
@@ -497,17 +499,17 @@ export function registerRoutes(app: Express): Server {
         fraud_status
       } = req.body;
 
-      // Verify signature
-      const isValidSignature = verifySignatureKey(
-        order_id,
-        status_code,
-        gross_amount,
-        signature_key
-      );
+      // For development/sandbox, skip signature validation or make it optional
+      const isValidSignature = process.env.NODE_ENV === 'development' || 
+        verifySignatureKey(order_id, status_code, gross_amount, signature_key);
 
       if (!isValidSignature) {
         console.error("Invalid signature for order:", order_id);
-        return res.status(400).json({ message: "Invalid signature" });
+        // In development, log but don't reject
+        if (process.env.NODE_ENV !== 'development') {
+          return res.status(400).json({ message: "Invalid signature" });
+        }
+        console.log("Signature validation skipped in development mode");
       }
 
       // Get transaction from database
@@ -520,9 +522,16 @@ export function registerRoutes(app: Express): Server {
 
       let newStatus = "pending";
       
-      // Handle payment status
-      if (transaction_status === 'capture' || transaction_status === 'settlement') {
-        if (fraud_status === 'accept' || !fraud_status) {
+      // Handle payment status - more comprehensive status handling
+      console.log(`Processing payment status: ${transaction_status}, fraud_status: ${fraud_status}`);
+      
+      // Define successful payment statuses for Midtrans
+      const successStatuses = ['capture', 'settlement', 'success'];
+      const pendingStatuses = ['pending', 'authorize'];
+      const failedStatuses = ['cancel', 'deny', 'expire', 'failure'];
+      
+      if (successStatuses.includes(transaction_status)) {
+        if (!fraud_status || fraud_status === 'accept') {
           newStatus = "success";
           
           // Update user level and credits
@@ -530,8 +539,8 @@ export function registerRoutes(app: Express): Server {
           const currentUser = await storage.getUser(transaction.userId);
           
           if (currentUser && planConfig) {
-            console.log(`Upgrading user ${currentUser.id} from ${currentUser.level} to ${planConfig.level}`);
-            console.log(`Adding ${planConfig.credits} credits to current ${currentUser.credits} credits`);
+            console.log(`✅ Upgrading user ${currentUser.id} from ${currentUser.level} to ${planConfig.level}`);
+            console.log(`✅ Adding ${planConfig.credits} credits to current ${currentUser.credits} credits`);
             
             const newCredits = currentUser.credits + planConfig.credits;
             
@@ -540,14 +549,26 @@ export function registerRoutes(app: Express): Server {
               credits: newCredits
             });
             
-            console.log(`User upgrade completed: level=${planConfig.level}, total_credits=${newCredits}`);
-            console.log(`Updated user result:`, updatedUser);
+            console.log(`✅ User upgrade completed successfully!`);
+            console.log(`   - New level: ${planConfig.level}`);
+            console.log(`   - Total credits: ${newCredits}`);
+            console.log(`   - Updated user:`, updatedUser);
           } else {
-            console.error(`Failed to upgrade user - User: ${currentUser ? 'found' : 'not found'}, Plan: ${planConfig ? 'found' : 'not found'}`);
+            console.error(`❌ Failed to upgrade user - User: ${currentUser ? 'found' : 'not found'}, Plan: ${planConfig ? 'found' : 'not found'}`);
           }
+        } else {
+          console.log(`⚠️ Payment success but fraud detected: ${fraud_status}`);
+          newStatus = "failed";
         }
-      } else if (transaction_status === 'cancel' || transaction_status === 'deny' || transaction_status === 'expire') {
+      } else if (pendingStatuses.includes(transaction_status)) {
+        newStatus = "pending";
+        console.log(`⏳ Payment still pending: ${transaction_status}`);
+      } else if (failedStatuses.includes(transaction_status)) {
         newStatus = "failed";
+        console.log(`❌ Payment failed: ${transaction_status}`);
+      } else {
+        console.log(`⚠️ Unknown payment status: ${transaction_status}, keeping as pending`);
+        newStatus = "pending";
       }
 
       // Update transaction status
