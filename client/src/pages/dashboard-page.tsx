@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Navigation } from "@/components/navigation";
 import { KnowledgeModal } from "@/components/knowledge-modal";
+import { UpgradeModal } from "@/components/upgrade-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,7 @@ import { insertBotSchema } from "@shared/schema";
 import type { Bot, User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Settings, Trash2, Coins, Bot as BotIcon, MessageSquare } from "lucide-react";
+import { Loader2, Plus, Settings, Trash2, Coins, Bot as BotIcon, MessageSquare, Crown } from "lucide-react";
 import { z } from "zod";
 
 type BotFormData = z.infer<typeof insertBotSchema>;
@@ -24,6 +25,7 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [selectedBotId, setSelectedBotId] = useState<number | null>(null);
   const [showKnowledgeModal, setShowKnowledgeModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const botForm = useForm<BotFormData>({
     resolver: zodResolver(insertBotSchema),

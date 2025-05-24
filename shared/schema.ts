@@ -81,6 +81,9 @@ export const insertTransactionSchema = createInsertSchema(transactions).pick({
   userId: true,
   plan: true,
   amount: true,
+  status: true,
+  midtransOrderId: true,
+  paymentInfo: true,
 });
 
 export const insertSettingSchema = createInsertSchema(settings).pick({

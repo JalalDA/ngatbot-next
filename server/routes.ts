@@ -462,8 +462,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Get transaction from database
-      const transactions = await storage.getTransactionsByUserId(0); // We'll need to implement getTransactionByOrderId
-      const transaction = transactions.find(t => t.midtransOrderId === order_id);
+      const transaction = await storage.getTransactionByOrderId(order_id);
       
       if (!transaction) {
         console.error("Transaction not found for order:", order_id);
