@@ -1,0 +1,135 @@
+Saya ingin membangun sebuah startup berbasis web app yang memungkinkan pengguna membuat bot Telegram bertenaga AI (menggunakan GPT dari OpenAI), hanya dengan memasukkan token dari BotFather.
+
+Karena saya tidak bisa coding, saya memohon bantuan Anda untuk membangun MVP yang **stabil**, **bebas bug**, dan **siap digunakan langsung**, menggunakan stack:
+
+- Frontend: React.js + TailwindCSS
+- Backend: Node.js + Express
+- Database: MongoDB
+- Hosting: Harap dapat disesuaikan dengan Replit deployment (bila perlu gunakan Railway atau Vercel jika backend/frontend harus terpisah)
+
+---
+
+## ✅ TUJUAN UTAMA
+
+Platform ini memungkinkan user membuat bot Telegram AI dengan langkah sederhana:
+
+1. Masukkan Token Bot dari BotFather
+2. Bot akan terhubung otomatis dengan GPT dari OpenAI
+3. User dapat memberi “knowledge” spesifik ke bot-nya
+4. Bot akan merespons pesan di Telegram menggunakan GPT + knowledge user
+5. Sistem pengurangan kredit diterapkan untuk membatasi penggunaan
+
+---
+
+## ✅ FITUR DETAIL YANG HARUS BERJALAN
+
+### 1. 🔗 Integrasi Bot Telegram
+- Form input Token Bot dari BotFather
+- Token divalidasi via `https://api.telegram.org/bot<TOKEN>/getMe`
+- Simpan token dan buat entri bot ke user
+- Bot aktif dan siap merespons pesan
+- Bot akan merespons dengan OpenAI GPT (via backend)
+
+### 2. 🤖 Integrasi OpenAI GPT
+- API Key disimpan secara **global** di backend `.env`, hanya bisa diatur oleh **super admin**
+- Semua permintaan ke OpenAI melalui backend (tidak ada akses frontend langsung)
+- Prompt ke GPT mengambil knowledge dari database bot milik user
+- Response dikirim kembali ke Telegram via Telegram Bot API
+
+### 3. 📚 Knowledge Bot (Per Bot)
+- Knowledge dibedakan berdasarkan bot ID
+- Jenis knowledge yang bisa diinput user:
+  - Teks manual
+  - Link website (scrape konten dasar)
+  - Upload file (.pdf, .txt, .docx) — parsed ke teks
+  - Produk: nama, deskripsi, harga
+- Opsi edit/delete knowledge per bot
+- Tampilkan form knowledge di dashboard user setelah bot berhasil dibuat
+
+### 4. 🔒 Sistem Akun & Kredit
+- Akun user dibagi 3 level:
+  - Basic (250 kredit, default)
+  - Pro (5.000 kredit, Rp350.000)
+  - Bisnis (10.000 kredit, Rp550.000)
+- Kredit berkurang berdasarkan token usage GPT (misal 1 msg = X token = 1 kredit)
+- Jika kredit habis, user tidak bisa pakai bot
+- Upgrade paket via **Midtrans Payment Gateway**
+- Otomatis update kredit & level user setelah pembayaran sukses
+
+---
+
+## 🖥️ FRONTEND (React.js + TailwindCSS)
+
+### Halaman Umum
+- Landing page clean
+- Halaman Register & Login user
+- Validasi form login dan error handling
+
+### Dashboard User
+- Input Token Bot
+- Lihat daftar bot milik user
+- Form tambah knowledge per bot (teks/link/file/produk)
+- Tampilkan kredit tersisa & level akun
+- Tombol upgrade akun (redirect ke Midtrans payment link)
+
+---
+
+## 🔐 SUPER ADMIN PANEL (TERPISAH DARI USER)
+
+- Akses melalui URL: `/ilmiadmin`
+- Harus input kode rahasia: `muhammadilmiladoni`
+- Setelah itu, login dengan:
+  - Username: `ilmi`
+  - Password: `ilmi123`
+- Dashboard Super Admin:
+  - Lihat semua user & bot
+  - Ubah level akun
+  - Tambah / reset kredit
+  - Hapus akun
+  - Input & simpan OpenAI API Key global ke `.env`
+  - Lihat log error (jika ada error bot 401/500 dll)
+
+> Harap UI dan akses admin **sepenuhnya terpisah** dari user biasa.
+
+---
+
+## 🔧 BACKEND (Node.js + Express)
+
+- Struktur modular & bersih
+- Endpoint utama:
+  - `/api/bots` → tambah/validasi token
+  - `/api/knowledge` → CRUD knowledge per bot
+  - `/api/openai` → handle prompt ke GPT
+  - `/api/payments` → handle callback dari Midtrans
+  - `/api/users` → login/register, info kredit, role
+  - `/api/admin` → fitur super admin
+
+- Semua API butuh JWT token auth (role-based: user/admin)
+- Validasi error: tangani 401 (unauthorized), 403 (forbidden), 500 (server error)
+- Jika bot gagal dibuat (misal token salah), berikan feedback ke frontend
+
+---
+
+## 🗃️ DATABASE (MongoDB)
+
+### Koleksi (Collections):
+- `users`: email, password (hashed), role, level, kredit
+- `bots`: token, userId, botName, status aktif
+- `knowledge`: botId, tipe (text/link/file/product), konten
+- `transactions`: userId, paket, jumlah, status, payment info
+- `settings`: apiKeyOpenAI (hanya bisa diedit admin)
+
+> Gunakan database **terpisah** untuk development dan production
+> Gunakan `.env.development` dan `.env.production`
+> Buat migrasi schema jika perlu pakai tool seperti Mongoose migrations
+
+---
+
+## 💰 PEMBAYARAN DENGAN MIDTRANS
+
+- Gunakan Snap Checkout
+- Redirect user ke halaman pembayaran
+- Terima callback dari Midtrans ke endpoint `/api/payments/callback`
+- Validasi signature
+- Update level akun dan kredit otomatis
+- Simpan histori transaksi di DB
