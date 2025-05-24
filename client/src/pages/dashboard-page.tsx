@@ -87,26 +87,7 @@ export default function DashboardPage() {
     },
   });
 
-  // Upgrade plan (mock)
-  const upgradePlanMutation = useMutation({
-    mutationFn: async (plan: string) => {
-      const res = await apiRequest("POST", "/api/payments/upgrade", { plan });
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Redirecting to payment",
-        description: data.message,
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Payment error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+
 
   const onCreateBot = async (data: BotFormData) => {
     createBotMutation.mutate(data);
@@ -121,10 +102,6 @@ export default function DashboardPage() {
   const handleManageKnowledge = (botId: number) => {
     setSelectedBotId(botId);
     setShowKnowledgeModal(true);
-  };
-
-  const handleUpgrade = (plan: string) => {
-    upgradePlanMutation.mutate(plan);
   };
 
   return (
@@ -150,18 +127,11 @@ export default function DashboardPage() {
                 </div>
               </div>
               <Button 
-                onClick={() => handleUpgrade("pro")}
-                disabled={upgradePlanMutation.isPending}
-                className="bg-primary text-white hover:bg-primary/90 w-full sm:w-auto"
+                onClick={() => setShowUpgradeModal(true)}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 w-full sm:w-auto"
               >
-                {upgradePlanMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  "Upgrade Plan"
-                )}
+                <Crown className="mr-2 h-4 w-4" />
+                Upgrade Plan
               </Button>
             </div>
           </CardContent>
@@ -328,6 +298,12 @@ export default function DashboardPage() {
           }}
         />
       )}
+
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </>
   );
 }
