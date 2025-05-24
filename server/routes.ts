@@ -364,56 +364,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Real upgrade endpoint with Midtrans integration
-  app.post("/api/upgrade", requireAuth, async (req, res) => {
-    try {
-      console.log("Upgrade endpoint called with plan:", req.body.plan);
-      const { plan } = req.body;
-      
-      if (!plan || !UPGRADE_PLANS[plan as PlanType]) {
-        console.log("Invalid plan:", plan);
-        return res.status(400).json({ message: "Invalid plan selected" });
-      }
-
-      const orderId = generateOrderId(req.user!.id, plan as PlanType);
-      const user = req.user!;
-
-      console.log("Creating Midtrans transaction for order:", orderId);
-
-      // Create Midtrans transaction
-      const transaction = await createMidtransTransaction({
-        orderId,
-        userId: user.id,
-        userName: user.fullName || user.username,
-        userEmail: user.email,
-        plan: plan as PlanType,
-      });
-
-      console.log("Midtrans transaction created successfully");
-
-      // Save transaction to database
-      await storage.createTransaction({
-        midtransOrderId: orderId,
-        userId: user.id,
-        plan,
-        amount: UPGRADE_PLANS[plan as PlanType].price,
-        status: "pending",
-      });
-
-      console.log("Transaction saved to database");
-
-      res.json({
-        snapToken: transaction.token,
-        clientKey: process.env.MIDTRANS_CLIENT_KEY,
-        orderId,
-      });
-    } catch (error) {
-      console.error("Upgrade endpoint error:", error);
-      res.status(500).json({ message: "Failed to create payment transaction", error: error.message });
-    }
-  });
-
-  // Payment routes (mock implementation) 
+  // Payment routes (mock implementation)
   app.post("/api/payments/upgrade", requireAuth, async (req, res) => {
     try {
       const { plan } = req.body;
@@ -485,11 +436,9 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Midtrans Payment Callback - Handle webhook notifications
+  // Midtrans Payment Callback
   app.post("/api/payment-callback", async (req, res) => {
     try {
-      console.log("🔔 Webhook received from Midtrans:", JSON.stringify(req.body, null, 2));
-      
       const {
         order_id,
         status_code,
@@ -508,11 +457,9 @@ export function registerRoutes(app: Express): Server {
       );
 
       if (!isValidSignature) {
-        console.error("❌ Invalid signature for order:", order_id);
+        console.error("Invalid signature for order:", order_id);
         return res.status(400).json({ message: "Invalid signature" });
       }
-
-      console.log("✅ Signature verified for order:", order_id);
 
       // Get transaction from database
       const transaction = await storage.getTransactionByOrderId(order_id);
@@ -531,17 +478,10 @@ export function registerRoutes(app: Express): Server {
           
           // Update user level and credits
           const planConfig = UPGRADE_PLANS[transaction.plan as PlanType];
-          const currentUser = await storage.getUser(transaction.userId);
-          
-          if (currentUser) {
-            const newCredits = currentUser.credits + planConfig.credits;
-            await storage.updateUser(transaction.userId, {
-              level: planConfig.level,
-              credits: newCredits
-            });
-            
-            console.log(`User ${transaction.userId} upgraded to ${planConfig.level} with ${newCredits} credits`);
-          }
+          await storage.updateUser(transaction.userId, {
+            level: planConfig.level,
+            credits: (await storage.getUser(transaction.userId))?.credits + planConfig.credits
+          });
         }
       } else if (transaction_status === 'cancel' || transaction_status === 'deny' || transaction_status === 'expire') {
         newStatus = "failed";
