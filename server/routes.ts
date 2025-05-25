@@ -3,9 +3,10 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { telegramBotManager } from "./telegram";
-import { insertBotSchema, insertKnowledgeSchema, insertSettingSchema, insertSmmProviderSchema, insertSmmServiceSchema, insertSmmOrderSchema } from "@shared/schema";
+import { insertBotSchema, insertKnowledgeSchema, insertSettingSchema, insertSmmProviderSchema, insertSmmServiceSchema, insertSmmOrderSchema, insertAutoBotSchema, insertProductSchema } from "@shared/schema";
 import { createMidtransTransaction, generateOrderId, verifySignatureKey, getTransactionStatus, UPGRADE_PLANS, type PlanType } from "./midtrans";
 import { SmmPanelAPI, generateSmmOrderId, generateMid, parseRate, calculateOrderAmount } from "./smm-panel";
+import { AutoBotService } from "./auto-bot-service";
 import { z } from "zod";
 
 function requireAuth(req: any, res: any, next: any) {
