@@ -53,74 +53,64 @@ export default function ChatbotBuilderPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch chatbots
-  const { data: chatbots = [], isLoading: loadingChatbots } = useQuery({
+  // Fetch all non-AI chatbots
+  const { data: chatbots = [], isLoading: loadingChatbots } = useQuery<NonAiChatbot[]>({
     queryKey: ["/api/nonai-chatbots"],
-    queryFn: async () => {
-      const res = await fetch("/api/nonai-chatbots");
-      if (!res.ok) throw new Error("Failed to fetch chatbots");
-      return res.json();
-    },
   });
 
   // Fetch flows for selected chatbot
-  const { data: flows = [], isLoading: loadingFlows } = useQuery({
+  const { data: flows = [], isLoading: loadingFlows } = useQuery<BotFlow[]>({
     queryKey: ["/api/nonai-chatbots", selectedChatbot?.id, "flows"],
-    queryFn: async () => {
-      if (!selectedChatbot) return [];
-      const res = await fetch(`/api/nonai-chatbots/${selectedChatbot.id}/flows`);
-      if (!res.ok) throw new Error("Failed to fetch flows");
-      return res.json();
-    },
     enabled: !!selectedChatbot,
   });
 
-  // Create bot mutation
+  // Create new chatbot mutation
   const createBotMutation = useMutation({
     mutationFn: async (botToken: string) => {
       const res = await apiRequest("POST", "/api/nonai-chatbots", { botToken });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Gagal membuat chatbot");
+      }
       return await res.json();
     },
-    onSuccess: (newBot) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/nonai-chatbots"] });
       setShowCreateBot(false);
       setNewBotToken("");
-      setSelectedChatbot(newBot);
       toast({
-        title: "Success! 🎉",
-        description: `Bot @${newBot.botUsername} created successfully!`,
+        title: "Berhasil!",
+        description: "Chatbot Non-AI berhasil dibuat!",
       });
     },
     onError: (error: any) => {
       console.error("Create bot error:", error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to create bot",
+        title: "Gagal Membuat Bot",
+        description: error.message || "Token tidak valid atau tidak dapat menghubungi Telegram. Pastikan token dari @BotFather benar.",
         variant: "destructive",
       });
     },
   });
 
-  // Delete bot mutation
+  // Delete chatbot mutation
   const deleteBotMutation = useMutation({
-    mutationFn: async (botId: number) => {
-      const res = await apiRequest("DELETE", `/api/nonai-chatbots/${botId}`);
+    mutationFn: async (chatbotId: number) => {
+      const res = await apiRequest("DELETE", `/api/nonai-chatbots/${chatbotId}`);
       return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/nonai-chatbots"] });
-      if (selectedChatbot) {
-        setSelectedChatbot(null);
-      }
+      setSelectedChatbot(null);
       toast({
         title: "Success",
-        description: "Bot deleted successfully!",
+        description: "Chatbot deleted successfully!",
       });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete bot",
+        description: error.message || "Failed to delete chatbot",
         variant: "destructive",
       });
     },
@@ -144,7 +134,7 @@ export default function ChatbotBuilderPage() {
       });
       toast({
         title: "Success",
-        description: "Flow created successfully!",
+        description: "Bot flow created successfully!",
       });
     },
     onError: (error: any) => {
@@ -254,33 +244,33 @@ export default function ChatbotBuilderPage() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-6 space-y-6 bg-background min-h-screen">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Non-AI Chatbot Builder</h1>
-          <p className="text-muted-foreground">Create and manage menu-based Telegram bots</p>
+          <p className="text-muted-foreground">Create and manage menu-based Telegram bots without AI</p>
         </div>
         
         <Dialog open={showCreateBot} onOpenChange={setShowCreateBot}>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
+            <Button className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
               Create New Bot
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-background border-border">
             <DialogHeader>
-              <DialogTitle className="text-foreground">Create New Non-AI Bot</DialogTitle>
+              <DialogTitle className="text-foreground">Create New Non-AI Chatbot</DialogTitle>
               <DialogDescription className="text-muted-foreground">
-                Enter your bot token from @BotFather
+                Enter your bot token from @BotFather to create a new non-AI chatbot
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="token" className="text-foreground">Bot Token</Label>
+                <Label htmlFor="botToken" className="text-foreground">Bot Token</Label>
                 <Input
-                  id="token"
-                  placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
+                  id="botToken"
+                  placeholder="1234567890:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
                   value={newBotToken}
                   onChange={(e) => setNewBotToken(e.target.value)}
                   className="bg-background border-border text-foreground"
@@ -330,7 +320,7 @@ export default function ChatbotBuilderPage() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {chatbots.map((chatbot: NonAiChatbot) => (
+              {chatbots.map((chatbot) => (
                 <Card key={chatbot.id} className="bg-card border-border hover:shadow-md transition-shadow">
                   <CardHeader>
                     <div className="flex items-center justify-between">
@@ -346,7 +336,7 @@ export default function ChatbotBuilderPage() {
                       @{chatbot.botUsername}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-3">
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
@@ -410,169 +400,158 @@ export default function ChatbotBuilderPage() {
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="command" className="text-foreground">Command</Label>
-                            <Input
-                              id="command"
-                              placeholder="/start, Followers, Info, etc."
-                              value={flowForm.command}
-                              onChange={(e) => setFlowForm(prev => ({ ...prev, command: e.target.value }))}
-                              className="bg-background border-border text-foreground"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="type" className="text-foreground">Type</Label>
-                            <Select value={flowForm.type} onValueChange={(value: "menu" | "text") => setFlowForm(prev => ({ ...prev, type: value }))}>
-                              <SelectTrigger className="bg-background border-border text-foreground">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent className="bg-background border-border">
-                                <SelectItem value="text">Text Response</SelectItem>
-                                <SelectItem value="menu">Menu with Buttons</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="text" className="text-foreground">Response Text</Label>
-                          <Textarea
-                            id="text"
-                            placeholder="Enter the response message..."
-                            value={flowForm.text}
-                            onChange={(e) => setFlowForm(prev => ({ ...prev, text: e.target.value }))}
+                          <Label htmlFor="command" className="text-foreground">Command</Label>
+                          <Input
+                            id="command"
+                            placeholder="/start, Followers, Info, etc."
+                            value={flowForm.command}
+                            onChange={(e) => setFlowForm(prev => ({ ...prev, command: e.target.value }))}
                             className="bg-background border-border text-foreground"
-                            rows={3}
                           />
                         </div>
+                        <div>
+                          <Label htmlFor="type" className="text-foreground">Type</Label>
+                          <Select 
+                            value={flowForm.type} 
+                            onValueChange={(value: "menu" | "text") => setFlowForm(prev => ({ ...prev, type: value }))}
+                          >
+                            <SelectTrigger className="bg-background border-border text-foreground">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background border-border">
+                              <SelectItem value="text">Text Response</SelectItem>
+                              <SelectItem value="menu">Menu with Buttons</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="text" className="text-foreground">Response Text</Label>
+                        <Textarea
+                          id="text"
+                          placeholder="Enter the message your bot will send"
+                          value={flowForm.text}
+                          onChange={(e) => setFlowForm(prev => ({ ...prev, text: e.target.value }))}
+                          className="bg-background border-border text-foreground"
+                          rows={3}
+                        />
+                      </div>
 
-                        {flowForm.type === "menu" && (
-                          <div>
+                      {flowForm.type === "menu" && (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
                             <Label className="text-foreground">Menu Buttons</Label>
-                            <div className="space-y-2">
-                              {flowForm.buttons.map((button, index) => (
-                                <div key={index} className="flex gap-2">
-                                  <Input
-                                    placeholder={`Button ${index + 1}`}
-                                    value={button}
-                                    onChange={(e) => updateButton(index, e.target.value)}
-                                    className="bg-background border-border text-foreground"
-                                  />
+                            <Button type="button" variant="outline" size="sm" onClick={addButton}>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Button
+                            </Button>
+                          </div>
+                          <div className="space-y-2">
+                            {flowForm.buttons.map((button, index) => (
+                              <div key={index} className="flex gap-2">
+                                <Input
+                                  placeholder={`Button ${index + 1}`}
+                                  value={button}
+                                  onChange={(e) => updateButton(index, e.target.value)}
+                                  className="bg-background border-border text-foreground"
+                                />
+                                {flowForm.buttons.length > 1 && (
                                   <Button
                                     type="button"
                                     variant="outline"
                                     size="sm"
                                     onClick={() => removeButton(index)}
-                                    disabled={flowForm.buttons.length <= 1}
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
-                                </div>
-                              ))}
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={addButton}
-                                className="w-full"
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Button
-                              </Button>
-                            </div>
+                                )}
+                              </div>
+                            ))}
                           </div>
-                        )}
-
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={handleCreateFlow}
-                            disabled={createFlowMutation.isPending}
-                            className="flex-1"
-                          >
-                            {createFlowMutation.isPending ? "Creating..." : "Create Flow"}
-                          </Button>
-                          <Button variant="outline" onClick={() => setShowCreateFlow(false)}>
-                            Cancel
-                          </Button>
                         </div>
+                      )}
+
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={handleCreateFlow}
+                          disabled={createFlowMutation.isPending}
+                          className="flex-1"
+                        >
+                          {createFlowMutation.isPending ? "Creating..." : "Create Flow"}
+                        </Button>
+                        <Button variant="outline" onClick={() => setShowCreateFlow(false)}>
+                          Cancel
+                        </Button>
                       </div>
-                    </DialogContent>
+                    </div>
+                  </DialogContent>
                   </Dialog>
                 </div>
 
                 {loadingFlows ? (
-                  <div className="text-center py-8 text-muted-foreground">Loading flows...</div>
-                ) : flows.length === 0 ? (
-                  <Card className="bg-card border-border">
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                      <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold text-foreground mb-2">No flows yet</h3>
-                      <p className="text-muted-foreground text-center mb-4">
-                        Create your first bot flow to get started
-                      </p>
-                      <Button onClick={() => setShowCreateFlow(true)}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create Your First Flow
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {flows.map((flow: BotFlow) => (
-                      <Card key={flow.id} className="bg-card border-border">
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-foreground text-sm">{flow.command}</CardTitle>
-                            <Badge variant={flow.type === "menu" ? "default" : "secondary"}>
-                              {flow.type}
-                            </Badge>
+                <div className="text-center py-8 text-muted-foreground">Loading flows...</div>
+              ) : flows.length === 0 ? (
+                <Card className="bg-card border-border">
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold text-foreground mb-2">No flows configured</h3>
+                    <p className="text-muted-foreground text-center mb-4">
+                      Add your first flow to start building your bot's conversation
+                    </p>
+                    <Button onClick={() => setShowCreateFlow(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add First Flow
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {flows.map((flow) => (
+                    <Card key={flow.id} className="bg-card border-border">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-foreground flex items-center gap-2">
+                            {flow.type === "menu" ? <Menu className="h-4 w-4" /> : <MessageSquare className="h-4 w-4" />}
+                            {flow.command}
+                          </CardTitle>
+                          <Badge variant={flow.type === "menu" ? "default" : "secondary"}>
+                            {flow.type}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <p className="text-muted-foreground text-sm">{flow.text}</p>
+                        {flow.type === "menu" && flow.buttons && (
+                          <div className="flex flex-wrap gap-1">
+                            {flow.buttons.map((button, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {button}
+                              </Badge>
+                            ))}
                           </div>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{flow.text}</p>
-                          {flow.buttons && (
-                            <div className="flex flex-wrap gap-1 mb-3">
-                              {flow.buttons.slice(0, 3).map((button, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {button}
-                                </Badge>
-                              ))}
-                              {flow.buttons.length > 3 && (
-                                <Badge variant="outline" className="text-xs">
-                                  +{flow.buttons.length - 3} more
-                                </Badge>
-                              )}
-                            </div>
-                          )}
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1"
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => deleteFlowMutation.mutate(flow.id)}
-                              disabled={deleteFlowMutation.isPending}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                        )}
+                        <div className="flex gap-2">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => deleteFlowMutation.mutate(flow.id)}
+                            disabled={deleteFlowMutation.isPending}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
                 )}
               </>
             )}
           </TabsContent>
-        </Tabs>
-      </div>
+      </Tabs>
     </div>
   );
 }
