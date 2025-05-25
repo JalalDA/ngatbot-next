@@ -1195,7 +1195,11 @@ export function registerRoutes(app: Express): Server {
       const actualWebhookUrl = NonAiChatbotService.generateWebhookUrl(chatbot.id);
       await storage.updateNonAiChatbot(chatbot.id, { webhookUrl: actualWebhookUrl });
 
-      console.log("Step 5: Setting webhook with Telegram...");
+      console.log("Step 5: Removing any existing webhook/polling conflicts...");
+      // First remove any existing webhooks or stop polling
+      await NonAiChatbotService.removeWebhook(botToken);
+      
+      console.log("Step 6: Setting webhook with Telegram...");
       // Set webhook with Telegram
       const webhookResult = await NonAiChatbotService.setWebhook(botToken, actualWebhookUrl);
       if (!webhookResult.success) {
@@ -1269,6 +1273,46 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Update non-AI chatbot error:", error);
       res.status(500).json({ message: "Failed to update non-AI chatbot" });
+    }
+  });
+
+  // Fix Non-AI bot webhook (manual trigger)
+  app.post("/api/nonai-chatbots/:id/fix-webhook", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const chatbotId = parseInt(req.params.id);
+
+      // Get chatbot and verify ownership
+      const chatbot = await storage.getNonAiChatbot(chatbotId);
+      if (!chatbot || chatbot.userId !== user.id) {
+        return res.status(404).json({ message: "Chatbot not found" });
+      }
+
+      console.log(`🔧 Fixing webhook for bot: ${chatbot.botUsername}`);
+
+      const { NonAiChatbotService } = await import("./non-ai-chatbot");
+
+      // Step 1: Remove existing webhook
+      await NonAiChatbotService.removeWebhook(chatbot.botToken);
+      
+      // Step 2: Wait a bit
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Step 3: Set new webhook
+      const webhookUrl = NonAiChatbotService.generateWebhookUrl(chatbot.id);
+      const webhookResult = await NonAiChatbotService.setWebhook(chatbot.botToken, webhookUrl);
+      
+      if (webhookResult.success) {
+        await storage.updateNonAiChatbot(chatbot.id, { webhookUrl });
+        console.log(`✅ Webhook fixed for ${chatbot.botUsername}`);
+        res.json({ message: "Webhook berhasil diperbaiki! Inline buttons sekarang akan berfungsi." });
+      } else {
+        console.error(`❌ Failed to fix webhook:`, webhookResult.error);
+        res.status(500).json({ message: `Gagal memperbaiki webhook: ${webhookResult.error}` });
+      }
+    } catch (error) {
+      console.error("Fix webhook error:", error);
+      res.status(500).json({ message: "Gagal memperbaiki webhook" });
     }
   });
 
