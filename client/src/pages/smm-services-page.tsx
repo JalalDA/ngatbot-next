@@ -191,13 +191,13 @@ export default function SmmServicesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">SMM Services</h1>
-            <p className="text-slate-600">Manage your social media marketing services and providers</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">SMM Services</h1>
+            <p className="text-muted-foreground">Manage your social media marketing services and providers</p>
           </div>
           <Dialog open={showSmmProviderModal} onOpenChange={setShowSmmProviderModal}>
             <DialogTrigger asChild>
@@ -260,23 +260,23 @@ export default function SmmServicesPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Providers</p>
-                  <p className="text-2xl font-bold text-slate-900">{Array.isArray(smmProviders) ? smmProviders.length : 0}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Providers</p>
+                  <p className="text-2xl font-bold text-foreground">{Array.isArray(smmProviders) ? smmProviders.length : 0}</p>
                 </div>
-                <Server className="h-8 w-8 text-blue-500" />
+                <Server className="h-8 w-8 text-primary" />
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Active Providers</p>
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="text-sm font-medium text-muted-foreground">Active Providers</p>
+                  <p className="text-2xl font-bold text-green-500">
                     {Array.isArray(smmProviders) ? smmProviders.filter((p: any) => p.isActive).length : 0}
                   </p>
                 </div>
@@ -284,12 +284,12 @@ export default function SmmServicesPage() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Total Services</p>
-                  <p className="text-2xl font-bold text-purple-600">
+                  <p className="text-sm font-medium text-muted-foreground">Total Services</p>
+                  <p className="text-2xl font-bold text-purple-500">
                     {Array.isArray(smmServices) ? smmServices.length : 0}
                   </p>
                 </div>
@@ -297,12 +297,12 @@ export default function SmmServicesPage() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Selected</p>
-                  <p className="text-2xl font-bold text-amber-600">{selectedServicesForDelete.size}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Selected</p>
+                  <p className="text-2xl font-bold text-amber-500">{selectedServicesForDelete.size}</p>
                 </div>
                 <Eye className="h-8 w-8 text-amber-500" />
               </div>
@@ -311,10 +311,10 @@ export default function SmmServicesPage() {
         </div>
 
         {/* Providers Section */}
-        <Card className="mb-8">
+        <Card className="mb-8 bg-card border-border">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Server className="w-5 h-5 text-blue-600" />
+            <CardTitle className="flex items-center space-x-2 text-foreground">
+              <Server className="w-5 h-5 text-primary" />
               <span>SMM Providers</span>
             </CardTitle>
           </CardHeader>
@@ -324,15 +324,15 @@ export default function SmmServicesPage() {
             ) : Array.isArray(smmProviders) && smmProviders.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {smmProviders.map((provider: any) => (
-                  <div key={provider.id} className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
+                  <div key={provider.id} className="bg-card border border-border p-6 rounded-lg">
                     {/* Provider Header */}
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                          <Server className="w-6 h-6 text-white" />
+                        <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-full flex items-center justify-center">
+                          <Server className="w-6 h-6 text-primary-foreground" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-slate-900">{provider.name}</h3>
+                          <h3 className="text-lg font-semibold text-foreground">{provider.name}</h3>
                           <Badge variant={provider.isActive ? "default" : "secondary"}>
                             {provider.isActive ? "Active" : "Inactive"}
                           </Badge>
@@ -341,9 +341,9 @@ export default function SmmServicesPage() {
                     </div>
 
                     {/* Provider Balance */}
-                    <div className="bg-slate-100 rounded-lg p-3 mb-4">
+                    <div className="bg-muted rounded-lg p-3 mb-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-600">Provider Balance</span>
+                        <span className="text-sm font-medium text-muted-foreground">Provider Balance</span>
                         <div className="flex items-center space-x-2">
                           <Button
                             size="sm"
