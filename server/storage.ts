@@ -485,11 +485,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateBotFlow(id: number, updates: Partial<BotFlow>): Promise<BotFlow | undefined> {
+    console.log("=== STORAGE UPDATE BOT FLOW ===");
+    console.log("Flow ID:", id);
+    console.log("Updates received:", updates);
+    console.log("InlineButtons in updates:", updates.inlineButtons);
+    
     const [updated] = await db
       .update(botFlows)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(botFlows.id, id))
       .returning();
+    
+    console.log("Updated flow result:", updated);
+    console.log("Updated flow inlineButtons:", updated?.inlineButtons);
+    
     return updated || undefined;
   }
 
