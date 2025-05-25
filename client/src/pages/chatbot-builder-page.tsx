@@ -315,13 +315,34 @@ export default function ChatbotBuilderPage() {
   const handleEditFlow = (flow: BotFlow) => {
     setEditingFlow(flow);
     
-    // Parse inline buttons from JSON string
+    // Parse inline buttons from JSON string with better validation
     let parsedInlineButtons: InlineButton[][] = [[{ text: "", callback: "", url: "" }]];
-    if (flow.inlineButtons) {
+    if (flow.inlineButtons && flow.inlineButtons.trim() !== '') {
       try {
-        parsedInlineButtons = JSON.parse(flow.inlineButtons);
+        const parsed = JSON.parse(flow.inlineButtons);
+        console.log('Parsed inline buttons:', parsed);
+        
+        // Validate structure - ensure it's an array of arrays
+        if (Array.isArray(parsed)) {
+          // If it's a flat array of buttons, wrap in array to make it 2D
+          if (parsed.length > 0 && !Array.isArray(parsed[0])) {
+            parsedInlineButtons = [parsed];
+          } else {
+            parsedInlineButtons = parsed;
+          }
+          
+          // Ensure each button has required properties
+          parsedInlineButtons = parsedInlineButtons.map(row => 
+            Array.isArray(row) ? row.map(btn => ({
+              text: btn.text || "",
+              callback: btn.callback || "",
+              url: btn.url || ""
+            })) : []
+          );
+        }
       } catch (e) {
         console.error('Error parsing inline buttons:', e);
+        console.log('Raw inline buttons data:', flow.inlineButtons);
       }
     }
     
