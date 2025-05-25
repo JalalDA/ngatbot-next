@@ -651,8 +651,11 @@ export default function SmmServicesPage() {
                           });
                           
                           // Call API to get services from the provider
-                          const response = await apiRequest("GET", `/api/smm-providers/${importingProvider.id}/services`);
-                          const services = await response.json();
+                          const response = await apiRequest("GET", `/api/smm/providers/${importingProvider.id}/services`);
+                          const data = await response.json();
+                          
+                          // Backend returns { services: [] }
+                          const services = data.services || data;
                           
                           if (Array.isArray(services)) {
                             setProviderServices(services);
@@ -694,12 +697,17 @@ export default function SmmServicesPage() {
                     <Button
                       onClick={async () => {
                         try {
-                          const response = await apiRequest("POST", `/api/smm-providers/${importingProvider.id}/import-services`, {
-                            serviceIds: Array.from(selectedServices)
+                          // Get selected service objects
+                          const selectedServiceObjects = providerServices.filter(service => 
+                            selectedServices.has(service.service || service.id)
+                          );
+
+                          const response = await apiRequest("POST", `/api/smm/providers/${importingProvider.id}/import-services`, {
+                            services: selectedServiceObjects
                           });
                           const result = await response.json();
                           
-                          if (result.success) {
+                          if (response.ok) {
                             toast({
                               title: "Services imported successfully",
                               description: `Imported ${selectedServices.size} services from ${importingProvider.name}`,

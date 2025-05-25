@@ -887,6 +887,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const user = req.user!;
       const providerId = parseInt(req.params.id);
+      const { services: selectedServices } = req.body;
 
       // Check if provider belongs to user
       const provider = await storage.getSmmProvider(providerId);
@@ -894,9 +895,9 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "SMM provider not found" });
       }
 
-      // Fetch services from provider
-      const smmApi = new SmmPanelAPI(provider.apiKey, provider.apiEndpoint);
-      const services = await smmApi.getServices();
+      if (!selectedServices || !Array.isArray(selectedServices)) {
+        return res.status(400).json({ message: "No services provided for import" });
+      }
 
       // Get used MIDs for this user
       const usedMids = await storage.getUsedMids(user.id);
@@ -904,7 +905,7 @@ export function registerRoutes(app: Express): Server {
       let importedCount = 0;
       const errors: string[] = [];
 
-      for (const service of services.slice(0, 10)) { // Limit to 10 services
+      for (const service of selectedServices) {
         try {
           // Auto-assign MID (1-10)
           const mid = generateMid(usedMids);
@@ -921,14 +922,14 @@ export function registerRoutes(app: Express): Server {
               max: service.max,
               rate: parseRate(service.rate).toString(),
               category: service.category,
-              serviceIdApi: service.service.toString(),
+              serviceIdApi: (service.service || service.id).toString(),
               isActive: true
             });
 
             importedCount++;
           }
         } catch (error) {
-          errors.push(`Failed to import ${service.name}: ${error.message}`);
+          errors.push(`Failed to import ${service.name}: ${(error as Error).message}`);
         }
       }
 
