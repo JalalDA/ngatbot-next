@@ -128,6 +128,27 @@ export default function ChatbotBuilderPage() {
     },
   });
 
+  // Fix webhook mutation
+  const fixWebhookMutation = useMutation({
+    mutationFn: async (botId: number) => {
+      const res = await apiRequest("POST", `/api/nonai-chatbots/${botId}/fix-webhook`);
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Success! 🎉",
+        description: data.message || "Webhook berhasil diperbaiki! Inline buttons sekarang akan berfungsi.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Gagal memperbaiki webhook",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Create flow mutation
   const createFlowMutation = useMutation({
     mutationFn: async (flowData: any) => {
@@ -451,6 +472,16 @@ export default function ChatbotBuilderPage() {
                 </div>
                 
                 <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => fixWebhookMutation.mutate(selectedChatbot.id)}
+                    disabled={fixWebhookMutation.isPending}
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 text-white border-0 hover:from-green-700 hover:to-emerald-700"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    {fixWebhookMutation.isPending ? "Memperbaiki..." : "🔧 Fix Inline Buttons"}
+                  </Button>
+                  
                   <Button
                     variant="outline"
                     onClick={() => createExampleFlowsMutation.mutate(selectedChatbot.id)}
