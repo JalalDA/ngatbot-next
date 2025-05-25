@@ -267,7 +267,7 @@ export default function ChatbotBuilderPage() {
       command: flowForm.command,
       type: flowForm.type,
       text: flowForm.text,
-      buttons: flowForm.type === "menu" ? flowForm.buttons.filter(b => b.trim()) : undefined,
+      buttons: (flowForm.type === "menu" || flowForm.type === "inline") ? flowForm.buttons.filter(b => b.trim()) : undefined,
       parentCommand: flowForm.parentCommand || undefined
     };
 
@@ -288,7 +288,7 @@ export default function ChatbotBuilderPage() {
       command: flowForm.command,
       type: flowForm.type,
       text: flowForm.text,
-      buttons: flowForm.type === "menu" ? flowForm.buttons.filter(b => b.trim()) : undefined,
+      buttons: (flowForm.type === "menu" || flowForm.type === "inline") ? flowForm.buttons.filter(b => b.trim()) : undefined,
       parentCommand: flowForm.parentCommand || undefined
     };
 
