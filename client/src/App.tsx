@@ -11,6 +11,7 @@ import AuthPage from "@/pages/auth-page";
 import OverviewDashboard from "@/pages/overview-dashboard";
 import MyBotsPage from "@/pages/my-bots-page";
 import SmmServicesPage from "@/pages/smm-services-page";
+import ChatBotBuilderPage from "@/pages/chatbot-builder-page";
 import ProfilePage from "@/pages/profile-page";
 import AdminPage from "@/pages/admin-page";
 import NotFound from "@/pages/not-found";
@@ -58,6 +59,15 @@ function Router() {
           <>
             <Navigation />
             <SmmServicesPage />
+          </>
+        )} 
+      />
+      <ProtectedRoute 
+        path="/chatbot-builder" 
+        component={() => (
+          <>
+            <Navigation />
+            <ChatBotBuilderPage />
           </>
         )} 
       />

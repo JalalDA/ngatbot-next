@@ -407,6 +407,148 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return order || undefined;
   }
+
+  // ChatBot Builder methods
+  async getChatBot(id: number): Promise<ChatBot | undefined> {
+    const [chatBot] = await db.select().from(chatBots).where(eq(chatBots.id, id));
+    return chatBot || undefined;
+  }
+
+  async getChatBotsByUserId(userId: number): Promise<ChatBot[]> {
+    return await db.select().from(chatBots).where(eq(chatBots.userId, userId));
+  }
+
+  async getChatBotByToken(token: string): Promise<ChatBot | undefined> {
+    const [chatBot] = await db.select().from(chatBots).where(eq(chatBots.token, token));
+    return chatBot || undefined;
+  }
+
+  async createChatBot(chatBotData: InsertChatBot & { userId: number; botName: string; botUsername: string }): Promise<ChatBot> {
+    const [chatBot] = await db
+      .insert(chatBots)
+      .values({
+        userId: chatBotData.userId,
+        token: chatBotData.token,
+        botName: chatBotData.botName,
+        botUsername: chatBotData.botUsername,
+        welcomeMessage: chatBotData.welcomeMessage || "Selamat datang! Pilih menu di bawah ini:",
+        isActive: true
+      })
+      .returning();
+    return chatBot;
+  }
+
+  async updateChatBot(id: number, updates: Partial<ChatBot>): Promise<ChatBot | undefined> {
+    const [chatBot] = await db
+      .update(chatBots)
+      .set(updates)
+      .where(eq(chatBots.id, id))
+      .returning();
+    return chatBot || undefined;
+  }
+
+  async deleteChatBot(id: number): Promise<boolean> {
+    const result = await db.delete(chatBots).where(eq(chatBots.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Menu Items methods
+  async getMenuItem(id: number): Promise<MenuItem | undefined> {
+    const [menuItem] = await db.select().from(menuItems).where(eq(menuItems.id, id));
+    return menuItem || undefined;
+  }
+
+  async getMenuItemsByChatBotId(chatBotId: number): Promise<MenuItem[]> {
+    return await db.select().from(menuItems).where(eq(menuItems.chatBotId, chatBotId));
+  }
+
+  async createMenuItem(insertMenuItem: InsertMenuItem): Promise<MenuItem> {
+    const [menuItem] = await db
+      .insert(menuItems)
+      .values(insertMenuItem)
+      .returning();
+    return menuItem;
+  }
+
+  async updateMenuItem(id: number, updates: Partial<MenuItem>): Promise<MenuItem | undefined> {
+    const [menuItem] = await db
+      .update(menuItems)
+      .set(updates)
+      .where(eq(menuItems.id, id))
+      .returning();
+    return menuItem || undefined;
+  }
+
+  async deleteMenuItem(id: number): Promise<boolean> {
+    const result = await db.delete(menuItems).where(eq(menuItems.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Flow Rules methods
+  async getFlowRule(id: number): Promise<FlowRule | undefined> {
+    const [flowRule] = await db.select().from(flowRules).where(eq(flowRules.id, id));
+    return flowRule || undefined;
+  }
+
+  async getFlowRulesByChatBotId(chatBotId: number): Promise<FlowRule[]> {
+    return await db.select().from(flowRules).where(eq(flowRules.chatBotId, chatBotId));
+  }
+
+  async createFlowRule(insertFlowRule: InsertFlowRule): Promise<FlowRule> {
+    const [flowRule] = await db
+      .insert(flowRules)
+      .values(insertFlowRule)
+      .returning();
+    return flowRule;
+  }
+
+  async updateFlowRule(id: number, updates: Partial<FlowRule>): Promise<FlowRule | undefined> {
+    const [flowRule] = await db
+      .update(flowRules)
+      .set(updates)
+      .where(eq(flowRules.id, id))
+      .returning();
+    return flowRule || undefined;
+  }
+
+  async deleteFlowRule(id: number): Promise<boolean> {
+    const result = await db.delete(flowRules).where(eq(flowRules.id, id));
+    return result.rowCount > 0;
+  }
+
+  // ChatBot Orders methods
+  async getChatBotOrder(id: number): Promise<ChatBotOrder | undefined> {
+    const [order] = await db.select().from(chatBotOrders).where(eq(chatBotOrders.id, id));
+    return order || undefined;
+  }
+
+  async getChatBotOrdersByUserId(userId: number): Promise<ChatBotOrder[]> {
+    return await db.select().from(chatBotOrders)
+      .innerJoin(chatBots, eq(chatBotOrders.chatBotId, chatBots.id))
+      .where(eq(chatBots.userId, userId));
+  }
+
+  async getChatBotOrderByMidtransOrderId(orderId: string): Promise<ChatBotOrder | undefined> {
+    const [order] = await db.select().from(chatBotOrders).where(eq(chatBotOrders.midtransOrderId, orderId));
+    return order || undefined;
+  }
+
+  async createChatBotOrder(insertOrder: InsertChatBotOrder): Promise<ChatBotOrder> {
+    const [order] = await db
+      .insert(chatBotOrders)
+      .values(insertOrder)
+      .returning();
+    return order;
+  }
+
+  async updateChatBotOrder(id: number, updates: Partial<ChatBotOrder>): Promise<ChatBotOrder | undefined> {
+    const [order] = await db
+      .update(chatBotOrders)
+      .set(updates)
+      .where(eq(chatBotOrders.id, id))
+      .returning();
+    return order || undefined;
+  }
 }
 
 export const storage = new DatabaseStorage();
