@@ -161,10 +161,12 @@ export class AutoBotManager {
                 );
                 
                 if (subMenus.length > 0) {
-                  // Show sub-menus
+                  // Replace main menu with sub-menus by editing the message
                   const subMenuKeyboard = this.createInlineKeyboard(subMenus);
                   
-                  await bot.sendMessage(chatId, `📋 Menu ${pressedButton.text}:`, {
+                  await bot.editMessageText(`📋 Menu ${pressedButton.text}:`, {
+                    chat_id: chatId,
+                    message_id: callbackQuery.message.message_id,
                     reply_markup: subMenuKeyboard
                   });
                 } else {
