@@ -1,0 +1,255 @@
+import TelegramBot from "node-telegram-bot-api";
+import { storage } from "./storage";
+import type { AutoBot } from "@shared/schema";
+
+interface TelegramBotInfo {
+  id: number;
+  is_bot: boolean;
+  first_name: string;
+  username: string;
+  can_join_groups?: boolean;
+  can_read_all_group_messages?: boolean;
+  supports_inline_queries?: boolean;
+}
+
+interface TelegramApiResponse<T> {
+  ok: boolean;
+  result?: T;
+  description?: string;
+  error_code?: number;
+}
+
+interface InlineKeyboard {
+  id: string;
+  text: string;
+  callbackData: string;
+  url?: string;
+}
+
+export class AutoBotManager {
+  private activeBots: Map<string, { bot: TelegramBot; config: AutoBot }> = new Map();
+
+  /**
+   * Validate bot token by calling Telegram getMe API
+   */
+  async validateBotToken(token: string): Promise<{ valid: boolean; botInfo?: TelegramBotInfo; error?: string }> {
+    try {
+      const response = await fetch(`https://api.telegram.org/bot${token}/getMe`, {
+        method: 'GET',
+        timeout: 10000,
+      });
+
+      const data: TelegramApiResponse<TelegramBotInfo> = await response.json();
+
+      if (data.ok && data.result) {
+        return {
+          valid: true,
+          botInfo: data.result
+        };
+      } else {
+        return {
+          valid: false,
+          error: data.description || 'Invalid bot token'
+        };
+      }
+    } catch (error: any) {
+      return {
+        valid: false,
+        error: error.message || 'Failed to validate bot token'
+      };
+    }
+  }
+
+  /**
+   * Start auto bot with inline keyboard configuration
+   */
+  async startAutoBot(autoBot: AutoBot): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Check if bot is already running
+      if (this.activeBots.has(autoBot.token)) {
+        await this.stopAutoBot(autoBot.token);
+      }
+
+      const bot = new TelegramBot(autoBot.token, { polling: true });
+      
+      // Store bot instance
+      this.activeBots.set(autoBot.token, { bot, config: autoBot });
+
+      // Handle /start command
+      bot.onText(/\/start/, async (msg) => {
+        const chatId = msg.chat.id;
+        const welcomeMessage = autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:";
+        
+        // Create inline keyboard from config
+        const keyboard = this.createInlineKeyboard(autoBot.keyboardConfig || []);
+        
+        const options: any = {
+          reply_markup: keyboard
+        };
+
+        try {
+          await bot.sendMessage(chatId, welcomeMessage, options);
+        } catch (error) {
+          console.error(`Error sending message for bot ${autoBot.botName}:`, error);
+        }
+      });
+
+      // Handle callback queries (inline button presses)
+      bot.on('callback_query', async (callbackQuery) => {
+        const msg = callbackQuery.message;
+        const data = callbackQuery.data;
+        
+        if (msg) {
+          const chatId = msg.chat.id;
+          
+          // Find the button that was pressed
+          const pressedButton = autoBot.keyboardConfig?.find(btn => btn.callbackData === data);
+          
+          if (pressedButton) {
+            try {
+              // Answer the callback query to remove loading state
+              await bot.answerCallbackQuery(callbackQuery.id, {
+                text: `Anda memilih: ${pressedButton.text}`,
+                show_alert: false
+              });
+              
+              // Send response message
+              await bot.sendMessage(chatId, `✅ Anda telah memilih: *${pressedButton.text}*`, {
+                parse_mode: 'Markdown'
+              });
+            } catch (error) {
+              console.error(`Error handling callback for bot ${autoBot.botName}:`, error);
+            }
+          }
+        }
+      });
+
+      // Handle errors
+      bot.on('polling_error', (error) => {
+        console.error(`Polling error for bot ${autoBot.botName}:`, error);
+      });
+
+      bot.on('error', (error) => {
+        console.error(`Bot error for ${autoBot.botName}:`, error);
+      });
+
+      console.log(`Auto bot ${autoBot.botName} started successfully`);
+      return { success: true };
+
+    } catch (error: any) {
+      console.error(`Failed to start auto bot ${autoBot.botName}:`, error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Stop auto bot
+   */
+  async stopAutoBot(token: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const botInstance = this.activeBots.get(token);
+      
+      if (botInstance) {
+        await botInstance.bot.stopPolling();
+        this.activeBots.delete(token);
+        console.log(`Auto bot with token ${token.slice(0, 10)}... stopped`);
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      console.error(`Failed to stop auto bot:`, error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Create inline keyboard markup from configuration
+   */
+  private createInlineKeyboard(buttons: InlineKeyboard[]): any {
+    if (!buttons || buttons.length === 0) {
+      return { inline_keyboard: [] };
+    }
+
+    // Create rows of buttons (2 buttons per row)
+    const keyboard: any[][] = [];
+    
+    for (let i = 0; i < buttons.length; i += 2) {
+      const row: any[] = [];
+      
+      // Add first button in row
+      const firstButton = buttons[i];
+      if (firstButton.url) {
+        row.push({
+          text: firstButton.text,
+          url: firstButton.url
+        });
+      } else {
+        row.push({
+          text: firstButton.text,
+          callback_data: firstButton.callbackData
+        });
+      }
+      
+      // Add second button in row if exists
+      if (i + 1 < buttons.length) {
+        const secondButton = buttons[i + 1];
+        if (secondButton.url) {
+          row.push({
+            text: secondButton.text,
+            url: secondButton.url
+          });
+        } else {
+          row.push({
+            text: secondButton.text,
+            callback_data: secondButton.callbackData
+          });
+        }
+      }
+      
+      keyboard.push(row);
+    }
+
+    return { inline_keyboard: keyboard };
+  }
+
+  /**
+   * Restart all active auto bots
+   */
+  async restartAllAutoBots(): Promise<void> {
+    try {
+      const allAutoBots = await storage.getAllAutoBots();
+      const activeAutoBots = allAutoBots.filter(bot => bot.isActive);
+
+      // Stop all running bots first
+      for (const [token] of this.activeBots) {
+        await this.stopAutoBot(token);
+      }
+
+      // Start active bots
+      for (const autoBot of activeAutoBots) {
+        await this.startAutoBot(autoBot);
+      }
+
+      console.log(`Restarted ${activeAutoBots.length} active auto bots`);
+    } catch (error) {
+      console.error('Failed to restart auto bots:', error);
+    }
+  }
+
+  /**
+   * Get active bots count
+   */
+  getActiveBotCount(): number {
+    return this.activeBots.size;
+  }
+
+  /**
+   * Check if bot is running
+   */
+  isBotRunning(token: string): boolean {
+    return this.activeBots.has(token);
+  }
+}
+
+// Export singleton instance
+export const autoBotManager = new AutoBotManager();

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -188,7 +188,30 @@ export const insertSmmOrderSchema = createInsertSchema(smmOrders).pick({
   notes: true,
 });
 
+export const autoBots = pgTable("auto_bots", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  botName: text("bot_name").notNull(),
+  botUsername: text("bot_username").notNull(),
+  welcomeMessage: text("welcome_message").notNull().default("Selamat datang! Silakan pilih opsi di bawah ini:"),
+  keyboardConfig: json("keyboard_config").$type<{
+    id: string;
+    text: string;
+    callbackData: string;
+    url?: string;
+  }[]>(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
+// Insert schemas
+export const insertAutoBotSchema = createInsertSchema(autoBots).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -207,4 +230,6 @@ export type SmmService = typeof smmServices.$inferSelect;
 export type InsertSmmService = z.infer<typeof insertSmmServiceSchema>;
 export type SmmOrder = typeof smmOrders.$inferSelect;
 export type InsertSmmOrder = z.infer<typeof insertSmmOrderSchema>;
+export type AutoBot = typeof autoBots.$inferSelect;
+export type InsertAutoBot = z.infer<typeof insertAutoBotSchema>;
 
