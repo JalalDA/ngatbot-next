@@ -155,13 +155,13 @@ export default function MyBotsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">My Bots</h1>
-            <p className="text-slate-600">Manage your Telegram bots and their AI capabilities</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">My Bots</h1>
+            <p className="text-muted-foreground">Manage your Telegram bots and their AI capabilities</p>
           </div>
           <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
             <DialogTrigger asChild>
@@ -226,23 +226,23 @@ export default function MyBotsPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Total Bots</p>
-                  <p className="text-2xl font-bold text-slate-900">{Array.isArray(bots) ? bots.length : 0}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Total Bots</p>
+                  <p className="text-2xl font-bold text-foreground">{Array.isArray(bots) ? bots.length : 0}</p>
                 </div>
-                <Bot className="h-8 w-8 text-blue-500" />
+                <Bot className="h-8 w-8 text-primary" />
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Active Bots</p>
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="text-sm font-medium text-muted-foreground">Active Bots</p>
+                  <p className="text-2xl font-bold text-green-500">
                     {Array.isArray(bots) ? bots.filter((bot: any) => bot.isActive).length : 0}
                   </p>
                 </div>
@@ -250,12 +250,12 @@ export default function MyBotsPage() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Available Credits</p>
-                  <p className="text-2xl font-bold text-amber-600">{user?.credits || 0}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Available Credits</p>
+                  <p className="text-2xl font-bold text-amber-500">{user?.credits || 0}</p>
                 </div>
                 <Zap className="h-8 w-8 text-amber-500" />
               </div>
@@ -267,11 +267,11 @@ export default function MyBotsPage() {
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
-              <Card key={i} className="animate-pulse">
+              <Card key={i} className="animate-pulse bg-card border-border">
                 <CardContent className="p-6">
-                  <div className="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-slate-200 rounded w-1/2 mb-4"></div>
-                  <div className="h-8 bg-slate-200 rounded w-full"></div>
+                  <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-muted rounded w-1/2 mb-4"></div>
+                  <div className="h-8 bg-muted rounded w-full"></div>
                 </CardContent>
               </Card>
             ))}
@@ -279,39 +279,39 @@ export default function MyBotsPage() {
         ) : Array.isArray(bots) && bots.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {bots.map((bot: any) => (
-              <Card key={bot.id} className="hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500">
+              <Card key={bot.id} className="hover:shadow-lg transition-all duration-300 border-l-4 border-l-primary bg-card border-border">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                        <Bot className="w-5 h-5 text-white" />
+                      <div className="w-10 h-10 bg-gradient-to-r from-primary to-primary/80 rounded-full flex items-center justify-center">
+                        <Bot className="w-5 h-5 text-primary-foreground" />
                       </div>
                       <div>
-                        <CardTitle className="text-lg font-bold">{bot.botName}</CardTitle>
-                        <p className="text-sm text-slate-500">@{bot.botUsername}</p>
+                        <CardTitle className="text-lg font-bold text-foreground">{bot.botName}</CardTitle>
+                        <p className="text-sm text-muted-foreground">@{bot.botUsername}</p>
                       </div>
                     </div>
-                    <Badge variant={bot.isActive ? "default" : "secondary"}>
+                    <Badge variant={bot.isActive ? "default" : "secondary"} className="text-foreground border-border">
                       {bot.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <p className="text-sm text-slate-600 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     {bot.description || "No description available"}
                   </p>
                   
                   {/* Bot Stats */}
                   <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="text-center p-2 bg-slate-50 rounded-lg">
-                      <MessageSquare className="w-4 h-4 mx-auto text-slate-600 mb-1" />
-                      <p className="text-xs text-slate-500">Messages</p>
-                      <p className="text-sm font-semibold">{bot.messageCount || 0}</p>
+                    <div className="text-center p-2 bg-muted rounded-lg">
+                      <MessageSquare className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
+                      <p className="text-xs text-muted-foreground">Messages</p>
+                      <p className="text-sm font-semibold text-foreground">{bot.messageCount || 0}</p>
                     </div>
-                    <div className="text-center p-2 bg-slate-50 rounded-lg">
-                      <Users className="w-4 h-4 mx-auto text-slate-600 mb-1" />
-                      <p className="text-xs text-slate-500">Users</p>
-                      <p className="text-sm font-semibold">{bot.userCount || 0}</p>
+                    <div className="text-center p-2 bg-muted rounded-lg">
+                      <Users className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
+                      <p className="text-xs text-muted-foreground">Users</p>
+                      <p className="text-sm font-semibold text-foreground">{bot.userCount || 0}</p>
                     </div>
                   </div>
 
