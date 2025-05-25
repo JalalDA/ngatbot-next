@@ -1337,8 +1337,8 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Type must be 'menu', 'text', or 'inline'" });
       }
 
-      if (type === "menu" && (!buttons || !Array.isArray(buttons) || buttons.length === 0)) {
-        return res.status(400).json({ message: "Buttons are required for menu type" });
+      if ((type === "menu" || type === "inline") && (!buttons || !Array.isArray(buttons) || buttons.length === 0)) {
+        return res.status(400).json({ message: "Buttons are required for menu and inline types" });
       }
 
       // Check if command already exists for this chatbot
