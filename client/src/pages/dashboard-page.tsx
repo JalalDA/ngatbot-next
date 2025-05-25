@@ -700,7 +700,7 @@ export default function DashboardPage() {
                 {smmServices.length > 0 && (
                   <div className="mt-6">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-slate-900">Available Services</h4>
+                      <h4 className="font-medium text-foreground">Available Services</h4>
                       {selectedServicesForDelete.size > 0 && (
                         <Button
                           size="sm"
@@ -715,36 +715,36 @@ export default function DashboardPage() {
                     </div>
                     
                     {/* Select All Checkbox */}
-                    <div className="flex items-center space-x-2 mb-2 p-2 bg-slate-100 rounded">
+                    <div className="flex items-center space-x-2 mb-2 p-2 bg-muted rounded">
                       <input
                         type="checkbox"
                         id="select-all-services"
                         checked={smmServices.length > 0 && selectedServicesForDelete.size === smmServices.length}
                         onChange={(e) => handleSelectAllServices(e.target.checked)}
-                        className="rounded border-slate-300"
+                        className="rounded border-border"
                       />
-                      <label htmlFor="select-all-services" className="text-sm font-medium text-slate-700">
+                      <label htmlFor="select-all-services" className="text-sm font-medium text-foreground">
                         Select All Services
                       </label>
                     </div>
 
                     <div className="max-h-60 overflow-y-auto space-y-2">
                       {smmServices.slice(0, 5).map((service: any) => (
-                        <div key={service.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                        <div key={service.id} className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
                           <div className="flex items-center space-x-3">
                             <input
                               type="checkbox"
                               checked={selectedServicesForDelete.has(service.id)}
                               onChange={(e) => handleServiceCheckbox(service.id, e.target.checked)}
-                              className="rounded border-slate-300"
+                              className="rounded border-border"
                             />
                             <Badge variant="outline" className="font-mono">
                               ID {service.mid}
                             </Badge>
-                            <span className="font-medium">{service.name}</span>
+                            <span className="font-medium text-foreground">{service.name}</span>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <div className="text-sm text-slate-500">
+                            <div className="text-sm text-muted-foreground">
                               Rp {service.rate}/1000
                             </div>
                             <Button
@@ -759,7 +759,7 @@ export default function DashboardPage() {
                               size="sm"
                               variant="ghost"
                               onClick={() => handleDeleteService(service.id)}
-                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-950/20"
                               disabled={deleteSmmServiceMutation.isPending}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -795,7 +795,7 @@ export default function DashboardPage() {
                 <BotIcon className="h-5 w-5" />
                 <span>My Bots</span>
               </CardTitle>
-              <span className="text-sm text-slate-500">
+              <span className="text-sm text-muted-foreground">
                 {bots?.length || 0} bots created
               </span>
             </div>
