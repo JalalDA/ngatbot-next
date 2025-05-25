@@ -375,7 +375,7 @@ export default function ChatbotBuilderPage() {
 
         <TabsContent value="flows" className="space-y-4">
           {selectedChatbot && (
-            <div className="space-y-6">
+            <>
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-semibold text-foreground">
@@ -569,10 +569,11 @@ export default function ChatbotBuilderPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </>
           )}
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      </div>
     </div>
   );
 }
