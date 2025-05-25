@@ -42,6 +42,21 @@ export default function DashboardPage() {
     isActive: true
   });
 
+  // Service edit modal states
+  const [showEditServiceModal, setShowEditServiceModal] = useState(false);
+  const [editingService, setEditingService] = useState<any>(null);
+  const [serviceEditForm, setServiceEditForm] = useState({
+    name: "",
+    description: "",
+    min: 0,
+    max: 0,
+    rate: "",
+    syncProvider: true,
+    priceType: "percentage", // "percentage" or "fixed"
+    priceValue: 0,
+    isActive: true
+  });
+
   const botForm = useForm<BotFormData>({
     resolver: zodResolver(insertBotSchema),
     defaultValues: { token: "" },
@@ -243,6 +258,72 @@ export default function DashboardPage() {
         providerId: importingProvider.id,
         serviceIds: Array.from(selectedServices)
       });
+    }
+  };
+
+  // Update SMM Service mutation
+  const updateSmmServiceMutation = useMutation({
+    mutationFn: async ({ serviceId, data }: { serviceId: number; data: any }) => {
+      const res = await apiRequest("PUT", `/api/smm/services/${serviceId}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/smm/services"] });
+      setShowEditServiceModal(false);
+      toast({
+        title: "Service Updated",
+        description: "SMM service has been successfully updated.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update service.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEditService = (service: any) => {
+    setEditingService(service);
+    
+    // Find provider info
+    const provider = (smmProviders as any[]).find(p => p.id === service.providerId);
+    
+    setServiceEditForm({
+      name: service.name,
+      description: service.description || "",
+      min: service.min,
+      max: service.max,
+      rate: service.rate,
+      syncProvider: true, // Default to sync
+      priceType: "percentage",
+      priceValue: 0,
+      isActive: service.isActive
+    });
+    setShowEditServiceModal(true);
+  };
+
+  const handleUpdateService = () => {
+    if (editingService) {
+      updateSmmServiceMutation.mutate({
+        serviceId: editingService.id,
+        data: serviceEditForm
+      });
+    }
+  };
+
+  const calculateProviderPrice = () => {
+    if (!editingService) return 0;
+    return parseFloat(editingService.rate) || 0;
+  };
+
+  const calculateYourPrice = () => {
+    const providerPrice = calculateProviderPrice();
+    if (serviceEditForm.priceType === "percentage") {
+      return providerPrice * (1 + serviceEditForm.priceValue / 100);
+    } else {
+      return serviceEditForm.priceValue;
     }
   };
 
@@ -452,8 +533,18 @@ export default function DashboardPage() {
                             </Badge>
                             <span className="font-medium">{service.name}</span>
                           </div>
-                          <div className="text-sm text-slate-500">
-                            Rp {service.rate}/1000
+                          <div className="flex items-center space-x-2">
+                            <div className="text-sm text-slate-500">
+                              Rp {service.rate}/1000
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEditService(service)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -802,6 +893,233 @@ export default function DashboardPage() {
                   )}
                 </Button>
               </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Service Modal */}
+      <Dialog open={showEditServiceModal} onOpenChange={setShowEditServiceModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Service</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Service Type */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Service type</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-slate-600">Provider</Label>
+                  <div className="mt-1 p-3 bg-slate-50 rounded-lg border flex items-center">
+                    <Package className="h-4 w-4 mr-2 text-slate-500" />
+                    <span className="text-sm">
+                      {editingService ? (smmProviders as any[]).find(p => p.id === editingService.providerId)?.name : 'Unknown'}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-slate-600">Service Id</Label>
+                  <div className="mt-1 p-3 bg-slate-50 rounded-lg border">
+                    <span className="text-sm font-mono">
+                      {editingService?.serviceIdApi || 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Description Section */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Description</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="service-name">Service name</Label>
+                  <Input
+                    id="service-name"
+                    value={serviceEditForm.name}
+                    onChange={(e) => setServiceEditForm(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Enter service name"
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="service-description">Description</Label>
+                  <textarea
+                    id="service-description"
+                    value={serviceEditForm.description}
+                    onChange={(e) => setServiceEditForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Enter service description for AI bot knowledge"
+                    className="mt-1 w-full p-3 border border-slate-300 rounded-lg resize-none h-24"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Options Section */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Options</h3>
+              
+              <div className="space-y-4">
+                {/* Min Max Sync Toggle */}
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border">
+                  <div className="flex items-center space-x-2">
+                    <RefreshCw className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-medium">Min Max parsed from provider</span>
+                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-slate-400">
+                      <HelpCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={serviceEditForm.syncProvider}
+                      onChange={(e) => setServiceEditForm(prev => ({ ...prev, syncProvider: e.target.checked }))}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                  </label>
+                </div>
+
+                {/* Min Max Inputs */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="min-order">Minimal order</Label>
+                    <Input
+                      id="min-order"
+                      type="number"
+                      value={serviceEditForm.min}
+                      onChange={(e) => setServiceEditForm(prev => ({ ...prev, min: parseInt(e.target.value) }))}
+                      disabled={serviceEditForm.syncProvider}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="max-order">Max order</Label>
+                    <Input
+                      id="max-order"
+                      type="number"
+                      value={serviceEditForm.max}
+                      onChange={(e) => setServiceEditForm(prev => ({ ...prev, max: parseInt(e.target.value) }))}
+                      disabled={serviceEditForm.syncProvider}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Price Section */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Price</h3>
+              
+              <div className="space-y-4">
+                {/* Provider Price Display */}
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                  <span className="text-sm font-medium">Provider price for 1000 completions</span>
+                  <span className="text-lg font-semibold">
+                    ${calculateProviderPrice().toFixed(2)}
+                  </span>
+                </div>
+
+                {/* Percentage Price Input */}
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <span className="text-sm font-medium">Your extra price in %</span>
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      type="number"
+                      value={serviceEditForm.priceValue}
+                      onChange={(e) => setServiceEditForm(prev => ({ ...prev, priceValue: parseFloat(e.target.value) }))}
+                      disabled={serviceEditForm.priceType !== "percentage"}
+                      className="w-20 text-center"
+                    />
+                    <span className="text-sm font-medium">%</span>
+                  </div>
+                </div>
+
+                {/* Your Final Price Display */}
+                <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <span className="text-sm font-medium">Your price on panel</span>
+                  <span className="text-lg font-semibold text-green-600">
+                    Rp {calculateYourPrice().toLocaleString()}
+                  </span>
+                </div>
+
+                {/* Fixed Price Toggle */}
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border">
+                  <div className="flex items-center space-x-2">
+                    <Star className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-medium">Fixed price</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={serviceEditForm.priceType === "fixed"}
+                      onChange={(e) => setServiceEditForm(prev => ({ 
+                        ...prev, 
+                        priceType: e.target.checked ? "fixed" : "percentage" 
+                      }))}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                  </label>
+                </div>
+
+                {/* Fixed Price Input */}
+                {serviceEditForm.priceType === "fixed" && (
+                  <div>
+                    <Label htmlFor="fixed-price">Fixed Price (Rp)</Label>
+                    <Input
+                      id="fixed-price"
+                      type="number"
+                      value={serviceEditForm.priceValue}
+                      onChange={(e) => setServiceEditForm(prev => ({ ...prev, priceValue: parseFloat(e.target.value) }))}
+                      className="mt-1"
+                    />
+                  </div>
+                )}
+
+                {/* Price Info */}
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-start space-x-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5" />
+                    <p className="text-sm text-amber-800">
+                      Now the price is updated from the provider and multiplied by your percentage. 
+                      This protects you from price increases.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end space-x-3 pt-6 border-t">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowEditServiceModal(false);
+                  setEditingService(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUpdateService}
+                disabled={updateSmmServiceMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {updateSmmServiceMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save"
+                )}
+              </Button>
             </div>
           </div>
         </DialogContent>
