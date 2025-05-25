@@ -1322,6 +1322,15 @@ export function registerRoutes(app: Express): Server {
       const user = req.user!;
       const chatbotId = parseInt(req.params.id);
       const { command, type, text, buttons, parentCommand, inlineButtons } = req.body;
+      
+      console.log("Create flow data received:", {
+        command,
+        type,
+        text,
+        buttons,
+        parentCommand,
+        inlineButtons
+      });
 
       const chatbot = await storage.getNonAiChatbot(chatbotId);
       if (!chatbot || chatbot.userId !== user.id) {
