@@ -111,30 +111,7 @@ export const smmOrders = pgTable("smm_orders", {
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
-// Non-AI Chatbot Builder tables
-export const nonAiChatbots = pgTable("non_ai_chatbots", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  botToken: text("bot_token").notNull(),
-  botUsername: text("bot_username").notNull(),
-  botName: text("bot_name").notNull(),
-  webhookUrl: text("webhook_url"),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
 
-export const botFlows = pgTable("bot_flows", {
-  id: serial("id").primaryKey(),
-  chatbotId: integer("chatbot_id").notNull().references(() => nonAiChatbots.id, { onDelete: "cascade" }),
-  command: text("command").notNull(),
-  type: text("type").notNull(), // "menu" | "text"
-  text: text("text").notNull(),
-  buttons: text("buttons").array(), // array of button labels
-  parentCommand: text("parent_command"), // for sub-menus
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -211,23 +188,7 @@ export const insertSmmOrderSchema = createInsertSchema(smmOrders).pick({
   notes: true,
 });
 
-export const insertNonAiChatbotSchema = createInsertSchema(nonAiChatbots).pick({
-  userId: true,
-  botToken: true,
-  botUsername: true,
-  botName: true,
-  webhookUrl: true,
-  isActive: true,
-});
 
-export const insertBotFlowSchema = createInsertSchema(botFlows).pick({
-  chatbotId: true,
-  command: true,
-  type: true,
-  text: true,
-  buttons: true,
-  parentCommand: true,
-});
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -246,7 +207,4 @@ export type SmmService = typeof smmServices.$inferSelect;
 export type InsertSmmService = z.infer<typeof insertSmmServiceSchema>;
 export type SmmOrder = typeof smmOrders.$inferSelect;
 export type InsertSmmOrder = z.infer<typeof insertSmmOrderSchema>;
-export type NonAiChatbot = typeof nonAiChatbots.$inferSelect;
-export type InsertNonAiChatbot = z.infer<typeof insertNonAiChatbotSchema>;
-export type BotFlow = typeof botFlows.$inferSelect;
-export type InsertBotFlow = z.infer<typeof insertBotFlowSchema>;
+
