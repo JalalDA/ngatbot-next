@@ -1603,6 +1603,10 @@ export function registerRoutes(app: Express): Server {
           const replyMarkup = NonAiChatbotService.createKeyboardMarkup(flow.buttons || []);
           await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text, replyMarkup);
           console.log("Sent menu response with buttons:", flow.buttons);
+        } else if (flow.type === "inline") {
+          const replyMarkup = NonAiChatbotService.createInlineKeyboardMarkup(flow.buttons || []);
+          await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text, replyMarkup);
+          console.log("Sent inline response with buttons:", flow.buttons);
         } else {
           await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text);
           console.log("Sent text response:", flow.text);
@@ -1625,6 +1629,9 @@ export function registerRoutes(app: Express): Server {
           console.log("Found target flow for button:", targetFlow.command);
           if (targetFlow.type === "menu") {
             const replyMarkup = NonAiChatbotService.createKeyboardMarkup(targetFlow.buttons || []);
+            await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, targetFlow.text, replyMarkup);
+          } else if (targetFlow.type === "inline") {
+            const replyMarkup = NonAiChatbotService.createInlineKeyboardMarkup(targetFlow.buttons || []);
             await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, targetFlow.text, replyMarkup);
           } else {
             await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, targetFlow.text);
