@@ -1195,11 +1195,7 @@ export function registerRoutes(app: Express): Server {
       const actualWebhookUrl = NonAiChatbotService.generateWebhookUrl(chatbot.id);
       await storage.updateNonAiChatbot(chatbot.id, { webhookUrl: actualWebhookUrl });
 
-      console.log("Step 5: Removing any existing webhook/polling conflicts...");
-      // First remove any existing webhooks or stop polling
-      await NonAiChatbotService.removeWebhook(botToken);
-      
-      console.log("Step 6: Setting webhook with Telegram...");
+      console.log("Step 5: Setting webhook with Telegram...");
       // Set webhook with Telegram
       const webhookResult = await NonAiChatbotService.setWebhook(botToken, actualWebhookUrl);
       if (!webhookResult.success) {
@@ -1273,77 +1269,6 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Update non-AI chatbot error:", error);
       res.status(500).json({ message: "Failed to update non-AI chatbot" });
-    }
-  });
-
-  // Fix Non-AI bot webhook (manual trigger)
-  app.post("/api/nonai-chatbots/:id/fix-webhook", requireAuth, async (req, res) => {
-    try {
-      console.log("🔧 Fix webhook endpoint called");
-      console.log("User authenticated:", req.isAuthenticated());
-      console.log("User ID:", req.user?.id);
-      console.log("Chatbot ID from params:", req.params.id);
-      
-      // Ensure proper JSON response
-      res.setHeader('Content-Type', 'application/json');
-      
-      const user = req.user!;
-      const chatbotId = parseInt(req.params.id);
-
-      if (isNaN(chatbotId)) {
-        console.log("❌ Invalid chatbot ID");
-        return res.status(400).json({ message: "Invalid chatbot ID" });
-      }
-
-      // Get chatbot and verify ownership
-      const chatbot = await storage.getNonAiChatbot(chatbotId);
-      console.log("Found chatbot:", chatbot ? `${chatbot.botUsername} (userId: ${chatbot.userId})` : "null");
-      
-      if (!chatbot) {
-        return res.status(404).json({ message: "Chatbot not found" });
-      }
-      
-      if (chatbot.userId !== user.id) {
-        console.log(`❌ User ${user.id} trying to access chatbot owned by ${chatbot.userId}`);
-        return res.status(403).json({ message: "Unauthorized access to this chatbot" });
-      }
-
-      console.log(`🔧 Fixing webhook for bot: ${chatbot.botUsername}`);
-
-      const { NonAiChatbotService } = await import("./non-ai-chatbot");
-
-      // Step 1: Remove existing webhook
-      console.log("  🗑️ Removing existing webhook...");
-      await NonAiChatbotService.removeWebhook(chatbot.botToken);
-      
-      // Step 2: Wait a bit
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Step 3: Set new webhook
-      const webhookUrl = NonAiChatbotService.generateWebhookUrl(chatbot.id);
-      console.log(`  🔗 Setting webhook to: ${webhookUrl}`);
-      const webhookResult = await NonAiChatbotService.setWebhook(chatbot.botToken, webhookUrl);
-      
-      if (webhookResult.success) {
-        await storage.updateNonAiChatbot(chatbot.id, { webhookUrl });
-        console.log(`✅ Webhook fixed for ${chatbot.botUsername}`);
-        return res.status(200).json({ 
-          success: true,
-          message: "Webhook berhasil diperbaiki! Inline buttons sekarang akan berfungsi." 
-        });
-      } else {
-        console.error(`❌ Failed to fix webhook:`, webhookResult.error);
-        return res.status(500).json({ 
-          success: false,
-          message: `Gagal memperbaiki webhook: ${webhookResult.error}` 
-        });
-      }
-    } catch (error: any) {
-      console.error("Fix webhook error:", error);
-      return res.status(500).json({ 
-        success: false,
-        message: error.message || "Gagal memperbaiki webhook" 
-      });
     }
   });
 
@@ -1675,9 +1600,9 @@ export function registerRoutes(app: Express): Server {
       if (flow) {
         // Send response based on flow type
         if (flow.type === "menu") {
-          const replyMarkup = NonAiChatbotService.createInlineKeyboardMarkup(flow.buttons || []);
+          const replyMarkup = NonAiChatbotService.createKeyboardMarkup(flow.buttons || []);
           await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text, replyMarkup);
-          console.log("Sent menu response with inline buttons:", flow.buttons);
+          console.log("Sent menu response with buttons:", flow.buttons);
         } else {
           await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text);
           console.log("Sent text response:", flow.text);
@@ -1699,7 +1624,7 @@ export function registerRoutes(app: Express): Server {
         if (targetFlow) {
           console.log("Found target flow for button:", targetFlow.command);
           if (targetFlow.type === "menu") {
-            const replyMarkup = NonAiChatbotService.createInlineKeyboardMarkup(targetFlow.buttons || []);
+            const replyMarkup = NonAiChatbotService.createKeyboardMarkup(targetFlow.buttons || []);
             await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, targetFlow.text, replyMarkup);
           } else {
             await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, targetFlow.text);
@@ -1710,7 +1635,7 @@ export function registerRoutes(app: Express): Server {
             const startFlow = await storage.getBotFlowByCommand(chatbotId, "/start");
             if (startFlow) {
               if (startFlow.type === "menu") {
-                const replyMarkup = NonAiChatbotService.createInlineKeyboardMarkup(startFlow.buttons || []);
+                const replyMarkup = NonAiChatbotService.createKeyboardMarkup(startFlow.buttons || []);
                 await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, startFlow.text, replyMarkup);
               } else {
                 await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, startFlow.text);
