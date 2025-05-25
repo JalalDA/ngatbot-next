@@ -1121,6 +1121,141 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Bot Non-AI Management Routes
+  app.get("/api/chatbot-nonai/bots", requireAuth, async (req, res) => {
+    try {
+      // For now, return empty array since we don't have bot storage yet
+      // In future, this would fetch user's bots from database
+      res.json([]);
+    } catch (error) {
+      console.error("Get bots error:", error);
+      res.status(500).json({ message: "Failed to fetch bots" });
+    }
+  });
+
+  app.post("/api/chatbot-nonai/bots", requireAuth, async (req, res) => {
+    try {
+      const { name, token } = req.body;
+      const user = req.user!;
+
+      if (!name || !token) {
+        return res.status(400).json({ message: "Nama bot dan token diperlukan" });
+      }
+
+      // Validate bot token by calling Telegram API
+      const validateResponse = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+      const validateResult = await validateResponse.json();
+
+      if (!validateResult.ok) {
+        return res.status(400).json({ 
+          message: "Token bot tidak valid. Pastikan token dari @BotFather benar." 
+        });
+      }
+
+      const botInfo = validateResult.result;
+
+      // Set webhook URL
+      const webhookUrl = `${process.env.REPLIT_DOMAINS || 'http://localhost:5000'}/api/chatbot-nonai/webhook/${token}`;
+      const webhookResponse = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: webhookUrl,
+        }),
+      });
+
+      const webhookResult = await webhookResponse.json();
+      
+      if (!webhookResult.ok) {
+        return res.status(400).json({ 
+          message: "Gagal mengatur webhook. Coba lagi nanti." 
+        });
+      }
+
+      // For now, just return success with bot info
+      // In future, save to database
+      res.json({
+        id: Date.now(),
+        name: name,
+        botName: botInfo.first_name,
+        botUsername: botInfo.username,
+        token: token,
+        isActive: true,
+        webhookUrl: webhookUrl,
+        stats: {
+          totalUsers: 0,
+          totalOrders: 0,
+          revenue: 0,
+          activeUsers: 0
+        }
+      });
+    } catch (error) {
+      console.error("Create bot error:", error);
+      res.status(500).json({ 
+        message: "Gagal membuat bot. Pastikan token valid dan belum digunakan." 
+      });
+    }
+  });
+
+  app.get("/api/chatbot-nonai/stats", requireAuth, async (req, res) => {
+    try {
+      // Get basic stats from database
+      const { db } = await import("./db.js");
+      const { telegramUsers, orders } = await import("../shared/schema.js");
+      const { count, sum } = await import("drizzle-orm");
+
+      const [userCount] = await db.select({ count: count() }).from(telegramUsers);
+      const [orderCount] = await db.select({ count: count() }).from(orders);
+      const [revenueSum] = await db.select({ 
+        total: sum(orders.price) 
+      }).from(orders).where(eq(orders.status, "delivered"));
+
+      res.json({
+        totalUsers: userCount.count || 0,
+        totalOrders: orderCount.count || 0,
+        revenue: parseFloat(revenueSum.total || "0"),
+        totalProducts: 1 // Currently only Canva
+      });
+    } catch (error) {
+      console.error("Get stats error:", error);
+      res.json({
+        totalUsers: 0,
+        totalOrders: 0,
+        revenue: 0,
+        totalProducts: 1
+      });
+    }
+  });
+
+  app.get("/api/chatbot-nonai/orders", requireAuth, async (req, res) => {
+    try {
+      const { db } = await import("./db.js");
+      const { orders, telegramUsers } = await import("../shared/schema.js");
+      const { eq } = await import("drizzle-orm");
+
+      const ordersWithUsers = await db
+        .select({
+          id: orders.id,
+          customerName: telegramUsers.firstName,
+          product: orders.productName,
+          amount: orders.price,
+          status: orders.status,
+          createdAt: orders.createdAt,
+        })
+        .from(orders)
+        .leftJoin(telegramUsers, eq(orders.telegramUserId, telegramUsers.id))
+        .orderBy(orders.createdAt)
+        .limit(50);
+
+      res.json(ordersWithUsers);
+    } catch (error) {
+      console.error("Get orders error:", error);
+      res.json([]);
+    }
+  });
+
   // Chatbot Non-AI Webhook Routes
   app.post("/api/chatbot-nonai/webhook/:botToken", async (req, res) => {
     try {
