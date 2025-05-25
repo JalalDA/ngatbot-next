@@ -166,47 +166,36 @@ export function Navigation() {
       </div>
     </header>
 
-    {/* Mobile Bottom Navigation - Dark Mode Interactive */}
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border shadow-2xl">
-      <div className="flex justify-around items-center py-3 px-2">
-        {navigationItems.map((item, index) => {
+    {/* Mobile Bottom Navigation - Simple */}
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border">
+      <div className="flex justify-around items-center py-2 px-1">
+        {navigationItems.map((item) => {
           const isActive = location === item.href;
           return (
             <Link
               key={item.name}
               href={item.href}
-              className="nav-item flex flex-col items-center justify-center transition-all duration-300 animate-bounce-in"
-              style={{ 
-                animationDelay: `${index * 100}ms`,
-              }}
+              className="flex flex-col items-center justify-center transition-colors duration-200"
             >
-              {/* Icon Container with Dark Mode Effects */}
+              {/* Icon Container - Simple */}
               <div className={`
-                interactive-button p-3 rounded-xl transition-all duration-300 relative
+                p-2 rounded-lg transition-colors duration-200
                 ${isActive 
-                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 animate-glow-pulse' 
-                  : 'bg-accent text-accent-foreground hover:bg-accent/80 hover:shadow-md'
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
                 }
               `}>
-                <item.icon className={`h-5 w-5 transition-all duration-300 ${isActive ? 'animate-float' : ''}`} />
-                
-                {/* Glowing ring for active item */}
-                {isActive && (
-                  <div className="absolute inset-0 rounded-xl bg-primary/20 animate-pulse blur-sm"></div>
-                )}
+                <item.icon className="h-4 w-4" />
               </div>
               
-              {/* Active indicator with animation */}
+              {/* Simple active indicator */}
               {isActive && (
-                <div className="w-2 h-2 bg-primary rounded-full mt-1 animate-bounce-in shadow-lg shadow-primary/50"></div>
+                <div className="w-1 h-1 bg-primary rounded-full mt-1"></div>
               )}
             </Link>
           );
         })}
       </div>
-      
-      {/* Subtle gradient accent */}
-      <div className="h-1 bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
     </div>
     </>
   );
