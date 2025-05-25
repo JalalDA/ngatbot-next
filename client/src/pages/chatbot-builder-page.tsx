@@ -68,7 +68,16 @@ export default function ChatBotBuilderPage() {
         throw new Error(errorMessage);
       }
       
-      return res.json();
+      const responseText = await res.text();
+      console.log("Response text:", responseText);
+      
+      try {
+        return JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError);
+        console.error("Response was:", responseText);
+        throw new Error("Invalid JSON response from server");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/chatbots"] });
