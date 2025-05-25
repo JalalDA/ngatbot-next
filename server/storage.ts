@@ -470,35 +470,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createBotFlow(insertFlow: InsertBotFlow): Promise<BotFlow> {
-    console.log("=== STORAGE CREATE BOT FLOW ===");
-    console.log("Data received in storage:", insertFlow);
-    console.log("inlineButtons field:", insertFlow.inlineButtons);
-    console.log("inlineButtons type:", typeof insertFlow.inlineButtons);
-    
     const [flow] = await db
       .insert(botFlows)
       .values(insertFlow)
       .returning();
-    
-    console.log("Data saved to database:", flow);
     return flow;
   }
 
   async updateBotFlow(id: number, updates: Partial<BotFlow>): Promise<BotFlow | undefined> {
-    console.log("=== STORAGE UPDATE BOT FLOW ===");
-    console.log("Flow ID:", id);
-    console.log("Updates received:", updates);
-    console.log("InlineButtons in updates:", updates.inlineButtons);
-    
     const [updated] = await db
       .update(botFlows)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(botFlows.id, id))
       .returning();
-    
-    console.log("Updated flow result:", updated);
-    console.log("Updated flow inlineButtons:", updated?.inlineButtons);
-    
     return updated || undefined;
   }
 

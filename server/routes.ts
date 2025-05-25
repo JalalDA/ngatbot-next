@@ -9,16 +9,9 @@ import { SmmPanelAPI, generateSmmOrderId, generateMid, parseRate, calculateOrder
 import { z } from "zod";
 
 function requireAuth(req: any, res: any, next: any) {
-  console.log("=== AUTH CHECK ===");
-  console.log("URL:", req.url);
-  console.log("Is authenticated:", req.isAuthenticated());
-  console.log("Session ID:", req.sessionID);
-  
   if (!req.isAuthenticated()) {
-    console.log("Authentication failed - returning 401");
     return res.status(401).json({ message: "Authentication required" });
   }
-  console.log("Authentication successful - proceeding");
   next();
 }
 
@@ -30,11 +23,6 @@ function requireAdmin(req: any, res: any, next: any) {
 }
 
 export function registerRoutes(app: Express): Server {
-  // Add logging middleware for all API requests
-  app.use('/api', (req, res, next) => {
-    console.log(`${req.method} ${req.url} - ${new Date().toISOString()}`);
-    next();
-  });
   // Setup authentication routes
   setupAuth(app);
 
@@ -1331,23 +1319,9 @@ export function registerRoutes(app: Express): Server {
   // Create new bot flow
   app.post("/api/nonai-chatbots/:id/flows", requireAuth, async (req, res) => {
     try {
-      console.log("=== CREATE FLOW REQUEST ===");
-      console.log("Full request body:", req.body);
-      
       const user = req.user!;
       const chatbotId = parseInt(req.params.id);
-      const { command, type, text, buttons, parentCommand, inlineButtons } = req.body;
-      
-      console.log("Create flow data received:", {
-        command,
-        type,
-        text,
-        buttons,
-        parentCommand,
-        inlineButtons,
-        inlineButtonsType: typeof inlineButtons,
-        inlineButtonsLength: inlineButtons ? inlineButtons.length : 'undefined'
-      });
+      const { command, type, text, buttons, parentCommand } = req.body;
 
       const chatbot = await storage.getNonAiChatbot(chatbotId);
       if (!chatbot || chatbot.userId !== user.id) {
@@ -1379,8 +1353,7 @@ export function registerRoutes(app: Express): Server {
         type,
         text,
         buttons: type === "menu" ? buttons : null,
-        parentCommand,
-        inlineButtons: inlineButtons || null
+        parentCommand
       });
 
       res.status(201).json(flow);
@@ -1540,30 +1513,11 @@ export function registerRoutes(app: Express): Server {
 
   // Update bot flow
   app.put("/api/nonai-chatbots/:chatbotId/flows/:flowId", requireAuth, async (req, res) => {
-    console.log("=== UPDATE FLOW ROUTE HIT ===");
-    console.log("Method:", req.method);
-    console.log("URL:", req.url);
-    console.log("Params:", req.params);
     try {
-      console.log("=== UPDATE FLOW REQUEST ===");
-      console.log("Full request body:", req.body);
-      
       const user = req.user!;
       const chatbotId = parseInt(req.params.chatbotId);
       const flowId = parseInt(req.params.flowId);
-      const { command, type, text, buttons, parentCommand, inlineButtons } = req.body;
-      
-      console.log("Update flow data received:", {
-        flowId,
-        command,
-        type,
-        text,
-        buttons,
-        parentCommand,
-        inlineButtons,
-        inlineButtonsType: typeof inlineButtons,
-        inlineButtonsLength: inlineButtons ? inlineButtons.length : 'undefined'
-      });
+      const { command, type, text, buttons, parentCommand } = req.body;
 
       const chatbot = await storage.getNonAiChatbot(chatbotId);
       if (!chatbot || chatbot.userId !== user.id) {
@@ -1580,8 +1534,7 @@ export function registerRoutes(app: Express): Server {
         type,
         text,
         buttons: type === "menu" ? buttons : null,
-        parentCommand,
-        inlineButtons: inlineButtons || null
+        parentCommand
       });
 
       res.json(updatedFlow);
@@ -1651,13 +1604,7 @@ export function registerRoutes(app: Express): Server {
           await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text, replyMarkup);
           console.log("Sent menu response with buttons:", flow.buttons);
         } else {
-          // Check if flow has inline buttons
-          let replyMarkup = null;
-          if (flow.inlineButtons && flow.inlineButtons.trim()) {
-            replyMarkup = NonAiChatbotService.createInlineKeyboardMarkup(flow.inlineButtons);
-            console.log("Using inline keyboard for text flow");
-          }
-          await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text, replyMarkup);
+          await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text);
           console.log("Sent text response:", flow.text);
         }
       } else {
@@ -1680,13 +1627,7 @@ export function registerRoutes(app: Express): Server {
             const replyMarkup = NonAiChatbotService.createKeyboardMarkup(targetFlow.buttons || []);
             await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, targetFlow.text, replyMarkup);
           } else {
-            // Check if flow has inline buttons
-            let replyMarkup = null;
-            if (targetFlow.inlineButtons && targetFlow.inlineButtons.trim()) {
-              replyMarkup = NonAiChatbotService.createInlineKeyboardMarkup(targetFlow.inlineButtons);
-              console.log("Using inline keyboard for target flow");
-            }
-            await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, targetFlow.text, replyMarkup);
+            await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, targetFlow.text);
           }
         } else {
           // Default response or /start command

@@ -160,39 +160,13 @@ export class NonAiChatbotService {
   }
 
   /**
-   * Create inline keyboard markup from inline buttons data
+   * Create inline keyboard markup for menu type flows
    */
-  static createInlineKeyboardMarkup(inlineButtons: string): any {
-    try {
-      const buttonRows = JSON.parse(inlineButtons);
-      
-      const inlineKeyboard = buttonRows.map((row: any[]) => {
-        return row.map((button: any) => {
-          const inlineButton: any = {
-            text: button.text
-          };
-          
-          // Add callback_data if command is provided
-          if (button.callback && button.callback.trim()) {
-            inlineButton.callback_data = button.callback.trim();
-          }
-          
-          // Add URL if provided
-          if (button.url && button.url.trim()) {
-            inlineButton.url = button.url.trim();
-          }
-          
-          return inlineButton;
-        });
-      });
-
-      return {
-        inline_keyboard: inlineKeyboard
-      };
-    } catch (error) {
-      console.error('Error parsing inline buttons:', error);
-      return null;
-    }
+  static createInlineKeyboardMarkup(buttons: string[]): any {
+    const keyboard = buttons.map(button => [{ text: button, callback_data: button }]);
+    return {
+      inline_keyboard: keyboard
+    };
   }
 
   /**

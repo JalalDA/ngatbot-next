@@ -131,7 +131,6 @@ export const botFlows = pgTable("bot_flows", {
   type: text("type").notNull(), // "menu" | "text"
   text: text("text").notNull(),
   buttons: text("buttons").array(), // array of button labels
-  inlineButtons: text("inline_buttons"), // JSON string for inline keyboard structure
   parentCommand: text("parent_command"), // for sub-menus
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -227,7 +226,6 @@ export const insertBotFlowSchema = createInsertSchema(botFlows).pick({
   type: true,
   text: true,
   buttons: true,
-  inlineButtons: true,
   parentCommand: true,
 });
 
