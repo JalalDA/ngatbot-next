@@ -186,7 +186,9 @@ export default function ChatbotBuilderPage() {
         type: "text",
         text: "",
         buttons: [""],
-        parentCommand: ""
+        inlineButtons: [[{ text: "", callback: "", url: "" }]],
+        parentCommand: "",
+        useInlineKeyboard: false
       });
       toast({
         title: "Success",
@@ -331,6 +333,50 @@ export default function ChatbotBuilderPage() {
     setFlowForm(prev => ({
       ...prev,
       buttons: prev.buttons.map((button, i) => i === index ? value : button)
+    }));
+  };
+
+  // Inline keyboard helper functions
+  const addInlineButtonRow = () => {
+    setFlowForm(prev => ({
+      ...prev,
+      inlineButtons: [...prev.inlineButtons, [{ text: "", callback: "", url: "" }]]
+    }));
+  };
+
+  const addInlineButton = (rowIndex: number) => {
+    setFlowForm(prev => ({
+      ...prev,
+      inlineButtons: prev.inlineButtons.map((row, i) => 
+        i === rowIndex ? [...row, { text: "", callback: "", url: "" }] : row
+      )
+    }));
+  };
+
+  const removeInlineButtonRow = (rowIndex: number) => {
+    setFlowForm(prev => ({
+      ...prev,
+      inlineButtons: prev.inlineButtons.filter((_, i) => i !== rowIndex)
+    }));
+  };
+
+  const removeInlineButton = (rowIndex: number, buttonIndex: number) => {
+    setFlowForm(prev => ({
+      ...prev,
+      inlineButtons: prev.inlineButtons.map((row, i) => 
+        i === rowIndex ? row.filter((_, j) => j !== buttonIndex) : row
+      )
+    }));
+  };
+
+  const updateInlineButton = (rowIndex: number, buttonIndex: number, field: string, value: string) => {
+    setFlowForm(prev => ({
+      ...prev,
+      inlineButtons: prev.inlineButtons.map((row, i) => 
+        i === rowIndex ? row.map((button, j) => 
+          j === buttonIndex ? { ...button, [field]: value } : button
+        ) : row
+      )
     }));
   };
 
