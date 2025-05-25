@@ -731,6 +731,8 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/smm/providers", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
+      console.log("Request body:", req.body);
+      
       const { name, apiKey, apiEndpoint, isActive = true } = req.body;
 
       // Validate required fields
@@ -738,18 +740,36 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Name, API key, and endpoint are required" });
       }
 
+      // Simple validation instead of Zod
+      const trimmedName = String(name).trim();
+      const trimmedApiKey = String(apiKey).trim();
+      const trimmedEndpoint = String(apiEndpoint).trim();
+
+      if (trimmedName.length < 1) {
+        return res.status(400).json({ message: "Provider name cannot be empty" });
+      }
+
+      if (trimmedApiKey.length < 1) {
+        return res.status(400).json({ message: "API key cannot be empty" });
+      }
+
+      if (!trimmedEndpoint.startsWith('http')) {
+        return res.status(400).json({ message: "API endpoint must be a valid URL starting with http or https" });
+      }
+
       const provider = await storage.createSmmProvider({
         userId: user.id,
-        name: name.trim(),
-        apiKey: apiKey.trim(),
-        apiEndpoint: apiEndpoint.trim(),
+        name: trimmedName,
+        apiKey: trimmedApiKey,
+        apiEndpoint: trimmedEndpoint,
         isActive: Boolean(isActive)
       });
 
+      console.log("Provider created successfully:", provider);
       res.status(201).json(provider);
     } catch (error) {
       console.error("Create SMM provider error:", error);
-      res.status(500).json({ message: "Failed to create SMM provider: " + error.message });
+      res.status(500).json({ message: "Failed to create SMM provider: " + (error as Error).message });
     }
   });
 

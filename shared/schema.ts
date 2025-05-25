@@ -149,6 +149,10 @@ export const insertSmmProviderSchema = createInsertSchema(smmProviders).pick({
   apiKey: true,
   apiEndpoint: true,
   isActive: true,
+}).extend({
+  name: z.string().min(1, "Provider name is required"),
+  apiKey: z.string().min(1, "API key is required"),
+  apiEndpoint: z.string().url("Please enter a valid URL"),
 });
 
 export const insertSmmServiceSchema = createInsertSchema(smmServices).pick({
