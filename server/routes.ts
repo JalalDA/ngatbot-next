@@ -3,11 +3,9 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { telegramBotManager } from "./telegram";
-import { insertBotSchema, insertKnowledgeSchema, insertSettingSchema, insertSmmProviderSchema, insertSmmServiceSchema, insertSmmOrderSchema, insertAutoBotSchema, insertProductSchema } from "@shared/schema";
+import { insertBotSchema, insertKnowledgeSchema, insertSettingSchema, insertSmmProviderSchema, insertSmmServiceSchema, insertSmmOrderSchema } from "@shared/schema";
 import { createMidtransTransaction, generateOrderId, verifySignatureKey, getTransactionStatus, UPGRADE_PLANS, type PlanType } from "./midtrans";
 import { SmmPanelAPI, generateSmmOrderId, generateMid, parseRate, calculateOrderAmount } from "./smm-panel";
-import { AutoBotService } from "./auto-bot-service";
-import { registerAutoBotRoutes } from "./auto-bot-routes";
 import { z } from "zod";
 
 function requireAuth(req: any, res: any, next: any) {
@@ -27,9 +25,6 @@ function requireAdmin(req: any, res: any, next: any) {
 export function registerRoutes(app: Express): Server {
   // Setup authentication routes
   setupAuth(app);
-
-  // Register Auto Bot Builder routes
-  registerAutoBotRoutes(app);
 
   // Bot management routes
   app.post("/api/bots", requireAuth, async (req, res) => {

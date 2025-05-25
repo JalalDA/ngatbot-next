@@ -111,68 +111,7 @@ export const smmOrders = pgTable("smm_orders", {
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
-// Bot Builder Tables untuk fitur /builderbotnonai
-export const autoBots = pgTable("auto_bots", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  botToken: text("bot_token").notNull(),
-  botUsername: text("bot_username").notNull(),
-  botName: text("bot_name").notNull(),
-  botId: text("bot_id").notNull().unique(),
-  isActive: boolean("is_active").default(true).notNull(),
-  webhookUrl: text("webhook_url"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
 
-export const products = pgTable("products", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description"),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  category: text("category").notNull(),
-  isActive: boolean("is_active").default(true).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const botOrders = pgTable("bot_orders", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  botId: integer("bot_id").notNull().references(() => autoBots.id, { onDelete: "cascade" }),
-  productId: integer("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
-  chatId: text("chat_id").notNull(),
-  status: text("status").notNull().default("pending"), // pending, paid, completed, failed
-  midtransOrderId: text("midtrans_order_id"),
-  midtransSnapToken: text("midtrans_snap_token"),
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const accountStock = pgTable("account_stock", {
-  id: serial("id").primaryKey(),
-  productId: integer("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
-  email: text("email").notNull(),
-  password: text("password").notNull(),
-  status: text("status").notNull().default("available"), // available, used
-  usedBy: integer("used_by").references(() => users.id),
-  usedAt: timestamp("used_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const payments = pgTable("payments", {
-  id: serial("id").primaryKey(),
-  orderId: integer("order_id").notNull().references(() => botOrders.id, { onDelete: "cascade" }),
-  midtransOrderId: text("midtrans_order_id").notNull().unique(),
-  snapToken: text("snap_token"),
-  paymentType: text("payment_type"),
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  status: text("status").notNull().default("pending"), // pending, settlement, failed, expired
-  paidAt: timestamp("paid_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -249,54 +188,7 @@ export const insertSmmOrderSchema = createInsertSchema(smmOrders).pick({
   notes: true,
 });
 
-// Bot Builder Insert Schemas
-export const insertAutoBotSchema = createInsertSchema(autoBots).pick({
-  userId: true,
-  botToken: true,
-  botUsername: true,
-  botName: true,
-  botId: true,
-  isActive: true,
-  webhookUrl: true,
-});
 
-export const insertProductSchema = createInsertSchema(products).pick({
-  name: true,
-  description: true,
-  price: true,
-  category: true,
-  isActive: true,
-});
-
-export const insertBotOrderSchema = createInsertSchema(botOrders).pick({
-  userId: true,
-  botId: true,
-  productId: true,
-  chatId: true,
-  status: true,
-  midtransOrderId: true,
-  midtransSnapToken: true,
-  amount: true,
-});
-
-export const insertAccountStockSchema = createInsertSchema(accountStock).pick({
-  productId: true,
-  email: true,
-  password: true,
-  status: true,
-  usedBy: true,
-  usedAt: true,
-});
-
-export const insertPaymentSchema = createInsertSchema(payments).pick({
-  orderId: true,
-  midtransOrderId: true,
-  snapToken: true,
-  paymentType: true,
-  amount: true,
-  status: true,
-  paidAt: true,
-});
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -315,16 +207,4 @@ export type SmmService = typeof smmServices.$inferSelect;
 export type InsertSmmService = z.infer<typeof insertSmmServiceSchema>;
 export type SmmOrder = typeof smmOrders.$inferSelect;
 export type InsertSmmOrder = z.infer<typeof insertSmmOrderSchema>;
-
-// Bot Builder Types
-export type AutoBot = typeof autoBots.$inferSelect;
-export type InsertAutoBot = z.infer<typeof insertAutoBotSchema>;
-export type Product = typeof products.$inferSelect;
-export type InsertProduct = z.infer<typeof insertProductSchema>;
-export type BotOrder = typeof botOrders.$inferSelect;
-export type InsertBotOrder = z.infer<typeof insertBotOrderSchema>;
-export type AccountStock = typeof accountStock.$inferSelect;
-export type InsertAccountStock = z.infer<typeof insertAccountStockSchema>;
-export type Payment = typeof payments.$inferSelect;
-export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 
