@@ -50,26 +50,33 @@ export default function ChatBotBuilderPage() {
   const createChatBotMutation = useMutation({
     mutationFn: async (data: { token: string; welcomeMessage: string }) => {
       console.log("Sending ChatBot data:", data);
-      const res = await apiRequest("POST", "/api/chatbots", data);
+      
+      // Bypass apiRequest and use direct fetch to avoid error handling interference
+      const res = await fetch("/api/chatbots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+      
       console.log("Response status:", res.status);
+      console.log("Response headers:", Object.fromEntries(res.headers.entries()));
+      
+      const responseText = await res.text();
+      console.log("Response text:", responseText);
       
       if (!res.ok) {
-        const errorText = await res.text();
-        console.error("Error response:", errorText);
         let errorMessage = "Failed to create ChatBot";
         
         try {
-          const errorData = JSON.parse(errorText);
+          const errorData = JSON.parse(responseText);
           errorMessage = errorData.message || errorMessage;
         } catch {
-          errorMessage = errorText || errorMessage;
+          errorMessage = responseText || errorMessage;
         }
         
         throw new Error(errorMessage);
       }
-      
-      const responseText = await res.text();
-      console.log("Response text:", responseText);
       
       try {
         return JSON.parse(responseText);
