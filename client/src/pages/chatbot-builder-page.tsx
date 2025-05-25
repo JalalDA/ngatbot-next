@@ -150,6 +150,7 @@ export default function ChatbotBuilderPage() {
         type: "text",
         text: "",
         buttons: [""],
+        inlineButtons: [[{ text: "", callback: "", url: "" }]],
         parentCommand: ""
       });
       toast({
@@ -181,6 +182,7 @@ export default function ChatbotBuilderPage() {
         type: "text",
         text: "",
         buttons: [""],
+        inlineButtons: [[{ text: "", callback: "", url: "" }]],
         parentCommand: ""
       });
       toast({
@@ -262,11 +264,17 @@ export default function ChatbotBuilderPage() {
       return;
     }
 
+    // Filter out empty inline buttons
+    const filteredInlineButtons = flowForm.inlineButtons
+      .map(row => row.filter(btn => btn.text.trim()))
+      .filter(row => row.length > 0);
+
     const flowData = {
       command: flowForm.command,
       type: flowForm.type,
       text: flowForm.text,
       buttons: flowForm.type === "menu" ? flowForm.buttons.filter(b => b.trim()) : undefined,
+      inlineButtons: filteredInlineButtons.length > 0 ? JSON.stringify(filteredInlineButtons) : undefined,
       parentCommand: flowForm.parentCommand || undefined
     };
 
@@ -283,11 +291,17 @@ export default function ChatbotBuilderPage() {
       return;
     }
 
+    // Filter out empty inline buttons
+    const filteredInlineButtons = flowForm.inlineButtons
+      .map(row => row.filter(btn => btn.text.trim()))
+      .filter(row => row.length > 0);
+
     const flowData = {
       command: flowForm.command,
       type: flowForm.type,
       text: flowForm.text,
       buttons: flowForm.type === "menu" ? flowForm.buttons.filter(b => b.trim()) : undefined,
+      inlineButtons: filteredInlineButtons.length > 0 ? JSON.stringify(filteredInlineButtons) : undefined,
       parentCommand: flowForm.parentCommand || undefined
     };
 
@@ -296,11 +310,23 @@ export default function ChatbotBuilderPage() {
 
   const handleEditFlow = (flow: BotFlow) => {
     setEditingFlow(flow);
+    
+    // Parse inline buttons from JSON string
+    let parsedInlineButtons: InlineButton[][] = [[{ text: "", callback: "", url: "" }]];
+    if (flow.inlineButtons) {
+      try {
+        parsedInlineButtons = JSON.parse(flow.inlineButtons);
+      } catch (e) {
+        console.error('Error parsing inline buttons:', e);
+      }
+    }
+    
     setFlowForm({
       command: flow.command,
       type: flow.type,
       text: flow.text,
       buttons: flow.buttons || [""],
+      inlineButtons: parsedInlineButtons,
       parentCommand: flow.parentCommand || ""
     });
     setShowEditFlow(true);
@@ -324,6 +350,50 @@ export default function ChatbotBuilderPage() {
     setFlowForm(prev => ({
       ...prev,
       buttons: prev.buttons.map((button, i) => i === index ? value : button)
+    }));
+  };
+
+  // Inline keyboard management functions
+  const addInlineButtonRow = () => {
+    setFlowForm(prev => ({
+      ...prev,
+      inlineButtons: [...prev.inlineButtons, [{ text: "", callback: "", url: "" }]]
+    }));
+  };
+
+  const addInlineButtonToRow = (rowIndex: number) => {
+    setFlowForm(prev => ({
+      ...prev,
+      inlineButtons: prev.inlineButtons.map((row, i) => 
+        i === rowIndex ? [...row, { text: "", callback: "", url: "" }] : row
+      )
+    }));
+  };
+
+  const removeInlineButtonRow = (rowIndex: number) => {
+    setFlowForm(prev => ({
+      ...prev,
+      inlineButtons: prev.inlineButtons.filter((_, i) => i !== rowIndex)
+    }));
+  };
+
+  const removeInlineButton = (rowIndex: number, buttonIndex: number) => {
+    setFlowForm(prev => ({
+      ...prev,
+      inlineButtons: prev.inlineButtons.map((row, i) => 
+        i === rowIndex ? row.filter((_, j) => j !== buttonIndex) : row
+      )
+    }));
+  };
+
+  const updateInlineButton = (rowIndex: number, buttonIndex: number, field: keyof InlineButton, value: string) => {
+    setFlowForm(prev => ({
+      ...prev,
+      inlineButtons: prev.inlineButtons.map((row, i) => 
+        i === rowIndex ? row.map((button, j) => 
+          j === buttonIndex ? { ...button, [field]: value } : button
+        ) : row
+      )
     }));
   };
 
