@@ -309,6 +309,12 @@ export default function ChatbotBuilderPage() {
       parentCommand: flowForm.parentCommand || undefined
     };
 
+    console.log("Frontend sending UPDATE flow data:", {
+      flowData,
+      filteredInlineButtons,
+      inlineButtonsStringified: flowData.inlineButtons
+    });
+
     updateFlowMutation.mutate({ flowId: editingFlow.id, flowData });
   };
 
