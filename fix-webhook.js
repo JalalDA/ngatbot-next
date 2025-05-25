@@ -1,5 +1,5 @@
-const https = require('https');
-const { URL } = require('url');
+import https from 'https';
+import { URL } from 'url';
 
 // Bot token
 const BOT_TOKEN = '7915473398:AAE6g2Pnpgn9C4wsdRGR6UgsyAvL3HDppTM';
