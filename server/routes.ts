@@ -1321,7 +1321,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const user = req.user!;
       const chatbotId = parseInt(req.params.id);
-      const { command, type, text, buttons, parentCommand } = req.body;
+      const { command, type, text, buttons, parentCommand, inlineButtons } = req.body;
 
       const chatbot = await storage.getNonAiChatbot(chatbotId);
       if (!chatbot || chatbot.userId !== user.id) {
@@ -1353,7 +1353,8 @@ export function registerRoutes(app: Express): Server {
         type,
         text,
         buttons: type === "menu" ? buttons : null,
-        parentCommand
+        parentCommand,
+        inlineButtons: inlineButtons || null
       });
 
       res.status(201).json(flow);
@@ -1517,7 +1518,7 @@ export function registerRoutes(app: Express): Server {
       const user = req.user!;
       const chatbotId = parseInt(req.params.chatbotId);
       const flowId = parseInt(req.params.flowId);
-      const { command, type, text, buttons, parentCommand } = req.body;
+      const { command, type, text, buttons, parentCommand, inlineButtons } = req.body;
 
       const chatbot = await storage.getNonAiChatbot(chatbotId);
       if (!chatbot || chatbot.userId !== user.id) {
@@ -1534,7 +1535,8 @@ export function registerRoutes(app: Express): Server {
         type,
         text,
         buttons: type === "menu" ? buttons : null,
-        parentCommand
+        parentCommand,
+        inlineButtons: inlineButtons || null
       });
 
       res.json(updatedFlow);
