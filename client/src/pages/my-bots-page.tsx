@@ -37,7 +37,7 @@ export default function MyBotsPage() {
     botToken: "",
     botName: "",
     botUsername: "",
-    systemPrompt: "You are a helpful assistant that can answer questions and provide information."
+    systemPrompt: "Aku adalah asisten AI Telegram Bot"
   });
 
   // Fetch bots data
@@ -58,7 +58,7 @@ export default function MyBotsPage() {
         botToken: "",
         botName: "",
         botUsername: "",
-        systemPrompt: "You are a helpful assistant that can answer questions and provide information."
+        systemPrompt: "Aku adalah asisten AI Telegram Bot"
       });
       toast({
         title: "Success",

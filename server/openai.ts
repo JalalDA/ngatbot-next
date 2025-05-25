@@ -21,21 +21,20 @@ export async function generateBotResponse(userMessage: string, knowledgeBase: st
     let userPrompt = "";
 
     if (isGreeting) {
-      // For greetings, use natural response but include system role if available
-      const systemRole = knowledgeBase.includes('System Role:') ? 
-        knowledgeBase.split('System Role:')[1].split('\n')[0].trim() : '';
+      // For greetings, use first knowledge item as system role (which is the system prompt)
+      const firstKnowledge = knowledgeBase.split('\n\n')[0] || '';
       
-      systemPrompt = systemRole ? 
-        `You are ${systemRole}. Respond naturally to greetings and introduce yourself according to your role. Be warm and helpful.` :
+      systemPrompt = firstKnowledge ? 
+        `${firstKnowledge}. Respond naturally to greetings and introduce yourself according to your role. Be warm and helpful.` :
         "You are a friendly AI assistant. Respond naturally to greetings and introduce yourself briefly. Be warm and helpful.";
       
       userPrompt = `User said: "${userMessage}". Please respond naturally according to your role.`;
     } else {
-      // For other questions, use knowledge base with proper system role integration
+      // For other questions, use knowledge base with proper role integration
       systemPrompt = `You are a helpful AI assistant. Use the provided knowledge base to understand your role and respond accordingly.
 
 Instructions:
-- If there's a "System Role" in the knowledge base, ALWAYS follow that role identity
+- The first item in the knowledge base defines your role and identity - ALWAYS follow this role
 - For general questions, answer naturally based on your role and training
 - For SMM-related questions, use the knowledge base to provide specific service details
 - Always be helpful and accurate

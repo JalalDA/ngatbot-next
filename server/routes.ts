@@ -29,7 +29,11 @@ export function registerRoutes(app: Express): Server {
   // Bot management routes
   app.post("/api/bots", requireAuth, async (req, res) => {
     try {
-      const validatedData = insertBotSchema.parse(req.body);
+      // Create a custom schema that includes systemPrompt
+      const createBotSchema = insertBotSchema.extend({
+        systemPrompt: z.string().optional()
+      });
+      const validatedData = createBotSchema.parse(req.body);
       
       // Validate bot token with Telegram
       const validation = await telegramBotManager.validateBotToken(validatedData.token);
@@ -50,6 +54,15 @@ export function registerRoutes(app: Express): Server {
         botName: validation.botInfo.first_name,
         botUsername: validation.botInfo.username,
       });
+
+      // Auto-create system prompt as first knowledge item
+      if (validatedData.systemPrompt) {
+        await storage.createKnowledge({
+          botId: bot.id,
+          type: "text",
+          content: validatedData.systemPrompt
+        });
+      }
 
       // Start the bot
       await telegramBotManager.startBot(bot.token, bot.id);
