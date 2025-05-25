@@ -1588,6 +1588,54 @@ export function registerRoutes(app: Express): Server {
       // Process webhook update
       const { NonAiChatbotService, WebhookProcessor } = await import("./non-ai-chatbot");
       
+      // Handle callback queries (inline keyboard button presses)
+      if (update.callback_query) {
+        const callbackQuery = update.callback_query;
+        const chatId = callbackQuery.message.chat.id;
+        const callbackData = callbackQuery.data;
+
+        console.log(`Callback query received: ${callbackData}`);
+
+        // Answer the callback query to remove loading state
+        await WebhookProcessor.answerCallbackQuery(chatbot.botToken, callbackQuery.id);
+
+        // Find matching flow based on callback data
+        const flow = await storage.getBotFlowByCommand(chatbotId, callbackData);
+
+        if (flow) {
+          console.log(`Found matching flow for callback: ${flow.command}`);
+          
+          let replyMarkup = null;
+          
+          // Priority: Use inline buttons if available, otherwise fall back to regular buttons
+          if (flow.inlineButtons && flow.inlineButtons.length > 0) {
+            replyMarkup = NonAiChatbotService.createInlineKeyboardFromData(flow.inlineButtons);
+          } else if (flow.type === "menu" && flow.buttons && flow.buttons.length > 0) {
+            replyMarkup = NonAiChatbotService.createInlineKeyboardMarkup(flow.buttons);
+          }
+
+          // Send new message for callback response
+          await NonAiChatbotService.sendMessage(
+            chatbot.botToken,
+            chatId,
+            flow.text,
+            replyMarkup
+          );
+
+          console.log("Callback response sent successfully");
+        } else {
+          console.log("No matching flow found for callback");
+          await NonAiChatbotService.sendMessage(
+            chatbot.botToken,
+            chatId,
+            "Menu tidak ditemukan. Ketik /start untuk kembali ke menu utama."
+          );
+        }
+
+        return res.status(200).json({ status: "ok" });
+      }
+
+      // Handle regular text messages
       const { chatId, text, messageType } = WebhookProcessor.extractUserInput(update);
       
       console.log("Extracted input:", { chatId, text, messageType });
@@ -1599,14 +1647,17 @@ export function registerRoutes(app: Express): Server {
 
       if (flow) {
         // Send response based on flow type
-        if (flow.type === "menu") {
-          const replyMarkup = NonAiChatbotService.createKeyboardMarkup(flow.buttons || []);
-          await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text, replyMarkup);
-          console.log("Sent menu response with buttons:", flow.buttons);
-        } else {
-          await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text);
-          console.log("Sent text response:", flow.text);
+        let replyMarkup = null;
+        
+        // Priority: Use inline buttons if available, otherwise fall back to regular buttons
+        if (flow.inlineButtons && flow.inlineButtons.length > 0) {
+          replyMarkup = NonAiChatbotService.createInlineKeyboardFromData(flow.inlineButtons);
+        } else if (flow.type === "menu" && flow.buttons && flow.buttons.length > 0) {
+          replyMarkup = NonAiChatbotService.createInlineKeyboardMarkup(flow.buttons);
         }
+
+        await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text, replyMarkup);
+        console.log("Sent response with markup:", flow.inlineButtons ? "inline buttons" : "regular buttons");
       } else {
         // Try to find if this text matches any button and get its target flow
         const allFlows = await storage.getBotFlowsByChatbotId(chatbotId);
