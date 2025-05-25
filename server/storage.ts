@@ -470,10 +470,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createBotFlow(insertFlow: InsertBotFlow): Promise<BotFlow> {
+    console.log("=== STORAGE CREATE BOT FLOW ===");
+    console.log("Data received in storage:", insertFlow);
+    console.log("inlineButtons field:", insertFlow.inlineButtons);
+    console.log("inlineButtons type:", typeof insertFlow.inlineButtons);
+    
     const [flow] = await db
       .insert(botFlows)
       .values(insertFlow)
       .returning();
+    
+    console.log("Data saved to database:", flow);
     return flow;
   }
 
