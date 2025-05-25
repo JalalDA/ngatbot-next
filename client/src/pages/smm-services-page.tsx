@@ -419,13 +419,13 @@ export default function SmmServicesPage() {
         </Card>
 
         {/* Services Section */}
-        <Card>
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+            <CardTitle className="flex items-center justify-between text-foreground">
               <div className="flex items-center space-x-2">
-                <ShoppingCart className="w-5 h-5 text-green-600" />
+                <ShoppingCart className="w-5 h-5 text-green-500" />
                 <span>Available Services</span>
-                <Badge variant="secondary">{Array.isArray(smmServices) ? smmServices.length : 0} services available</Badge>
+                <Badge variant="secondary" className="bg-muted text-muted-foreground">{Array.isArray(smmServices) ? smmServices.length : 0} services available</Badge>
               </div>
               <div className="flex items-center space-x-2">
                 {Array.isArray(smmProviders) && smmProviders.length > 0 && (
@@ -458,7 +458,7 @@ export default function SmmServicesPage() {
             ) : Array.isArray(smmServices) && smmServices.length > 0 ? (
               <div className="space-y-4">
                 {/* Select All Checkbox */}
-                <div className="flex items-center space-x-2 p-3 bg-slate-50 rounded-lg">
+                <div className="flex items-center space-x-2 p-3 bg-muted rounded-lg">
                   <Checkbox
                     checked={smmServices.length > 0 && selectedServicesForDelete.size === smmServices.length}
                     onCheckedChange={(checked) => {
@@ -469,13 +469,13 @@ export default function SmmServicesPage() {
                       }
                     }}
                   />
-                  <span className="text-sm font-medium">Select All Services</span>
+                  <span className="text-sm font-medium text-foreground">Select All Services</span>
                 </div>
 
                 {/* Services Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {smmServices.map((service: any) => (
-                    <div key={service.id} className="bg-white p-4 rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
+                    <div key={service.id} className="bg-card p-4 rounded-lg border border-border hover:shadow-md transition-shadow">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center space-x-3">
                           <Checkbox
@@ -491,8 +491,8 @@ export default function SmmServicesPage() {
                             }}
                           />
                           <div>
-                            <h4 className="font-medium text-slate-900">{service.name}</h4>
-                            <p className="text-sm text-slate-500">{service.category}</p>
+                            <h4 className="font-medium text-foreground">{service.name}</h4>
+                            <p className="text-sm text-muted-foreground">{service.category}</p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-1">
