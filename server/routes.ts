@@ -1143,24 +1143,38 @@ export function registerRoutes(app: Express): Server {
       const user = req.user!;
       const { botToken } = req.body;
 
+      console.log("=== Creating Non-AI Chatbot ===");
+      console.log("User ID:", user.id);
+      console.log("Bot Token provided:", botToken ? "Yes" : "No");
+
       if (!botToken) {
-        return res.status(400).json({ message: "Bot token is required" });
+        console.log("ERROR: No bot token provided");
+        return res.status(400).json({ message: "Token bot diperlukan" });
       }
 
       // Validate bot token with Telegram API
+      console.log("Step 1: Validating bot token with Telegram...");
       const { NonAiChatbotService } = await import("./non-ai-chatbot");
       const validation = await NonAiChatbotService.validateBotToken(botToken);
       
+      console.log("Validation result:", validation);
+      
       if (!validation.valid) {
-        return res.status(400).json({ message: validation.error || "Invalid bot token" });
+        console.log("ERROR: Bot token validation failed:", validation.error);
+        return res.status(400).json({ 
+          message: validation.error || "Token tidak valid. Pastikan token dari @BotFather benar." 
+        });
       }
 
+      console.log("Step 2: Checking if bot token already exists...");
       // Check if bot token already exists
       const existingBot = await storage.getNonAiChatbotByToken(botToken);
       if (existingBot) {
-        return res.status(400).json({ message: "Bot token already exists" });
+        console.log("ERROR: Bot token already exists");
+        return res.status(400).json({ message: "Token bot sudah digunakan" });
       }
 
+      console.log("Step 3: Creating bot in database...");
       // Generate webhook URL
       const webhookUrl = NonAiChatbotService.generateWebhookUrl(0); // Will be updated after creation
 
@@ -1174,20 +1188,45 @@ export function registerRoutes(app: Express): Server {
         isActive: true
       });
 
+      console.log("Bot created successfully:", chatbot.id);
+
+      console.log("Step 4: Updating webhook URL...");
       // Update webhook URL with actual bot ID
       const actualWebhookUrl = NonAiChatbotService.generateWebhookUrl(chatbot.id);
       await storage.updateNonAiChatbot(chatbot.id, { webhookUrl: actualWebhookUrl });
 
+      console.log("Step 5: Setting webhook with Telegram...");
       // Set webhook with Telegram
       const webhookResult = await NonAiChatbotService.setWebhook(botToken, actualWebhookUrl);
       if (!webhookResult.success) {
         console.warn("Failed to set webhook:", webhookResult.error);
+        // Don't fail the creation if webhook fails - user can still use the bot
       }
 
+      console.log("=== Non-AI Chatbot Created Successfully ===");
       res.status(201).json({ ...chatbot, webhookUrl: actualWebhookUrl });
     } catch (error) {
-      console.error("Create non-AI chatbot error:", error);
-      res.status(500).json({ message: "Failed to create non-AI chatbot" });
+      console.error("=== Create non-AI chatbot error ===");
+      console.error("Error details:", error);
+      console.error("Error message:", error instanceof Error ? error.message : 'Unknown error');
+      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+      
+      // Provide more specific error messages
+      let errorMessage = "Gagal membuat chatbot";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('duplicate') || error.message.includes('unique')) {
+          errorMessage = "Token bot sudah digunakan";
+        } else if (error.message.includes('invalid') || error.message.includes('token')) {
+          errorMessage = "Token tidak valid atau tidak dapat menghubungi Telegram";
+        } else if (error.message.includes('database') || error.message.includes('connection')) {
+          errorMessage = "Error database. Coba lagi dalam beberapa saat";
+        } else if (error.message.includes('webhook')) {
+          errorMessage = "Bot berhasil dibuat tetapi gagal mengatur webhook";
+        }
+      }
+      
+      res.status(500).json({ message: errorMessage });
     }
   });
 

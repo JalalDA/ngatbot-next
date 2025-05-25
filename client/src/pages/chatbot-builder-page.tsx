@@ -68,6 +68,10 @@ export default function ChatbotBuilderPage() {
   const createBotMutation = useMutation({
     mutationFn: async (botToken: string) => {
       const res = await apiRequest("POST", "/api/nonai-chatbots", { botToken });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Gagal membuat chatbot");
+      }
       return await res.json();
     },
     onSuccess: () => {
@@ -75,14 +79,15 @@ export default function ChatbotBuilderPage() {
       setShowCreateBot(false);
       setNewBotToken("");
       toast({
-        title: "Success",
-        description: "Non-AI chatbot created successfully!",
+        title: "Berhasil!",
+        description: "Chatbot Non-AI berhasil dibuat!",
       });
     },
     onError: (error: any) => {
+      console.error("Create bot error:", error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to create chatbot",
+        title: "Gagal Membuat Bot",
+        description: error.message || "Token tidak valid atau tidak dapat menghubungi Telegram. Pastikan token dari @BotFather benar.",
         variant: "destructive",
       });
     },
