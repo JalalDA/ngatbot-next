@@ -273,7 +273,8 @@ export default function ChatbotBuilderPage() {
       command: flowForm.command,
       type: flowForm.type,
       text: flowForm.text,
-      buttons: flowForm.type === "menu" ? flowForm.buttons.filter(b => b.trim()) : undefined,
+      buttons: flowForm.type === "menu" && !flowForm.useInlineKeyboard ? flowForm.buttons.filter(b => b.trim()) : undefined,
+      inlineButtons: flowForm.type === "menu" && flowForm.useInlineKeyboard ? flowForm.inlineButtons : undefined,
       parentCommand: flowForm.parentCommand || undefined
     };
 
@@ -792,6 +793,102 @@ export default function ChatbotBuilderPage() {
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add Button
                               </Button>
+                            </div>
+
+                            {/* Toggle for Inline Keyboard */}
+                            <div className="mt-4 p-3 border rounded bg-muted/10">
+                              <div className="flex items-center space-x-2 mb-3">
+                                <input
+                                  type="checkbox"
+                                  id="useInlineKeyboard"
+                                  checked={flowForm.useInlineKeyboard}
+                                  onChange={(e) => setFlowForm(prev => ({ ...prev, useInlineKeyboard: e.target.checked }))}
+                                  className="rounded border-border"
+                                />
+                                <Label htmlFor="useInlineKeyboard" className="text-foreground font-medium">
+                                  Enable Inline Keyboard (Advanced)
+                                </Label>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-3">
+                                Inline keyboards allow buttons with callback data and URLs for more interactive experiences.
+                              </p>
+
+                              {flowForm.useInlineKeyboard && (
+                                <div className="space-y-3">
+                                  <Label className="text-foreground">Inline Keyboard Configuration</Label>
+                                  {flowForm.inlineButtons.map((row, rowIndex) => (
+                                    <div key={rowIndex} className="border rounded p-3 bg-background">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <Label className="text-sm font-medium">Row {rowIndex + 1}</Label>
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => removeInlineButtonRow(rowIndex)}
+                                          disabled={flowForm.inlineButtons.length <= 1}
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                      <div className="space-y-2">
+                                        {row.map((button, buttonIndex) => (
+                                          <div key={buttonIndex} className="grid grid-cols-3 gap-2">
+                                            <Input
+                                              placeholder="Button Text"
+                                              value={button.text}
+                                              onChange={(e) => updateInlineButton(rowIndex, buttonIndex, 'text', e.target.value)}
+                                              className="bg-background border-border text-foreground"
+                                            />
+                                            <Input
+                                              placeholder="Callback Data"
+                                              value={button.callback}
+                                              onChange={(e) => updateInlineButton(rowIndex, buttonIndex, 'callback', e.target.value)}
+                                              className="bg-background border-border text-foreground"
+                                            />
+                                            <div className="flex gap-1">
+                                              <Input
+                                                placeholder="URL (optional)"
+                                                value={button.url}
+                                                onChange={(e) => updateInlineButton(rowIndex, buttonIndex, 'url', e.target.value)}
+                                                className="bg-background border-border text-foreground"
+                                              />
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => removeInlineButton(rowIndex, buttonIndex)}
+                                                disabled={row.length <= 1}
+                                              >
+                                                <Trash2 className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        ))}
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => addInlineButton(rowIndex)}
+                                          className="w-full"
+                                        >
+                                          <Plus className="h-3 w-3 mr-2" />
+                                          Add Button to Row
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={addInlineButtonRow}
+                                    className="w-full"
+                                  >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Add New Row
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
