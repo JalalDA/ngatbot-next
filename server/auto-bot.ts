@@ -34,28 +34,56 @@ export class AutoBotManager {
    */
   async validateBotToken(token: string): Promise<{ valid: boolean; botInfo?: TelegramBotInfo; error?: string }> {
     try {
+      console.log('🤖 Validating bot token...');
+      
       const response = await fetch(`https://api.telegram.org/bot${token}/getMe`, {
-        method: 'GET',
-        timeout: 10000,
+        method: 'GET'
       });
 
-      const data: TelegramApiResponse<TelegramBotInfo> = await response.json();
+      console.log(`📡 Response status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ HTTP error response:', errorText);
+        return {
+          valid: false,
+          error: `HTTP ${response.status}: Token tidak valid atau kadaluarsa`
+        };
+      }
+
+      const responseText = await response.text();
+      console.log('📜 Raw response:', responseText.substring(0, 200) + '...');
+
+      let data: TelegramApiResponse<TelegramBotInfo>;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('❌ JSON parse error:', parseError);
+        console.error('📄 Response text that failed to parse:', responseText);
+        return {
+          valid: false,
+          error: 'Response dari Telegram API tidak valid. Pastikan token benar.'
+        };
+      }
 
       if (data.ok && data.result) {
+        console.log('✅ Token validation successful:', data.result.username);
         return {
           valid: true,
           botInfo: data.result
         };
       } else {
+        console.error('❌ Telegram API error:', data);
         return {
           valid: false,
-          error: data.description || 'Invalid bot token'
+          error: data.description || 'Token bot tidak valid'
         };
       }
     } catch (error: any) {
+      console.error('❌ Token validation error:', error);
       return {
         valid: false,
-        error: error.message || 'Failed to validate bot token'
+        error: 'Gagal memvalidasi token: ' + (error.message || 'Unknown error')
       };
     }
   }

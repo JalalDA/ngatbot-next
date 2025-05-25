@@ -1170,23 +1170,54 @@ export function registerRoutes(app: Express): Server {
       const user = req.user!;
       const { token, botName, botUsername, welcomeMessage, keyboardConfig, isActive } = req.body;
 
+      console.log('🚀 Creating auto bot with data:', { 
+        token: token ? `${token.substring(0, 10)}...` : 'missing',
+        botName, 
+        botUsername, 
+        keyboardConfig: keyboardConfig ? 'provided' : 'empty'
+      });
+
       // Validate required fields
       if (!token || !botName || !botUsername) {
-        return res.status(400).json({ message: "Token, bot name, and bot username are required" });
+        return res.status(400).json({ message: "Token, nama bot, dan username bot harus diisi" });
+      }
+
+      // Validate keyboard configuration JSON
+      if (keyboardConfig) {
+        try {
+          if (typeof keyboardConfig === 'string') {
+            JSON.parse(keyboardConfig);
+          } else if (Array.isArray(keyboardConfig)) {
+            // Validate array structure
+            keyboardConfig.forEach((button, index) => {
+              if (!button.id || !button.text || !button.callbackData) {
+                throw new Error(`Button ${index + 1} harus memiliki id, text, dan callbackData`);
+              }
+            });
+          }
+        } catch (parseError) {
+          console.error('❌ Keyboard config validation error:', parseError);
+          return res.status(400).json({ 
+            message: "Konfigurasi keyboard tidak valid: " + (parseError instanceof Error ? parseError.message : 'Format JSON salah')
+          });
+        }
       }
 
       // Check if token is already in use
       const existingBot = await storage.getAutoBotByToken(token);
       if (existingBot) {
-        return res.status(400).json({ message: "This bot token is already in use" });
+        return res.status(400).json({ message: "Token bot ini sudah digunakan" });
       }
 
       // Validate token first
+      console.log('🔍 Validating bot token...');
       const validation = await autoBotManager.validateBotToken(token);
       if (!validation.valid) {
-        return res.status(400).json({ message: validation.error || "Invalid bot token" });
+        console.error('❌ Token validation failed:', validation.error);
+        return res.status(400).json({ message: validation.error || "Token bot tidak valid" });
       }
 
+      console.log('✅ Token valid, creating bot in database...');
       const autoBot = await storage.createAutoBot({
         userId: user.id,
         token,
@@ -1199,13 +1230,25 @@ export function registerRoutes(app: Express): Server {
 
       // Start the bot if it's active
       if (autoBot.isActive) {
-        await autoBotManager.startAutoBot(autoBot);
+        console.log('🚀 Starting auto bot...');
+        const startResult = await autoBotManager.startAutoBot(autoBot);
+        if (!startResult.success) {
+          console.error('❌ Failed to start bot:', startResult.error);
+          // Update bot to inactive if start failed
+          await storage.updateAutoBot(autoBot.id, { isActive: false });
+          return res.status(500).json({ 
+            message: `Bot berhasil dibuat tapi gagal dijalankan: ${startResult.error}`
+          });
+        }
       }
 
+      console.log('✅ Auto bot created successfully');
       res.json(autoBot);
     } catch (error) {
-      console.error("Create auto bot error:", error);
-      res.status(500).json({ message: "Failed to create auto bot" });
+      console.error("❌ Create auto bot error:", error);
+      res.status(500).json({ 
+        message: "Gagal membuat auto bot: " + (error instanceof Error ? error.message : 'Unknown error')
+      });
     }
   });
 
