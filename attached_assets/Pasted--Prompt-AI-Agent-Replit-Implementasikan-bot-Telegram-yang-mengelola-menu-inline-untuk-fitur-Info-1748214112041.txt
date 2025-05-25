@@ -1,0 +1,61 @@
+/*
+Prompt AI Agent Replit
+
+Implementasikan bot Telegram yang mengelola menu inline untuk fitur 'Info', yang kemudian memungkinkan pengguna memilih sub-menu lebih lanjut seperti 'Toko Saya' dan 'Daftar Produk'. Berikut adalah persyaratan detailnya:
+
+1. **Perintah `/start`**: Saat pengguna mengklik perintah `/start`, bot harus merespons dengan pesan sambutan dan tombol inline "Info".
+   
+2. **Menu Inline**: Setelah tombol "Info" ditekan, tampilkan menu inline tambahan dengan pilihan "Toko Saya" dan "Daftar Produk".
+   
+3. **Struktur Menu**:
+   - **Menu Utama**:
+     - `Info`
+   - **Sub Menu**:
+     - `Toko Saya` (ketika ditekan, berikan informasi tentang toko)
+     - `Daftar Produk` (ketika ditekan, berikan daftar produk)
+
+4. **Pengelolaan Menu**: 
+   - Anda harus membuat fungsi yang memuat dan merender menu berdasarkan pilihan pengguna sebelumnya.
+
+5. **Contoh Implementasi**:
+```typescript
+import TelegramBot from "node-telegram-bot-api";
+
+// Ganti TOKEN dengan token bot Anda
+const bot = new TelegramBot("YOUR_TOKEN", { polling: true });
+
+// Menu utama
+const mainKeyboard = {
+  reply_markup: {
+    inline_keyboard: [
+      [{ text: "Info", callback_data: "info" }]
+    ]
+  }
+};
+
+// Handler untuk perintah /start
+bot.onText(/\/start/, (msg) => {
+  const chatId = msg.chat.id;
+  bot.sendMessage(chatId, "Selamat datang! Silakan pilih opsi di bawah ini:", mainKeyboard);
+});
+
+// Handler untuk callback query
+bot.on('callback_query', (query) => {
+  const chatId = query.message.chat.id;
+
+  if (query.data === "info") {
+    const infoKeyboard = {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "Toko Saya", callback_data: "toko_saya" }],
+          [{ text: "Daftar Produk", callback_data: "daftar_produk" }]
+        ]
+      }
+    };
+    bot.sendMessage(chatId, "Pilih menu:", infoKeyboard);
+  } else if (query.data === "toko_saya") {
+    bot.sendMessage(chatId, "Ini adalah informasi tentang toko saya.");
+  } else if (query.data === "daftar_produk") {
+    bot.sendMessage(chatId, "Berikut adalah daftar produk kami.");
+  }
+});

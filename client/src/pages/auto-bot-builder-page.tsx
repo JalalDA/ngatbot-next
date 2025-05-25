@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Bot, Keyboard, Settings, Play, Square, Edit3 } from "lucide-react";
+import { Plus, Trash2, Bot, Keyboard, Settings, Play, Square, Edit3, Layers } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
@@ -28,6 +28,8 @@ interface InlineKeyboard {
   text: string;
   callbackData: string;
   url?: string;
+  parentId?: string; // untuk sub-menu
+  level?: number; // 0 = menu utama, 1 = sub-menu
 }
 
 export default function AutoBotBuilderPage() {
@@ -44,142 +46,219 @@ export default function AutoBotBuilderPage() {
   // Fetch auto bots
   const { data: autoBots = [], isLoading } = useQuery({
     queryKey: ["/api/autobots"],
-    enabled: true,
   });
 
-  // Toggle bot status mutation
-  const toggleBotMutation = useMutation({
-    mutationFn: async (data: { id: number; isActive: boolean }) => {
-      const response = await fetch(`/api/autobots/${data.id}/toggle`, {
+  // Create bot mutation
+  const createBotMutation = useMutation({
+    mutationFn: async (botData: any) => {
+      const response = await fetch("/api/autobots", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: data.isActive }),
+        body: JSON.stringify(botData),
       });
-
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText);
+        const error = await response.text();
+        throw new Error(error);
       }
-
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/autobots"] });
-      toast({ title: "Sukses!", description: "Status bot berhasil diperbarui" });
-    },
-    onError: (error: any) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
-  });
-
-  // Delete bot mutation
-  const deleteBotMutation = useMutation({
-    mutationFn: async (botId: number) => {
-      const response = await fetch(`/api/autobots/${botId}`, {
-        method: "DELETE",
+      resetForm();
+      toast({
+        title: "Bot Berhasil Dibuat!",
+        description: "Bot Telegram Anda telah dibuat dan siap digunakan.",
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText);
-      }
-
-      return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/autobots"] });
-      toast({ title: "Sukses!", description: "Bot berhasil dihapus" });
-    },
-    onError: (error: any) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    onError: (error: Error) => {
+      toast({
+        title: "Gagal Membuat Bot",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
   // Update bot mutation
   const updateBotMutation = useMutation({
-    mutationFn: async (data: { id: number; welcomeMessage: string; keyboardConfig: InlineKeyboard[] }) => {
-      const response = await fetch(`/api/autobots/${data.id}`, {
-        method: "PUT",
+    mutationFn: async ({ id, ...botData }: any) => {
+      const response = await fetch(`/api/autobots/${id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          welcomeMessage: data.welcomeMessage,
-          keyboardConfig: data.keyboardConfig,
-        }),
+        body: JSON.stringify(botData),
       });
-
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText);
+        const error = await response.text();
+        throw new Error(error);
       }
-
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/autobots"] });
-      toast({ title: "Sukses!", description: "Bot berhasil diperbarui" });
       resetForm();
+      toast({
+        title: "Bot Berhasil Diperbarui!",
+        description: "Perubahan bot Telegram Anda telah disimpan.",
+      });
     },
-    onError: (error: any) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    onError: (error: Error) => {
+      toast({
+        title: "Gagal Memperbarui Bot",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
-
-  // Create auto bot mutation
-  const createBotMutation = useMutation({
-    mutationFn: async (data: { token: string; botName: string; botUsername: string; welcomeMessage: string; keyboardConfig: InlineKeyboard[] }) => {
-      console.log('🚀 Creating bot with data:', data);
-      
-      const response = await fetch("/api/autobots", {
-        method: "POST",
+  // Toggle bot status mutation
+  const toggleBotMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
+      const response = await fetch(`/api/autobots/${id}/toggle`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ isActive }),
       });
-
-      console.log('📡 Response status:', response.status);
-      
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Error response:', errorText);
-        
-        // Try to parse as JSON for better error message
-        try {
-          const errorJson = JSON.parse(errorText);
-          throw new Error(errorJson.message || errorText);
-        } catch {
-          throw new Error(errorText);
-        }
+        const error = await response.text();
+        throw new Error(error);
       }
-
-      const responseText = await response.text();
-      console.log('📜 Success response:', responseText.substring(0, 200));
-
-      try {
-        return JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('❌ JSON parse error:', parseError);
-        throw new Error('Invalid response format from server');
-      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/autobots"] });
-      toast({ title: "Sukses!", description: "Bot berhasil dibuat dan diaktifkan" });
-      resetForm();
+      toast({
+        title: "Status Bot Diperbarui",
+        description: "Status bot berhasil diubah.",
+      });
     },
-    onError: (error: any) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    onError: (error: Error) => {
+      toast({
+        title: "Gagal Mengubah Status",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
+  // Delete bot mutation
+  const deleteBotMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/autobots/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/autobots"] });
+      toast({
+        title: "Bot Berhasil Dihapus",
+        description: "Bot telah dihapus dari sistem.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Gagal Menghapus Bot",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
+  const validateToken = async () => {
+    if (!newBotToken.trim()) {
+      toast({
+        title: "Token Diperlukan",
+        description: "Silakan masukkan token bot Telegram terlebih dahulu.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const addKeyboardButton = () => {
+    setIsValidatingToken(true);
+    try {
+      const response = await fetch("/api/autobots/validate-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: newBotToken }),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || "Gagal memvalidasi token");
+      }
+
+      if (result.valid && result.botInfo) {
+        setBotName(result.botInfo.first_name);
+        setBotUsername(result.botInfo.username);
+        toast({
+          title: "Token Valid!",
+          description: `Bot "${result.botInfo.first_name}" (@${result.botInfo.username}) berhasil diverifikasi.`,
+        });
+      } else {
+        throw new Error(result.error || "Token tidak valid");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Token Tidak Valid",
+        description: error.message || "Silakan periksa kembali token bot Anda.",
+        variant: "destructive",
+      });
+      setBotName("");
+      setBotUsername("");
+    } finally {
+      setIsValidatingToken(false);
+    }
+  };
+
+  const addKeyboardButton = (level: number = 0, parentId?: string) => {
     const newButton: InlineKeyboard = {
       id: Date.now().toString(),
       text: "",
       callbackData: "",
+      level: level,
+      parentId: parentId
     };
     setKeyboardButtons([...keyboardButtons, newButton]);
+  };
+
+  const addHierarchicalTemplate = () => {
+    const timestamp = Date.now();
+    const infoButtonId = `btn_${timestamp}_info`;
+    
+    const template: InlineKeyboard[] = [
+      {
+        id: infoButtonId,
+        text: "Info",
+        callbackData: "info_menu",
+        level: 0
+      },
+      {
+        id: `btn_${timestamp}_toko`,
+        text: "Toko Saya",
+        callbackData: "toko_saya",
+        level: 1,
+        parentId: infoButtonId
+      },
+      {
+        id: `btn_${timestamp}_produk`,
+        text: "Daftar Produk",
+        callbackData: "daftar_produk",
+        level: 1,
+        parentId: infoButtonId
+      }
+    ];
+    
+    setKeyboardButtons([...keyboardButtons, ...template]);
+    
+    toast({
+      title: "Template Ditambahkan!",
+      description: "Template menu hierarkis Info → Toko Saya & Daftar Produk berhasil ditambahkan",
+    });
   };
 
   const updateKeyboardButton = (id: string, field: keyof InlineKeyboard, value: string) => {
@@ -192,41 +271,6 @@ export default function AutoBotBuilderPage() {
 
   const removeKeyboardButton = (id: string) => {
     setKeyboardButtons(buttons => buttons.filter(button => button.id !== id));
-  };
-
-  const validateToken = async (token: string) => {
-    if (!token.trim()) return false;
-    
-    setIsValidatingToken(true);
-    try {
-      const response = await fetch('/api/autobots/validate-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      });
-
-      if (!response.ok) {
-        toast({ title: "Error", description: "Gagal memvalidasi token", variant: "destructive" });
-        return false;
-      }
-
-      const result = await response.json();
-      
-      if (result.valid && result.botInfo) {
-        setBotName(result.botInfo.first_name);
-        setBotUsername(result.botInfo.username);
-        toast({ title: "Sukses!", description: "Token bot valid!" });
-        return true;
-      } else {
-        toast({ title: "Error", description: result.error || "Token tidak valid", variant: "destructive" });
-        return false;
-      }
-    } catch (error) {
-      toast({ title: "Error", description: "Gagal memvalidasi token", variant: "destructive" });
-      return false;
-    } finally {
-      setIsValidatingToken(false);
-    }
   };
 
   const resetForm = () => {
@@ -256,19 +300,15 @@ export default function AutoBotBuilderPage() {
         keyboardConfig: keyboardButtons,
       });
     } else {
-      if (!newBotToken.trim()) {
-        toast({ title: "Error", description: "Token bot harus diisi", variant: "destructive" });
+      if (!newBotToken || !botName || !botUsername) {
+        toast({
+          title: "Data Tidak Lengkap",
+          description: "Silakan validasi token bot terlebih dahulu.",
+          variant: "destructive",
+        });
         return;
       }
-      
-      // Validate token first if botName and botUsername are not set
-      if (!botName || !botUsername) {
-        const isValid = await validateToken(newBotToken);
-        if (!isValid) {
-          return;
-        }
-      }
-      
+
       createBotMutation.mutate({
         token: newBotToken,
         botName,
@@ -283,7 +323,7 @@ export default function AutoBotBuilderPage() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Auto Bot Builder</h1>
-        <p className="text-muted-foreground">Buat bot Telegram otomatis dengan keyboard inline</p>
+        <p className="text-muted-foreground">Buat bot Telegram otomatis dengan keyboard inline bertingkat</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -320,15 +360,14 @@ export default function AutoBotBuilderPage() {
                         placeholder="Masukkan token bot (contoh: 123456789:ABCdefGHIjklMNOpqrsTUVwxyz)"
                         value={newBotToken}
                         onChange={(e) => setNewBotToken(e.target.value)}
-                        className="flex-1"
+                        disabled={isValidatingToken}
                       />
-                      <Button 
-                        type="button"
+                      <Button
+                        onClick={validateToken}
+                        disabled={isValidatingToken || !newBotToken.trim()}
                         variant="outline"
-                        onClick={() => validateToken(newBotToken)}
-                        disabled={!newBotToken.trim() || isValidatingToken}
                       >
-                        {isValidatingToken ? "Validating..." : "Validate"}
+                        {isValidatingToken ? "Validasi..." : "Validasi"}
                       </Button>
                     </div>
                     <p className="text-sm text-muted-foreground">
@@ -363,69 +402,115 @@ export default function AutoBotBuilderPage() {
             <CardHeader>
               <CardTitle>
                 <Keyboard className="w-5 h-5 mr-2 inline" />
-                Keyboard Inline
+                Keyboard Inline Bertingkat
               </CardTitle>
               <CardDescription>
-                Konfigurasi tombol-tombol yang akan muncul di bawah pesan sambutan
+                Konfigurasi menu hierarkis dengan struktur Menu Utama → Sub Menu
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {keyboardButtons.map((button, index) => (
-                <div key={button.id} className="p-4 border rounded-lg space-y-3">
-                  <div className="flex justify-between items-center">
-                    <Label className="text-sm font-medium">Tombol {index + 1}</Label>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeKeyboardButton(button.id)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label htmlFor={`text-${button.id}`} className="text-xs">Teks Tombol</Label>
-                      <Input
-                        id={`text-${button.id}`}
-                        placeholder="Teks yang tampil di tombol"
-                        value={button.text}
-                        onChange={(e) => updateKeyboardButton(button.id, "text", e.target.value)}
-                      />
+              <div className="flex gap-2 mb-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addKeyboardButton(0)}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Tambah Tombol
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addHierarchicalTemplate}
+                  className="flex items-center gap-2"
+                >
+                  <Layers className="w-4 h-4" />
+                  Template Menu Hierarkis
+                </Button>
+              </div>
+
+              {/* Grouping buttons by level for better visualization */}
+              {[0, 1].map(level => {
+                const buttonsAtLevel = keyboardButtons.filter(btn => (btn.level || 0) === level);
+                if (buttonsAtLevel.length === 0) return null;
+
+                return (
+                  <div key={level} className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${level === 0 ? 'bg-blue-500' : 'bg-green-500'}`}></div>
+                      <Label className="text-sm font-medium">
+                        {level === 0 ? 'Menu Utama' : 'Sub Menu'}
+                      </Label>
                     </div>
                     
-                    <div className="space-y-1">
-                      <Label htmlFor={`callback-${button.id}`} className="text-xs">Callback Data</Label>
-                      <Input
-                        id={`callback-${button.id}`}
-                        placeholder="Data yang dikirim saat tombol ditekan"
-                        value={button.callbackData}
-                        onChange={(e) => updateKeyboardButton(button.id, "callbackData", e.target.value)}
-                      />
-                    </div>
-                  </div>
+                    {buttonsAtLevel.map((button, index) => (
+                      <div key={button.id} className={`p-4 border rounded-lg space-y-3 ${level > 0 ? 'ml-6 border-l-4 border-l-green-200' : ''}`}>
+                        <div className="flex justify-between items-center">
+                          <Label className="text-sm font-medium">
+                            {level === 0 ? `Menu Utama ${index + 1}` : `Sub Menu ${index + 1}`}
+                            {button.parentId && (
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                (Parent: {keyboardButtons.find(b => b.id === button.parentId)?.text || 'Unknown'})
+                              </span>
+                            )}
+                          </Label>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeKeyboardButton(button.id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label htmlFor={`text-${button.id}`} className="text-xs">Teks Tombol</Label>
+                            <Input
+                              id={`text-${button.id}`}
+                              placeholder="Teks yang tampil di tombol"
+                              value={button.text}
+                              onChange={(e) => updateKeyboardButton(button.id, "text", e.target.value)}
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <Label htmlFor={`callback-${button.id}`} className="text-xs">Callback Data</Label>
+                            <Input
+                              id={`callback-${button.id}`}
+                              placeholder="Data yang dikirim saat tombol ditekan"
+                              value={button.callbackData}
+                              onChange={(e) => updateKeyboardButton(button.id, "callbackData", e.target.value)}
+                            />
+                          </div>
+                        </div>
 
-                  <div className="space-y-1">
-                    <Label htmlFor={`url-${button.id}`} className="text-xs">URL (Opsional)</Label>
-                    <Input
-                      id={`url-${button.id}`}
-                      placeholder="https://example.com (kosongkan jika tidak perlu)"
-                      value={button.url || ""}
-                      onChange={(e) => updateKeyboardButton(button.id, "url", e.target.value)}
-                    />
+                        <div className="space-y-1">
+                          <Label htmlFor={`url-${button.id}`} className="text-xs">URL (Opsional)</Label>
+                          <Input
+                            id={`url-${button.id}`}
+                            placeholder="https://example.com (kosongkan jika tidak perlu)"
+                            value={button.url || ""}
+                            onChange={(e) => updateKeyboardButton(button.id, "url", e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                );
+              })}
+
+              {keyboardButtons.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Keyboard className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Belum ada tombol keyboard yang dikonfigurasi</p>
+                  <p className="text-sm">Klik "Tambah Tombol" atau "Template Menu Hierarkis" untuk memulai</p>
                 </div>
-              ))}
-
-              <Button
-                variant="outline"
-                onClick={addKeyboardButton}
-                className="w-full"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Tambah Tombol
-              </Button>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <Button
@@ -516,23 +601,41 @@ export default function AutoBotBuilderPage() {
                     </div>
                   </div>
                 </CardHeader>
-                
                 <CardContent>
                   <div className="space-y-3">
                     <div>
                       <Label className="text-sm font-medium">Pesan Sambutan:</Label>
-                      <p className="text-sm text-muted-foreground">{bot.welcomeMessage}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{bot.welcomeMessage}</p>
                     </div>
                     
                     {bot.keyboardConfig && bot.keyboardConfig.length > 0 && (
                       <div>
-                        <Label className="text-sm font-medium">Keyboard Buttons:</Label>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {bot.keyboardConfig.map((button, index) => (
-                            <Badge key={index} variant="outline">
-                              {button.text}
-                            </Badge>
-                          ))}
+                        <Label className="text-sm font-medium">Keyboard Configuration:</Label>
+                        <div className="mt-2 space-y-2">
+                          {[0, 1].map(level => {
+                            const buttonsAtLevel = bot.keyboardConfig.filter(btn => (btn.level || 0) === level);
+                            if (buttonsAtLevel.length === 0) return null;
+                            
+                            return (
+                              <div key={level} className="space-y-1">
+                                <p className="text-xs font-medium text-muted-foreground">
+                                  {level === 0 ? 'Menu Utama:' : 'Sub Menu:'}
+                                </p>
+                                <div className="flex flex-wrap gap-1">
+                                  {buttonsAtLevel.map((btn, idx) => (
+                                    <Badge key={idx} variant="outline" className="text-xs">
+                                      {btn.text || 'Untitled'}
+                                      {btn.parentId && level > 0 && (
+                                        <span className="ml-1 text-muted-foreground">
+                                          ← {bot.keyboardConfig.find(b => b.id === btn.parentId)?.text}
+                                        </span>
+                                      )}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
