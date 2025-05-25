@@ -1319,6 +1319,9 @@ export function registerRoutes(app: Express): Server {
   // Create new bot flow
   app.post("/api/nonai-chatbots/:id/flows", requireAuth, async (req, res) => {
     try {
+      console.log("=== CREATE FLOW REQUEST ===");
+      console.log("Full request body:", req.body);
+      
       const user = req.user!;
       const chatbotId = parseInt(req.params.id);
       const { command, type, text, buttons, parentCommand, inlineButtons } = req.body;
@@ -1329,7 +1332,9 @@ export function registerRoutes(app: Express): Server {
         text,
         buttons,
         parentCommand,
-        inlineButtons
+        inlineButtons,
+        inlineButtonsType: typeof inlineButtons,
+        inlineButtonsLength: inlineButtons ? inlineButtons.length : 'undefined'
       });
 
       const chatbot = await storage.getNonAiChatbot(chatbotId);
