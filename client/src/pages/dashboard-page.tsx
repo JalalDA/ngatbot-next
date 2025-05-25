@@ -17,7 +17,7 @@ import { insertBotSchema } from "@shared/schema";
 import type { Bot, User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Settings, Trash2, Coins, Bot as BotIcon, MessageSquare, Crown, ShoppingCart, Download, Edit, Search, Check, X } from "lucide-react";
+import { Loader2, Plus, Settings, Trash2, Coins, Bot as BotIcon, MessageSquare, Crown, ShoppingCart, Download, Edit, Search, Check, X, Package, RefreshCw, HelpCircle, Star, AlertTriangle } from "lucide-react";
 import { z } from "zod";
 
 type BotFormData = z.infer<typeof insertBotSchema>;

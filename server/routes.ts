@@ -960,7 +960,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const user = req.user!;
       const serviceId = parseInt(req.params.id);
-      const { name, description, rate, isActive } = req.body;
+      const { name, description, min, max, rate, syncProvider, priceType, priceValue, isActive } = req.body;
 
       // Check if service belongs to user
       const existingService = await storage.getSmmService(serviceId);
@@ -968,10 +968,21 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "SMM service not found" });
       }
 
+      // Calculate final rate based on price type
+      let finalRate = rate;
+      if (priceType === "percentage") {
+        const providerRate = parseFloat(existingService.rate);
+        finalRate = (providerRate * (1 + priceValue / 100)).toString();
+      } else if (priceType === "fixed") {
+        finalRate = priceValue.toString();
+      }
+
       const updatedService = await storage.updateSmmService(serviceId, {
         name,
         description,
-        rate: rate ? rate.toString() : undefined,
+        min: syncProvider ? existingService.min : min,
+        max: syncProvider ? existingService.max : max,
+        rate: finalRate,
         isActive
       });
 
