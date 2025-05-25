@@ -29,7 +29,7 @@ interface BotFlow {
   id: number;
   chatbotId: number;
   command: string;
-  type: "menu" | "text";
+  type: "menu" | "text" | "inline";
   text: string;
   buttons: string[] | null;
   parentCommand: string | null;

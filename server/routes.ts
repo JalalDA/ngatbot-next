@@ -1333,8 +1333,8 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Command, type, and text are required" });
       }
 
-      if (type !== "menu" && type !== "text") {
-        return res.status(400).json({ message: "Type must be 'menu' or 'text'" });
+      if (type !== "menu" && type !== "text" && type !== "inline") {
+        return res.status(400).json({ message: "Type must be 'menu', 'text', or 'inline'" });
       }
 
       if (type === "menu" && (!buttons || !Array.isArray(buttons) || buttons.length === 0)) {
