@@ -292,7 +292,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSmmProvider(id: number): Promise<boolean> {
     const result = await db.delete(smmProviders).where(eq(smmProviders.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // SMM Service methods
@@ -313,8 +313,7 @@ export class DatabaseStorage implements IStorage {
     const [service] = await db
       .select()
       .from(smmServices)
-      .where(eq(smmServices.userId, userId))
-      .where(eq(smmServices.mid, mid));
+      .where(eq(smmServices.userId, userId) && eq(smmServices.mid, mid));
     return service || undefined;
   }
 

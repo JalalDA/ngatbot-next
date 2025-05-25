@@ -3,8 +3,9 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { telegramBotManager } from "./telegram";
-import { insertBotSchema, insertKnowledgeSchema, insertSettingSchema } from "@shared/schema";
+import { insertBotSchema, insertKnowledgeSchema, insertSettingSchema, insertSmmProviderSchema, insertSmmServiceSchema, insertSmmOrderSchema } from "@shared/schema";
 import { createMidtransTransaction, generateOrderId, verifySignatureKey, getTransactionStatus, UPGRADE_PLANS, type PlanType } from "./midtrans";
+import { SmmPanelAPI, generateSmmOrderId, generateMid, parseRate, calculateOrderAmount } from "./smm-panel";
 import { z } from "zod";
 
 function requireAuth(req: any, res: any, next: any) {
@@ -707,6 +708,228 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Get upgrade plans error:", error);
       res.status(500).json({ message: "Failed to get upgrade plans" });
+    }
+  });
+
+  // ===============================
+  // SMM PANEL ROUTES
+  // ===============================
+
+  // Get all SMM providers for current user
+  app.get("/api/smm/providers", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const providers = await storage.getSmmProvidersByUserId(user.id);
+      res.json(providers);
+    } catch (error) {
+      console.error("Get SMM providers error:", error);
+      res.status(500).json({ message: "Failed to fetch SMM providers" });
+    }
+  });
+
+  // Create new SMM provider
+  app.post("/api/smm/providers", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { name, apiKey, apiEndpoint } = req.body;
+
+      // Validate required fields
+      if (!name || !apiKey || !apiEndpoint) {
+        return res.status(400).json({ message: "Name, API key, and endpoint are required" });
+      }
+
+      // Test connection to SMM provider
+      const smmApi = new SmmPanelAPI(apiKey, apiEndpoint);
+      const connectionTest = await smmApi.testConnection();
+      
+      if (!connectionTest) {
+        return res.status(400).json({ message: "Failed to connect to SMM provider. Please check your API key and endpoint." });
+      }
+
+      const provider = await storage.createSmmProvider({
+        userId: user.id,
+        name,
+        apiKey,
+        apiEndpoint,
+        isActive: true
+      });
+
+      res.status(201).json(provider);
+    } catch (error) {
+      console.error("Create SMM provider error:", error);
+      res.status(500).json({ message: "Failed to create SMM provider" });
+    }
+  });
+
+  // Update SMM provider
+  app.put("/api/smm/providers/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const providerId = parseInt(req.params.id);
+      const { name, apiKey, apiEndpoint, isActive } = req.body;
+
+      // Check if provider belongs to user
+      const existingProvider = await storage.getSmmProvider(providerId);
+      if (!existingProvider || existingProvider.userId !== user.id) {
+        return res.status(404).json({ message: "SMM provider not found" });
+      }
+
+      // Test connection if API details changed
+      if (apiKey || apiEndpoint) {
+        const testKey = apiKey || existingProvider.apiKey;
+        const testEndpoint = apiEndpoint || existingProvider.apiEndpoint;
+        
+        const smmApi = new SmmPanelAPI(testKey, testEndpoint);
+        const connectionTest = await smmApi.testConnection();
+        
+        if (!connectionTest) {
+          return res.status(400).json({ message: "Failed to connect to SMM provider with new credentials" });
+        }
+      }
+
+      const updatedProvider = await storage.updateSmmProvider(providerId, {
+        name,
+        apiKey,
+        apiEndpoint,
+        isActive
+      });
+
+      res.json(updatedProvider);
+    } catch (error) {
+      console.error("Update SMM provider error:", error);
+      res.status(500).json({ message: "Failed to update SMM provider" });
+    }
+  });
+
+  // Delete SMM provider
+  app.delete("/api/smm/providers/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const providerId = parseInt(req.params.id);
+
+      // Check if provider belongs to user
+      const existingProvider = await storage.getSmmProvider(providerId);
+      if (!existingProvider || existingProvider.userId !== user.id) {
+        return res.status(404).json({ message: "SMM provider not found" });
+      }
+
+      await storage.deleteSmmProvider(providerId);
+      res.json({ message: "SMM provider deleted successfully" });
+    } catch (error) {
+      console.error("Delete SMM provider error:", error);
+      res.status(500).json({ message: "Failed to delete SMM provider" });
+    }
+  });
+
+  // Import services from SMM provider
+  app.post("/api/smm/providers/:id/import-services", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const providerId = parseInt(req.params.id);
+
+      // Check if provider belongs to user
+      const provider = await storage.getSmmProvider(providerId);
+      if (!provider || provider.userId !== user.id) {
+        return res.status(404).json({ message: "SMM provider not found" });
+      }
+
+      // Fetch services from provider
+      const smmApi = new SmmPanelAPI(provider.apiKey, provider.apiEndpoint);
+      const services = await smmApi.getServices();
+
+      // Get used MIDs for this user
+      const usedMids = await storage.getUsedMids(user.id);
+      
+      let importedCount = 0;
+      const errors: string[] = [];
+
+      for (const service of services.slice(0, 10)) { // Limit to 10 services
+        try {
+          // Auto-assign MID (1-10)
+          const mid = generateMid(usedMids);
+          if (mid) {
+            usedMids.push(mid);
+
+            await storage.createSmmService({
+              userId: user.id,
+              providerId: provider.id,
+              mid,
+              name: service.name,
+              description: service.description || "",
+              min: parseInt(service.min),
+              max: parseInt(service.max),
+              rate: parseRate(service.rate).toString(),
+              category: service.category,
+              serviceIdApi: service.service,
+              isActive: true
+            });
+
+            importedCount++;
+          }
+        } catch (error) {
+          errors.push(`Failed to import ${service.name}: ${error.message}`);
+        }
+      }
+
+      res.json({
+        message: `Successfully imported ${importedCount} services`,
+        importedCount,
+        errors: errors.length > 0 ? errors : undefined
+      });
+    } catch (error) {
+      console.error("Import services error:", error);
+      res.status(500).json({ message: "Failed to import services from provider" });
+    }
+  });
+
+  // Get all SMM services for current user
+  app.get("/api/smm/services", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const services = await storage.getSmmServicesByUserId(user.id);
+      res.json(services);
+    } catch (error) {
+      console.error("Get SMM services error:", error);
+      res.status(500).json({ message: "Failed to fetch SMM services" });
+    }
+  });
+
+  // Update SMM service
+  app.put("/api/smm/services/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const serviceId = parseInt(req.params.id);
+      const { name, description, rate, isActive } = req.body;
+
+      // Check if service belongs to user
+      const existingService = await storage.getSmmService(serviceId);
+      if (!existingService || existingService.userId !== user.id) {
+        return res.status(404).json({ message: "SMM service not found" });
+      }
+
+      const updatedService = await storage.updateSmmService(serviceId, {
+        name,
+        description,
+        rate: rate ? rate.toString() : undefined,
+        isActive
+      });
+
+      res.json(updatedService);
+    } catch (error) {
+      console.error("Update SMM service error:", error);
+      res.status(500).json({ message: "Failed to update SMM service" });
+    }
+  });
+
+  // Get SMM orders for current user
+  app.get("/api/smm/orders", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const orders = await storage.getSmmOrdersByUserId(user.id);
+      res.json(orders);
+    } catch (error) {
+      console.error("Get SMM orders error:", error);
+      res.status(500).json({ message: "Failed to fetch SMM orders" });
     }
   });
 
