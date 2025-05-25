@@ -1138,63 +1138,108 @@ export function registerRoutes(app: Express): Server {
       const { name, token } = req.body;
       const user = req.user!;
 
+      // Input validation
       if (!name || !token) {
-        return res.status(400).json({ message: "Nama bot dan token diperlukan" });
-      }
-
-      // Validate bot token by calling Telegram API
-      const validateResponse = await fetch(`https://api.telegram.org/bot${token}/getMe`);
-      const validateResult = await validateResponse.json();
-
-      if (!validateResult.ok) {
         return res.status(400).json({ 
-          message: "Token bot tidak valid. Pastikan token dari @BotFather benar." 
+          message: "Nama bot dan token diperlukan" 
         });
       }
 
-      const botInfo = validateResult.result;
+      if (name.trim().length < 3) {
+        return res.status(400).json({ 
+          message: "Nama bot harus minimal 3 karakter" 
+        });
+      }
 
-      // Set webhook URL
-      const webhookUrl = `${process.env.REPLIT_DOMAINS || 'http://localhost:5000'}/api/chatbot-nonai/webhook/${token}`;
-      const webhookResponse = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          url: webhookUrl,
-        }),
-      });
+      // Import validator
+      const { TelegramBotValidator } = await import("./telegram-bot-validator.js");
 
-      const webhookResult = await webhookResponse.json();
+      // Step 1: Validate bot token
+      console.log("Validating bot token...");
+      const validation = await TelegramBotValidator.validateBotToken(token.trim());
       
-      if (!webhookResult.ok) {
+      if (!validation.valid) {
         return res.status(400).json({ 
-          message: "Gagal mengatur webhook. Coba lagi nanti." 
+          message: validation.error || "Token bot tidak valid" 
         });
       }
 
-      // For now, just return success with bot info
-      // In future, save to database
-      res.json({
+      const botInfo = validation.botInfo!;
+      console.log(`Bot validated: ${botInfo.first_name} (@${botInfo.username})`);
+
+      // Step 2: Check if token is already used (would check database in full implementation)
+      const tokenExists = await TelegramBotValidator.checkTokenExists(token.trim(), user.id);
+      if (tokenExists) {
+        return res.status(400).json({ 
+          message: "Token bot ini sudah digunakan" 
+        });
+      }
+
+      // Step 3: Generate webhook URL
+      const webhookUrl = TelegramBotValidator.generateWebhookUrl(token.trim());
+      console.log(`Setting webhook: ${webhookUrl}`);
+
+      // Step 4: Setup webhook
+      const webhookResult = await TelegramBotValidator.setupWebhook(token.trim(), webhookUrl);
+      
+      if (!webhookResult.success) {
+        let errorMessage = "Gagal mengatur webhook bot";
+        if (webhookResult.telegramError) {
+          errorMessage += `: ${webhookResult.telegramError}`;
+        } else if (webhookResult.error) {
+          errorMessage += `: ${webhookResult.error}`;
+        }
+        
+        return res.status(400).json({ 
+          message: errorMessage 
+        });
+      }
+
+      console.log("Webhook setup successful");
+
+      // Step 5: Return success response
+      // TODO: In future implementation, save to database here
+      const botData = {
         id: Date.now(),
-        name: name,
+        name: name.trim(),
         botName: botInfo.first_name,
         botUsername: botInfo.username,
-        token: token,
+        botId: botInfo.id,
+        token: token.trim(),
         isActive: true,
         webhookUrl: webhookUrl,
+        userId: user.id,
         stats: {
           totalUsers: 0,
           totalOrders: 0,
           revenue: 0,
           activeUsers: 0
-        }
-      });
+        },
+        createdAt: new Date().toISOString()
+      };
+
+      res.json(botData);
+
     } catch (error) {
       console.error("Create bot error:", error);
+      
+      // Handle specific errors
+      if (error instanceof Error) {
+        if (error.message.includes('fetch')) {
+          return res.status(500).json({ 
+            message: "Tidak dapat terhubung ke Telegram API. Periksa koneksi internet" 
+          });
+        }
+        
+        if (error.message.includes('timeout')) {
+          return res.status(500).json({ 
+            message: "Timeout saat memvalidasi bot. Coba lagi nanti" 
+          });
+        }
+      }
+      
       res.status(500).json({ 
-        message: "Gagal membuat bot. Pastikan token valid dan belum digunakan." 
+        message: "Gagal membuat bot. Silakan coba lagi" 
       });
     }
   });
@@ -1206,6 +1251,8 @@ export function registerRoutes(app: Express): Server {
       const { telegramUsers, orders } = await import("../shared/schema.js");
       const { count, sum } = await import("drizzle-orm");
 
+      const { eq } = await import("drizzle-orm");
+      
       const [userCount] = await db.select({ count: count() }).from(telegramUsers);
       const [orderCount] = await db.select({ count: count() }).from(orders);
       const [revenueSum] = await db.select({ 
