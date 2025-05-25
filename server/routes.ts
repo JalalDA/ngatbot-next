@@ -1333,12 +1333,12 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Command, type, and text are required" });
       }
 
-      if (type !== "menu" && type !== "text" && type !== "inline") {
-        return res.status(400).json({ message: "Type must be 'menu', 'text', or 'inline'" });
+      if (type !== "menu" && type !== "text") {
+        return res.status(400).json({ message: "Type must be 'menu' or 'text'" });
       }
 
-      if ((type === "menu" || type === "inline") && (!buttons || !Array.isArray(buttons) || buttons.length === 0)) {
-        return res.status(400).json({ message: "Buttons are required for menu and inline types" });
+      if (type === "menu" && (!buttons || !Array.isArray(buttons) || buttons.length === 0)) {
+        return res.status(400).json({ message: "Buttons are required for menu type" });
       }
 
       // Check if command already exists for this chatbot
@@ -1347,21 +1347,12 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Command already exists for this chatbot" });
       }
 
-      console.log("Creating bot flow with data:", {
-        chatbotId,
-        command,
-        type,
-        text,
-        buttons: (type === "menu" || type === "inline") ? buttons : undefined,
-        parentCommand
-      });
-
       const flow = await storage.createBotFlow({
         chatbotId,
         command,
         type,
         text,
-        buttons: (type === "menu" || type === "inline") ? buttons : undefined,
+        buttons: type === "menu" ? buttons : null,
         parentCommand
       });
 
@@ -1542,7 +1533,7 @@ export function registerRoutes(app: Express): Server {
         command,
         type,
         text,
-        buttons: (type === "menu" || type === "inline") ? buttons : null,
+        buttons: type === "menu" ? buttons : null,
         parentCommand
       });
 
@@ -1612,10 +1603,6 @@ export function registerRoutes(app: Express): Server {
           const replyMarkup = NonAiChatbotService.createKeyboardMarkup(flow.buttons || []);
           await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text, replyMarkup);
           console.log("Sent menu response with buttons:", flow.buttons);
-        } else if (flow.type === "inline") {
-          const replyMarkup = NonAiChatbotService.createInlineKeyboardMarkup(flow.buttons || []);
-          await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text, replyMarkup);
-          console.log("Sent inline response with buttons:", flow.buttons);
         } else {
           await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text);
           console.log("Sent text response:", flow.text);
@@ -1638,9 +1625,6 @@ export function registerRoutes(app: Express): Server {
           console.log("Found target flow for button:", targetFlow.command);
           if (targetFlow.type === "menu") {
             const replyMarkup = NonAiChatbotService.createKeyboardMarkup(targetFlow.buttons || []);
-            await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, targetFlow.text, replyMarkup);
-          } else if (targetFlow.type === "inline") {
-            const replyMarkup = NonAiChatbotService.createInlineKeyboardMarkup(targetFlow.buttons || []);
             await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, targetFlow.text, replyMarkup);
           } else {
             await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, targetFlow.text);
