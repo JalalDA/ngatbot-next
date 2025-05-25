@@ -473,6 +473,91 @@ export default function DashboardPage() {
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
       />
+
+      {/* SMM Provider Modal */}
+      <Dialog open={showSmmProviderModal} onOpenChange={setShowSmmProviderModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add SMM Provider</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="providerName" className="text-right">
+                Provider Name
+              </Label>
+              <Input
+                id="providerName"
+                value={smmProviderForm.name}
+                onChange={(e) => setSmmProviderForm({ ...smmProviderForm, name: e.target.value })}
+                className="col-span-3"
+                placeholder="SMM Panel Provider"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="providerApiKey" className="text-right">
+                API Key
+              </Label>
+              <Input
+                id="providerApiKey"
+                type="password"
+                value={smmProviderForm.apiKey}
+                onChange={(e) => setSmmProviderForm({ ...smmProviderForm, apiKey: e.target.value })}
+                className="col-span-3"
+                placeholder="Your API key"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="providerEndpoint" className="text-right">
+                API Endpoint
+              </Label>
+              <Input
+                id="providerEndpoint"
+                value={smmProviderForm.apiEndpoint}
+                onChange={(e) => setSmmProviderForm({ ...smmProviderForm, apiEndpoint: e.target.value })}
+                className="col-span-3"
+                placeholder="https://panel.example.com/api/v2"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="providerActive" className="text-right">
+                Active
+              </Label>
+              <Switch
+                id="providerActive"
+                checked={smmProviderForm.isActive}
+                onCheckedChange={(checked) => setSmmProviderForm({ ...smmProviderForm, isActive: checked })}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowSmmProviderModal(false);
+                setSmmProviderForm({ name: "", apiKey: "", apiEndpoint: "", isActive: true });
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => createSmmProviderMutation.mutate(smmProviderForm)}
+              disabled={createSmmProviderMutation.isPending}
+            >
+              {createSmmProviderMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Provider
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
