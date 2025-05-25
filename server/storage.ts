@@ -1,4 +1,4 @@
-import { users, bots, knowledge, transactions, settings, smmProviders, smmServices, smmOrders, type User, type InsertUser, type Bot, type InsertBot, type Knowledge, type InsertKnowledge, type Transaction, type InsertTransaction, type Setting, type InsertSetting, type SmmProvider, type InsertSmmProvider, type SmmService, type InsertSmmService, type SmmOrder, type InsertSmmOrder } from "@shared/schema";
+import { users, bots, knowledge, transactions, settings, smmProviders, smmServices, smmOrders, autoBots, products, botOrders, accountStock, payments, type User, type InsertUser, type Bot, type InsertBot, type Knowledge, type InsertKnowledge, type Transaction, type InsertTransaction, type Setting, type InsertSetting, type SmmProvider, type InsertSmmProvider, type SmmService, type InsertSmmService, type SmmOrder, type InsertSmmOrder, type AutoBot, type InsertAutoBot, type Product, type InsertProduct, type BotOrder, type InsertBotOrder, type AccountStock, type InsertAccountStock, type Payment, type InsertPayment } from "@shared/schema";
 import session from "express-session";
 import { db, pool } from "./db";
 import { eq, and } from "drizzle-orm";

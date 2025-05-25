@@ -45,10 +45,20 @@ export default function AutoBotBuilderPage() {
   // Create bot mutation
   const createBotMutation = useMutation({
     mutationFn: async (botToken: string) => {
-      return await apiRequest("/api/auto-bots", {
+      const response = await fetch("/api/auto-bots", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ botToken }),
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create bot");
+      }
+      
+      return await response.json();
     },
     onSuccess: (data) => {
       toast({
@@ -70,9 +80,16 @@ export default function AutoBotBuilderPage() {
   // Delete bot mutation
   const deleteBotMutation = useMutation({
     mutationFn: async (botId: number) => {
-      return await apiRequest(`/api/auto-bots/${botId}`, {
+      const response = await fetch(`/api/auto-bots/${botId}`, {
         method: "DELETE",
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete bot");
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       toast({
