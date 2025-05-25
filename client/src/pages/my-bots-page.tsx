@@ -129,7 +129,17 @@ export default function MyBotsPage() {
       });
       return;
     }
-    createBotMutation.mutate(newBot);
+    
+    // Map form data to API expected format
+    const botData = {
+      token: newBot.botToken,
+      botName: newBot.botName,
+      botUsername: newBot.botUsername,
+      description: newBot.description,
+      systemPrompt: newBot.systemPrompt
+    };
+    
+    createBotMutation.mutate(botData);
   };
 
   const handleToggleBot = (bot: any) => {
