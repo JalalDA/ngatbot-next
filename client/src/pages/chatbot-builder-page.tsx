@@ -278,6 +278,10 @@ export default function ChatbotBuilderPage() {
       parentCommand: flowForm.parentCommand || undefined
     };
 
+    console.log("Frontend sending flow data:", flowData);
+    console.log("Filtered inline buttons:", filteredInlineButtons);
+    console.log("Original inline buttons:", flowForm.inlineButtons);
+
     createFlowMutation.mutate(flowData);
   };
 
