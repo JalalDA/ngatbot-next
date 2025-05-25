@@ -45,6 +45,7 @@ export default function DashboardPage() {
   // Service edit modal states
   const [showEditServiceModal, setShowEditServiceModal] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
+  const [showAllServicesModal, setShowAllServicesModal] = useState(false);
   const [serviceEditForm, setServiceEditForm] = useState({
     name: "",
     description: "",
@@ -550,9 +551,14 @@ export default function DashboardPage() {
                       ))}
                       {smmServices.length > 5 && (
                         <div className="text-center py-2">
-                          <span className="text-sm text-slate-500">
-                            +{smmServices.length - 5} more services
-                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowAllServicesModal(true)}
+                            className="text-sm"
+                          >
+                            See All Services ({smmServices.length} total)
+                          </Button>
                         </div>
                       )}
                     </div>
