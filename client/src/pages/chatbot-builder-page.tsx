@@ -49,7 +49,25 @@ export default function ChatBotBuilderPage() {
   // Create chatbot mutation
   const createChatBotMutation = useMutation({
     mutationFn: async (data: { token: string; welcomeMessage: string }) => {
+      console.log("Sending ChatBot data:", data);
       const res = await apiRequest("POST", "/api/chatbots", data);
+      console.log("Response status:", res.status);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Error response:", errorText);
+        let errorMessage = "Failed to create ChatBot";
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.message || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
       return res.json();
     },
     onSuccess: () => {
@@ -61,6 +79,7 @@ export default function ChatBotBuilderPage() {
       });
     },
     onError: (error: any) => {
+      console.error("ChatBot creation error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to create chatbot",
