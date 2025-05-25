@@ -540,8 +540,11 @@ export default function DashboardPage() {
               Cancel
             </Button>
             <Button
-              onClick={() => createSmmProviderMutation.mutate(smmProviderForm)}
-              disabled={createSmmProviderMutation.isPending}
+              onClick={() => {
+                console.log("Form data being sent:", smmProviderForm);
+                createSmmProviderMutation.mutate(smmProviderForm);
+              }}
+              disabled={createSmmProviderMutation.isPending || !smmProviderForm.name || !smmProviderForm.apiKey || !smmProviderForm.apiEndpoint}
             >
               {createSmmProviderMutation.isPending ? (
                 <>
