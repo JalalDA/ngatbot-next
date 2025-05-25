@@ -20,6 +20,7 @@ export const bots = pgTable("bots", {
   token: text("token").notNull(),
   botName: text("bot_name").notNull(),
   botUsername: text("bot_username").notNull(),
+  systemPrompt: text("system_prompt").default("You are a helpful assistant that can answer questions and provide information."),
   isActive: boolean("is_active").notNull().default(true),
   messageCount: integer("message_count").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),

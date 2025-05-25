@@ -21,15 +21,22 @@ export async function generateBotResponse(userMessage: string, knowledgeBase: st
     let userPrompt = "";
 
     if (isGreeting) {
-      // For greetings, use a more natural response without SMM services
-      systemPrompt = "You are a friendly AI assistant. Respond naturally to greetings and introduce yourself briefly. Be warm and helpful.";
-      userPrompt = `User said: "${userMessage}". Please respond naturally as a helpful AI assistant.`;
+      // For greetings, use natural response but include system role if available
+      const systemRole = knowledgeBase.includes('System Role:') ? 
+        knowledgeBase.split('System Role:')[1].split('\n')[0].trim() : '';
+      
+      systemPrompt = systemRole ? 
+        `You are ${systemRole}. Respond naturally to greetings and introduce yourself according to your role. Be warm and helpful.` :
+        "You are a friendly AI assistant. Respond naturally to greetings and introduce yourself briefly. Be warm and helpful.";
+      
+      userPrompt = `User said: "${userMessage}". Please respond naturally according to your role.`;
     } else {
-      // For other questions, include knowledge base
-      systemPrompt = `You are a helpful AI assistant with access to knowledge about various topics including SMM Panel services. 
+      // For other questions, use knowledge base with proper system role integration
+      systemPrompt = `You are a helpful AI assistant. Use the provided knowledge base to understand your role and respond accordingly.
 
 Instructions:
-- For general questions, answer naturally based on your training
+- If there's a "System Role" in the knowledge base, ALWAYS follow that role identity
+- For general questions, answer naturally based on your role and training
 - For SMM-related questions, use the knowledge base to provide specific service details
 - Always be helpful and accurate
 - If knowledge base contains SMM services, format them clearly with IDs and pricing`;
@@ -39,7 +46,7 @@ ${knowledgeBase}
 
 User Message: ${userMessage}
 
-Please provide a helpful and relevant response:`;
+Please provide a helpful and relevant response according to your role and the knowledge base:`;
     }
 
     const response = await openai.chat.completions.create({
