@@ -111,7 +111,20 @@ export default function ChatBotBuilderPage() {
     const token = formData.get("token") as string;
     const welcomeMessage = formData.get("welcomeMessage") as string;
 
-    createChatBotMutation.mutate({ token, welcomeMessage });
+    // Validasi sederhana di frontend
+    if (!token || token.trim().length === 0) {
+      toast({
+        title: "Error",
+        description: "Bot token is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createChatBotMutation.mutate({ 
+      token: token.trim(), 
+      welcomeMessage: welcomeMessage || "Selamat datang! Pilih menu di bawah ini:" 
+    });
   };
 
   const handleDeleteBot = (id: number) => {
