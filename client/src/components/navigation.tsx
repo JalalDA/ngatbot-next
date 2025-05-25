@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Coins, ChevronDown, LogOut, User, Menu, X, Home, LayoutDashboard, Bot, ShoppingCart } from "lucide-react";
+import { Coins, ChevronDown, LogOut, User, Menu, X, Home, LayoutDashboard, Bot, ShoppingCart, UserCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import type { User as UserType } from "@shared/schema";
@@ -32,6 +32,7 @@ export function Navigation() {
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "My Bots", href: "/bots", icon: Bot },
     { name: "SMM Services", href: "/smm", icon: ShoppingCart },
+    { name: "Profile", href: "/profile", icon: UserCircle },
   ];
 
   return (
@@ -97,30 +98,14 @@ export function Navigation() {
             </DropdownMenu>
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center space-x-2">
-            {/* Mobile Credits - Compact */}
+          {/* Mobile Credits Only */}
+          <div className="md:hidden flex items-center">
             <div className="flex items-center space-x-1 px-2 py-1 bg-slate-100 rounded-md">
               <Coins className="h-3 w-3 text-amber-600" />
               <span className="text-xs font-medium text-slate-700">
                 {user?.credits || 0}
               </span>
             </div>
-
-            {/* Hamburger Button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2"
-              aria-label="Toggle menu"
-            >
-              {isMobileMenuOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
-            </Button>
           </div>
         </div>
 
@@ -181,68 +166,36 @@ export function Navigation() {
       </div>
     </header>
 
-    {/* Mobile Bottom Navigation - Futuristic Design */}
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 backdrop-blur-lg border-t border-slate-700/50 shadow-2xl">
-      <div className="flex justify-around items-center py-2 px-4">
-        {navigationItems.map((item, index) => {
+    {/* Mobile Bottom Navigation - Clean Design */}
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg">
+      <div className="flex justify-around items-center py-3 px-2">
+        {navigationItems.map((item) => {
           const isActive = location === item.href;
           return (
             <Link
               key={item.name}
               href={item.href}
-              className={`
-                relative flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-300 transform
-                ${isActive 
-                  ? 'bg-gradient-to-t from-primary/30 to-primary/10 scale-110 shadow-lg shadow-primary/20' 
-                  : 'hover:bg-slate-700/50 hover:scale-105'
-                }
-              `}
-              style={{ 
-                animationDelay: `${index * 100}ms`,
-                animation: 'slideUp 0.6s ease-out forwards'
-              }}
+              className="flex flex-col items-center justify-center transition-all duration-200"
             >
-              {/* Glowing background effect for active item */}
-              {isActive && (
-                <div className="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent rounded-2xl blur-sm"></div>
-              )}
-              
-              {/* Icon with futuristic glow */}
+              {/* Icon Container */}
               <div className={`
-                relative p-2 rounded-xl transition-all duration-300
+                p-2 rounded-lg transition-all duration-200
                 ${isActive 
-                  ? 'bg-primary/20 shadow-md shadow-primary/30' 
-                  : 'bg-slate-800/50'
+                  ? 'bg-primary text-white shadow-md' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }
               `}>
-                <item.icon 
-                  className={`
-                    h-6 w-6 transition-all duration-300
-                    ${isActive 
-                      ? 'text-primary drop-shadow-sm' 
-                      : 'text-slate-300 hover:text-white'
-                    }
-                  `} 
-                />
+                <item.icon className="h-5 w-5" />
               </div>
-
-              {/* Active indicator dot */}
-              {isActive && (
-                <div className="absolute -top-1 w-2 h-2 bg-primary rounded-full shadow-lg shadow-primary/50 animate-pulse"></div>
-              )}
               
-              {/* Subtle ripple effect */}
-              <div className={`
-                absolute inset-0 rounded-2xl transition-opacity duration-300
-                ${isActive ? 'bg-primary/5 animate-pulse' : 'opacity-0'}
-              `}></div>
+              {/* Active indicator */}
+              {isActive && (
+                <div className="w-1 h-1 bg-primary rounded-full mt-1"></div>
+              )}
             </Link>
           );
         })}
       </div>
-      
-      {/* Bottom accent line */}
-      <div className="h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
     </div>
     </>
   );
