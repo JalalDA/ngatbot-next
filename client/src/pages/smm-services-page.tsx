@@ -419,16 +419,28 @@ export default function SmmServicesPage() {
                 <span>Available Services</span>
                 <Badge variant="secondary">{Array.isArray(smmServices) ? smmServices.length : 0} services available</Badge>
               </div>
-              {selectedServicesForDelete.size > 0 && (
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => bulkDeleteSmmServicesMutation.mutate(Array.from(selectedServicesForDelete))}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Selected ({selectedServicesForDelete.size})
-                </Button>
-              )}
+              <div className="flex items-center space-x-2">
+                {Array.isArray(smmProviders) && smmProviders.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-blue-600"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Import Services
+                  </Button>
+                )}
+                {selectedServicesForDelete.size > 0 && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => bulkDeleteSmmServicesMutation.mutate(Array.from(selectedServicesForDelete))}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Selected ({selectedServicesForDelete.size})
+                  </Button>
+                )}
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
