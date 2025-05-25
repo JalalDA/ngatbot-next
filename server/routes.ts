@@ -1140,6 +1140,10 @@ export function registerRoutes(app: Express): Server {
   // Create new chatbot
   app.post("/api/chatbots", requireAuth, async (req, res) => {
     try {
+      console.log("POST /api/chatbots - Request received");
+      console.log("User authenticated:", !!req.user);
+      console.log("Request body:", req.body);
+      
       const user = req.user!;
       const { token, welcomeMessage } = req.body;
 
