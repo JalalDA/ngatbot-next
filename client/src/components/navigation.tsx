@@ -29,7 +29,7 @@ export function Navigation() {
 
   // Navigation items
   const navigationItems = [
-    { name: "Dashboard", href: "/", icon: LayoutDashboard },
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "My Bots", href: "/bots", icon: Bot },
     { name: "SMM Services", href: "/smm", icon: ShoppingCart },
   ];
