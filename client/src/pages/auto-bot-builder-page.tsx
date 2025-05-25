@@ -1,16 +1,15 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Bot, Keyboard, Settings, Play, Square, Edit3 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { Bot, Keyboard, Plus, Trash2, Edit, Eye, Square } from "lucide-react";
 
 interface AutoBot {
   id: number;
@@ -19,7 +18,7 @@ interface AutoBot {
   botUsername: string;
   welcomeMessage: string;
   isActive: boolean;
-  keyboardConfig: InlineKeyboard[];
+  keyboardConfig: InlineKeyboard[] | null;
   createdAt: string;
 }
 
@@ -30,57 +29,48 @@ interface InlineKeyboard {
   url?: string;
 }
 
+interface KeyboardRow {
+  id: string;
+  buttons: InlineKeyboard[];
+}
+
 export default function AutoBotBuilderPage() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Form states
   const [newBotToken, setNewBotToken] = useState("");
   const [botName, setBotName] = useState("");
   const [botUsername, setBotUsername] = useState("");
   const [welcomeMessage, setWelcomeMessage] = useState("Selamat datang! Silakan pilih opsi di bawah ini:");
-  const [keyboardButtons, setKeyboardButtons] = useState<InlineKeyboard[]>([]);
+  const [keyboardRows, setKeyboardRows] = useState<KeyboardRow[]>([]);
+  
+  // UI states
   const [editingBot, setEditingBot] = useState<AutoBot | null>(null);
+  const [viewingBot, setViewingBot] = useState<AutoBot | null>(null);
   const [isValidatingToken, setIsValidatingToken] = useState(false);
 
   // Fetch auto bots
   const { data: autoBots = [], isLoading } = useQuery({
     queryKey: ["/api/autobots"],
-    enabled: true,
   });
 
-  // Create auto bot mutation
+  // Create bot mutation
   const createBotMutation = useMutation({
-    mutationFn: async (data: { token: string; botName: string; botUsername: string; welcomeMessage: string; keyboardConfig: InlineKeyboard[] }) => {
-      console.log('🚀 Creating bot with data:', data);
-      
+    mutationFn: async (data: {
+      token: string;
+      botName: string;
+      botUsername: string;
+      welcomeMessage: string;
+      keyboardConfig: InlineKeyboard[];
+    }) => {
       const response = await fetch("/api/autobots", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-
-      console.log('📡 Response status:', response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Error response:', errorText);
-        
-        // Try to parse as JSON for better error message
-        try {
-          const errorJson = JSON.parse(errorText);
-          throw new Error(errorJson.message || errorText);
-        } catch {
-          throw new Error(errorText);
-        }
-      }
-
-      const responseText = await response.text();
-      console.log('📜 Success response:', responseText.substring(0, 200));
-
-      try {
-        return JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('❌ JSON parse error:', parseError);
-        throw new Error('Invalid response format from server');
-      }
+      if (!response.ok) throw new Error(await response.text());
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/autobots"] });
@@ -94,77 +84,98 @@ export default function AutoBotBuilderPage() {
 
   // Update bot mutation
   const updateBotMutation = useMutation({
-    mutationFn: async (data: { id: number; welcomeMessage: string; keyboardConfig: InlineKeyboard[] }) => {
-      const response = await fetch(`/api/auto-bots/${data.id}`, {
-        method: "PUT",
+    mutationFn: async (data: {
+      id: number;
+      welcomeMessage: string;
+      keyboardConfig: InlineKeyboard[];
+    }) => {
+      const response = await fetch(`/api/autobots/${data.id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ welcomeMessage: data.welcomeMessage, keyboardConfig: data.keyboardConfig }),
+        body: JSON.stringify({
+          welcomeMessage: data.welcomeMessage,
+          keyboardConfig: data.keyboardConfig,
+        }),
       });
       if (!response.ok) throw new Error(await response.text());
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auto-bots"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/autobots"] });
       toast({ title: "Sukses!", description: "Bot berhasil diperbarui" });
       setEditingBot(null);
       resetForm();
-    },
-    onError: (error: any) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
-  });
-
-  // Toggle bot status mutation
-  const toggleBotMutation = useMutation({
-    mutationFn: async (data: { id: number; isActive: boolean }) => {
-      const response = await fetch(`/api/auto-bots/${data.id}/toggle`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: data.isActive }),
-      });
-      if (!response.ok) throw new Error(await response.text());
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auto-bots"] });
-      toast({ title: "Sukses!", description: "Status bot berhasil diubah" });
     },
   });
 
   // Delete bot mutation
   const deleteBotMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/auto-bots/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/autobots/${id}`, { method: "DELETE" });
       if (!response.ok) throw new Error(await response.text());
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auto-bots"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/autobots"] });
       toast({ title: "Sukses!", description: "Bot berhasil dihapus" });
     },
   });
 
-  const addKeyboardButton = () => {
+  // Keyboard row management functions
+  const addKeyboardRow = () => {
+    const newRow: KeyboardRow = {
+      id: Date.now().toString(),
+      buttons: []
+    };
+    setKeyboardRows(prev => [...prev, newRow]);
+  };
+
+  const removeKeyboardRow = (rowId: string) => {
+    setKeyboardRows(rows => rows.filter(row => row.id !== rowId));
+  };
+
+  const addButtonToRow = (rowId: string) => {
     const newButton: InlineKeyboard = {
       id: Date.now().toString(),
       text: "",
       callbackData: "",
+      url: ""
     };
-    setKeyboardButtons([...keyboardButtons, newButton]);
-  };
-
-  const updateKeyboardButton = (id: string, field: keyof InlineKeyboard, value: string) => {
-    setKeyboardButtons(buttons =>
-      buttons.map(button =>
-        button.id === id ? { ...button, [field]: value } : button
+    setKeyboardRows(rows => 
+      rows.map(row => 
+        row.id === rowId 
+          ? { ...row, buttons: [...row.buttons, newButton] }
+          : row
       )
     );
   };
 
-  const removeKeyboardButton = (id: string) => {
-    setKeyboardButtons(buttons => buttons.filter(button => button.id !== id));
+  const updateButton = (rowId: string, buttonId: string, field: keyof InlineKeyboard, value: string) => {
+    setKeyboardRows(rows => 
+      rows.map(row => 
+        row.id === rowId 
+          ? {
+              ...row,
+              buttons: row.buttons.map(button => 
+                button.id === buttonId ? { ...button, [field]: value } : button
+              )
+            }
+          : row
+      )
+    );
   };
 
+  const removeButtonFromRow = (rowId: string, buttonId: string) => {
+    setKeyboardRows(rows => 
+      rows.map(row => 
+        row.id === rowId 
+          ? { ...row, buttons: row.buttons.filter(button => button.id !== buttonId) }
+          : row
+      )
+    );
+  };
+
+  // Token validation
   const validateToken = async (token: string) => {
     if (!token.trim()) return false;
     
@@ -200,55 +211,42 @@ export default function AutoBotBuilderPage() {
     }
   };
 
+  // Form management
   const resetForm = () => {
     setNewBotToken("");
     setBotName("");
     setBotUsername("");
     setWelcomeMessage("Selamat datang! Silakan pilih opsi di bawah ini:");
-    setKeyboardButtons([]);
+    setKeyboardRows([]);
     setEditingBot(null);
   };
 
   const startEditing = (bot: AutoBot) => {
     setEditingBot(bot);
     setWelcomeMessage(bot.welcomeMessage);
-    setKeyboardButtons(bot.keyboardConfig || []);
-  };
-
-  const validateKeyboardButtons = () => {
-    for (let i = 0; i < keyboardButtons.length; i++) {
-      const button = keyboardButtons[i];
-      if (!button.text.trim()) {
-        toast({ 
-          title: "Error", 
-          description: `Button ${i + 1}: Text tombol harus diisi`, 
-          variant: "destructive" 
-        });
-        return false;
-      }
-      if (!button.callbackData.trim()) {
-        toast({ 
-          title: "Error", 
-          description: `Button ${i + 1}: Callback data harus diisi`, 
-          variant: "destructive" 
-        });
-        return false;
-      }
+    
+    // Convert flat keyboard config to rows
+    if (bot.keyboardConfig) {
+      const rows: KeyboardRow[] = [
+        {
+          id: "edit-row-1",
+          buttons: bot.keyboardConfig
+        }
+      ];
+      setKeyboardRows(rows);
+    } else {
+      setKeyboardRows([]);
     }
-    return true;
   };
 
   const handleSubmit = async () => {
-    // Validate keyboard buttons
-    if (!validateKeyboardButtons()) {
-      return;
-    }
-
     if (editingBot) {
+      // Convert rows to flat array for API
+      const flatButtons = keyboardRows.flatMap(row => row.buttons);
       updateBotMutation.mutate({
         id: editingBot.id,
         welcomeMessage,
-        keyboardConfig: keyboardButtons,
+        keyboardConfig: flatButtons,
       });
     } else {
       if (!newBotToken.trim()) {
@@ -264,12 +262,14 @@ export default function AutoBotBuilderPage() {
         }
       }
       
+      // Convert rows to flat array for API
+      const flatButtons = keyboardRows.flatMap(row => row.buttons);
       createBotMutation.mutate({
         token: newBotToken,
         botName,
         botUsername,
         welcomeMessage,
-        keyboardConfig: keyboardButtons,
+        keyboardConfig: flatButtons,
       });
     }
   };
@@ -277,23 +277,13 @@ export default function AutoBotBuilderPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Auto Bot Builder</h1>
-        <p className="text-muted-foreground">Buat bot Telegram otomatis dengan keyboard inline</p>
+        <h1 className="text-3xl font-bold text-gray-900">Auto Bot Builder</h1>
+        <p className="text-gray-600 mt-2">Buat dan kelola bot Telegram otomatis dengan keyboard inline</p>
       </div>
 
-      <Tabs defaultValue="create" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="create">
-            <Plus className="w-4 h-4 mr-2" />
-            {editingBot ? "Edit Bot" : "Buat Bot"}
-          </TabsTrigger>
-          <TabsTrigger value="manage">
-            <Settings className="w-4 h-4 mr-2" />
-            Kelola Bot
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="create" className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Bot Configuration Form */}
+        <div className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>
@@ -354,190 +344,239 @@ export default function AutoBotBuilderPage() {
             </CardContent>
           </Card>
 
+          {/* Inline Keyboard Configuration */}
           <Card>
             <CardHeader>
               <CardTitle>
                 <Keyboard className="w-5 h-5 mr-2 inline" />
-                Keyboard Inline
+                Keyboard Inline Configuration
               </CardTitle>
               <CardDescription>
                 Konfigurasi tombol-tombol yang akan muncul di bawah pesan sambutan
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {keyboardButtons.map((button, index) => (
-                <div key={button.id} className="p-4 border rounded-lg space-y-3">
-                  <div className="flex justify-between items-center">
-                    <Label className="text-sm font-medium">Tombol {index + 1}</Label>
+              {keyboardRows.map((row, rowIndex) => (
+                <div key={row.id} className="p-4 border rounded-lg space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Row {rowIndex + 1}</h4>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      onClick={() => removeKeyboardButton(button.id)}
-                      className="text-red-500 hover:text-red-700"
+                      onClick={() => removeKeyboardRow(row.id)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label htmlFor={`text-${button.id}`} className="text-xs">Teks Tombol</Label>
-                      <Input
-                        id={`text-${button.id}`}
-                        placeholder="Teks yang tampil di tombol"
-                        value={button.text}
-                        onChange={(e) => updateKeyboardButton(button.id, "text", e.target.value)}
-                      />
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <Label htmlFor={`callback-${button.id}`} className="text-xs">Callback Data</Label>
-                      <Input
-                        id={`callback-${button.id}`}
-                        placeholder="Data yang dikirim saat tombol ditekan"
-                        value={button.callbackData}
-                        onChange={(e) => updateKeyboardButton(button.id, "callbackData", e.target.value)}
-                      />
-                    </div>
-                  </div>
 
-                  <div className="space-y-1">
-                    <Label htmlFor={`url-${button.id}`} className="text-xs">URL (Opsional)</Label>
-                    <Input
-                      id={`url-${button.id}`}
-                      placeholder="https://example.com (kosongkan jika tidak perlu)"
-                      value={button.url || ""}
-                      onChange={(e) => updateKeyboardButton(button.id, "url", e.target.value)}
-                    />
-                  </div>
+                  {row.buttons.map((button) => (
+                    <div key={button.id} className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      <Input
+                        placeholder="Text Button"
+                        value={button.text}
+                        onChange={(e) => updateButton(row.id, button.id, "text", e.target.value)}
+                      />
+                      <Input
+                        placeholder="Callback Data"
+                        value={button.callbackData}
+                        onChange={(e) => updateButton(row.id, button.id, "callbackData", e.target.value)}
+                      />
+                      <div className="flex gap-1">
+                        <Input
+                          placeholder="URL (optional)"
+                          value={button.url || ""}
+                          onChange={(e) => updateButton(row.id, button.id, "url", e.target.value)}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeButtonFromRow(row.id, button.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+
+                  <Button
+                    variant="outline"
+                    onClick={() => addButtonToRow(row.id)}
+                    className="w-full"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Button to Row
+                  </Button>
                 </div>
               ))}
 
               <Button
                 variant="outline"
-                onClick={addKeyboardButton}
+                onClick={addKeyboardRow}
                 className="w-full"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Tambah Tombol
+                Add New Row
               </Button>
 
-              <div className="flex gap-3 pt-4">
+              <Separator />
+
+              <Button
+                onClick={handleSubmit}
+                disabled={createBotMutation.isPending || updateBotMutation.isPending}
+                className="w-full"
+              >
+                {createBotMutation.isPending || updateBotMutation.isPending
+                  ? "Processing..."
+                  : editingBot
+                  ? "Update Bot"
+                  : "Create Bot"}
+              </Button>
+
+              {editingBot && (
                 <Button
-                  onClick={handleSubmit}
-                  disabled={createBotMutation.isPending || updateBotMutation.isPending}
-                  className="flex-1"
+                  variant="outline"
+                  onClick={resetForm}
+                  className="w-full"
                 >
-                  {editingBot ? "Perbarui Bot" : "Buat Bot"}
+                  Cancel Edit
                 </Button>
-                
-                {editingBot && (
-                  <Button variant="outline" onClick={resetForm}>
-                    Batal
-                  </Button>
-                )}
-              </div>
+              )}
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
 
-        <TabsContent value="manage" className="space-y-4">
-          {isLoading ? (
-            <div className="text-center py-8">Loading...</div>
-          ) : autoBots.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-8">
-                <Bot className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">Belum ada bot yang dibuat</p>
-              </CardContent>
-            </Card>
-          ) : (
-            autoBots.map((bot: AutoBot) => (
-              <Card key={bot.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <Bot className="w-5 h-5" />
-                        {bot.botName}
-                        <Badge variant={bot.isActive ? "default" : "secondary"}>
-                          {bot.isActive ? "Aktif" : "Nonaktif"}
-                        </Badge>
-                      </CardTitle>
-                      <CardDescription>@{bot.botUsername}</CardDescription>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => startEditing(bot)}
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </Button>
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleBotMutation.mutate({ id: bot.id, isActive: !bot.isActive })}
-                      >
-                        {bot.isActive ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                      </Button>
-                      
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm" className="text-red-500 hover:text-red-700">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Hapus Bot</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Apakah Anda yakin ingin menghapus bot {bot.botName}? Tindakan ini tidak dapat dibatalkan.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Batal</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteBotMutation.mutate(bot.id)}
-                              className="bg-red-500 hover:bg-red-600"
-                            >
-                              Hapus
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-                </CardHeader>
-                
-                <CardContent>
-                  <div className="space-y-3">
-                    <div>
-                      <Label className="text-sm font-medium">Pesan Sambutan:</Label>
-                      <p className="text-sm text-muted-foreground">{bot.welcomeMessage}</p>
-                    </div>
-                    
-                    {bot.keyboardConfig && bot.keyboardConfig.length > 0 && (
-                      <div>
-                        <Label className="text-sm font-medium">Keyboard Buttons:</Label>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {bot.keyboardConfig.map((button, index) => (
-                            <Badge key={index} variant="outline">
-                              {button.text}
-                            </Badge>
-                          ))}
+        {/* Bot Management List */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Kelola Bot</CardTitle>
+              <CardDescription>Daftar bot yang telah dibuat dan opsi pengelolaan</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <p className="text-center py-4">Loading bots...</p>
+              ) : (autoBots as AutoBot[]).length === 0 ? (
+                <p className="text-center py-4 text-muted-foreground">
+                  Belum ada bot yang dibuat. Buat bot pertama Anda!
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {(autoBots as AutoBot[]).map((bot) => (
+                    <div key={bot.id} className="p-4 border rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <h3 className="font-medium">{bot.botName}</h3>
+                          <p className="text-sm text-muted-foreground">@{bot.botUsername}</p>
                         </div>
+                        <Badge variant={bot.isActive ? "default" : "secondary"}>
+                          {bot.isActive ? "Active" : "Inactive"}
+                        </Badge>
                       </div>
-                    )}
+                      
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {bot.welcomeMessage.length > 60 
+                          ? `${bot.welcomeMessage.substring(0, 60)}...` 
+                          : bot.welcomeMessage}
+                      </p>
+
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => startEditing(bot)}
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Edit
+                        </Button>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setViewingBot(bot)}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm("Apakah Anda yakin ingin menghapus bot ini?")) {
+                              deleteBotMutation.mutate(bot.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* View Bot Dialog */}
+      <Dialog open={!!viewingBot} onOpenChange={() => setViewingBot(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Bot Details</DialogTitle>
+            <DialogDescription>
+              Informasi lengkap tentang bot {viewingBot?.botName}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {viewingBot && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Bot Name</Label>
+                  <p className="text-sm">{viewingBot.botName}</p>
+                </div>
+                <div>
+                  <Label>Username</Label>
+                  <p className="text-sm">@{viewingBot.botUsername}</p>
+                </div>
+              </div>
+              
+              <div>
+                <Label>Welcome Message</Label>
+                <p className="text-sm">{viewingBot.welcomeMessage}</p>
+              </div>
+              
+              <div>
+                <Label>Status</Label>
+                <Badge variant={viewingBot.isActive ? "default" : "secondary"}>
+                  {viewingBot.isActive ? "Active" : "Inactive"}
+                </Badge>
+              </div>
+              
+              {viewingBot.keyboardConfig && viewingBot.keyboardConfig.length > 0 && (
+                <div>
+                  <Label>Keyboard Configuration</Label>
+                  <div className="space-y-2 mt-2">
+                    {viewingBot.keyboardConfig.map((button, index) => (
+                      <div key={index} className="flex gap-2 text-sm">
+                        <span className="font-medium">{button.text}</span>
+                        <span className="text-muted-foreground">({button.callbackData})</span>
+                        {button.url && <span className="text-blue-600">{button.url}</span>}
+                      </div>
+                    ))}
                   </div>
-                </CardContent>
-              </Card>
-            ))
+                </div>
+              )}
+            </div>
           )}
-        </TabsContent>
-      </Tabs>
+          
+          <DialogFooter>
+            <Button onClick={() => setViewingBot(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
