@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Bot, Settings, Play, Trash2, Edit, MessageSquare, Menu } from "lucide-react";
+import { Plus, Bot, Settings, Play, Trash2, Edit, MessageSquare, Menu, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 interface NonAiChatbot {
@@ -628,6 +628,98 @@ export default function ChatbotBuilderPage() {
                           </div>
                         )}
 
+                        {/* Inline Keyboard Section */}
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <Label className="text-foreground">Inline Keyboard Buttons</Label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={addInlineButtonRow}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add Row
+                            </Button>
+                          </div>
+                          <div className="space-y-3 p-3 border border-border rounded-lg bg-muted/30">
+                            {flowForm.inlineButtons.map((row, rowIndex) => (
+                              <div key={rowIndex} className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium text-muted-foreground">Row {rowIndex + 1}</span>
+                                  <div className="flex gap-1">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => addInlineButtonToRow(rowIndex)}
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                    {flowForm.inlineButtons.length > 1 && (
+                                      <Button
+                                        type="button"
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => removeInlineButtonRow(rowIndex)}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="grid gap-2">
+                                  {row.map((button, buttonIndex) => (
+                                    <div key={buttonIndex} className="grid grid-cols-12 gap-2 p-2 border border-border rounded bg-background">
+                                      <div className="col-span-4">
+                                        <Input
+                                          placeholder="Button text"
+                                          value={button.text}
+                                          onChange={(e) => updateInlineButton(rowIndex, buttonIndex, 'text', e.target.value)}
+                                          className="text-xs"
+                                        />
+                                      </div>
+                                      <div className="col-span-3">
+                                        <Input
+                                          placeholder="Command (e.g., followers)"
+                                          value={button.callback || ''}
+                                          onChange={(e) => updateInlineButton(rowIndex, buttonIndex, 'callback', e.target.value)}
+                                          className="text-xs"
+                                        />
+                                      </div>
+                                      <div className="col-span-4">
+                                        <Input
+                                          placeholder="URL (optional)"
+                                          value={button.url || ''}
+                                          onChange={(e) => updateInlineButton(rowIndex, buttonIndex, 'url', e.target.value)}
+                                          className="text-xs"
+                                        />
+                                      </div>
+                                      <div className="col-span-1">
+                                        {row.length > 1 && (
+                                          <Button
+                                            type="button"
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={() => removeInlineButton(rowIndex, buttonIndex)}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                            {flowForm.inlineButtons.length === 0 && (
+                              <div className="text-center py-4 text-muted-foreground text-sm">
+                                No inline keyboard buttons yet. Click "Add Row" to create interactive buttons.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
                         <div className="flex gap-2">
                           <Button 
                             onClick={handleCreateFlow}
@@ -727,6 +819,98 @@ export default function ChatbotBuilderPage() {
                             </div>
                           </div>
                         )}
+
+                        {/* Inline Keyboard Section - Edit Form */}
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <Label className="text-foreground">Inline Keyboard Buttons</Label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={addInlineButtonRow}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add Row
+                            </Button>
+                          </div>
+                          <div className="space-y-3 p-3 border border-border rounded-lg bg-muted/30">
+                            {flowForm.inlineButtons.map((row, rowIndex) => (
+                              <div key={rowIndex} className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium text-muted-foreground">Row {rowIndex + 1}</span>
+                                  <div className="flex gap-1">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => addInlineButtonToRow(rowIndex)}
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                    {flowForm.inlineButtons.length > 1 && (
+                                      <Button
+                                        type="button"
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => removeInlineButtonRow(rowIndex)}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="grid gap-2">
+                                  {row.map((button, buttonIndex) => (
+                                    <div key={buttonIndex} className="grid grid-cols-12 gap-2 p-2 border border-border rounded bg-background">
+                                      <div className="col-span-4">
+                                        <Input
+                                          placeholder="Button text"
+                                          value={button.text}
+                                          onChange={(e) => updateInlineButton(rowIndex, buttonIndex, 'text', e.target.value)}
+                                          className="text-xs"
+                                        />
+                                      </div>
+                                      <div className="col-span-3">
+                                        <Input
+                                          placeholder="Command (e.g., followers)"
+                                          value={button.callback || ''}
+                                          onChange={(e) => updateInlineButton(rowIndex, buttonIndex, 'callback', e.target.value)}
+                                          className="text-xs"
+                                        />
+                                      </div>
+                                      <div className="col-span-4">
+                                        <Input
+                                          placeholder="URL (optional)"
+                                          value={button.url || ''}
+                                          onChange={(e) => updateInlineButton(rowIndex, buttonIndex, 'url', e.target.value)}
+                                          className="text-xs"
+                                        />
+                                      </div>
+                                      <div className="col-span-1">
+                                        {row.length > 1 && (
+                                          <Button
+                                            type="button"
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={() => removeInlineButton(rowIndex, buttonIndex)}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                            {flowForm.inlineButtons.length === 0 && (
+                              <div className="text-center py-4 text-muted-foreground text-sm">
+                                No inline keyboard buttons yet. Click "Add Row" to create interactive buttons.
+                              </div>
+                            )}
+                          </div>
+                        </div>
 
                         <div className="flex gap-2">
                           <Button 
