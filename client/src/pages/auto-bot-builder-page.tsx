@@ -46,6 +46,84 @@ export default function AutoBotBuilderPage() {
     enabled: true,
   });
 
+  // Toggle bot status mutation
+  const toggleBotMutation = useMutation({
+    mutationFn: async (data: { id: number; isActive: boolean }) => {
+      const response = await fetch(`/api/autobots/${data.id}/toggle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: data.isActive }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText);
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/autobots"] });
+      toast({ title: "Sukses!", description: "Status bot berhasil diperbarui" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Delete bot mutation
+  const deleteBotMutation = useMutation({
+    mutationFn: async (botId: number) => {
+      const response = await fetch(`/api/autobots/${botId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText);
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/autobots"] });
+      toast({ title: "Sukses!", description: "Bot berhasil dihapus" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Update bot mutation
+  const updateBotMutation = useMutation({
+    mutationFn: async (data: { id: number; welcomeMessage: string; keyboardConfig: InlineKeyboard[] }) => {
+      const response = await fetch(`/api/autobots/${data.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          welcomeMessage: data.welcomeMessage,
+          keyboardConfig: data.keyboardConfig,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText);
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/autobots"] });
+      toast({ title: "Sukses!", description: "Bot berhasil diperbarui" });
+      resetForm();
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+
   // Create auto bot mutation
   const createBotMutation = useMutation({
     mutationFn: async (data: { token: string; botName: string; botUsername: string; welcomeMessage: string; keyboardConfig: InlineKeyboard[] }) => {
@@ -92,57 +170,7 @@ export default function AutoBotBuilderPage() {
     },
   });
 
-  // Update bot mutation
-  const updateBotMutation = useMutation({
-    mutationFn: async (data: { id: number; welcomeMessage: string; keyboardConfig: InlineKeyboard[] }) => {
-      const response = await fetch(`/api/auto-bots/${data.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ welcomeMessage: data.welcomeMessage, keyboardConfig: data.keyboardConfig }),
-      });
-      if (!response.ok) throw new Error(await response.text());
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auto-bots"] });
-      toast({ title: "Sukses!", description: "Bot berhasil diperbarui" });
-      setEditingBot(null);
-      resetForm();
-    },
-    onError: (error: any) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
-  });
 
-  // Toggle bot status mutation
-  const toggleBotMutation = useMutation({
-    mutationFn: async (data: { id: number; isActive: boolean }) => {
-      const response = await fetch(`/api/auto-bots/${data.id}/toggle`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: data.isActive }),
-      });
-      if (!response.ok) throw new Error(await response.text());
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auto-bots"] });
-      toast({ title: "Sukses!", description: "Status bot berhasil diubah" });
-    },
-  });
-
-  // Delete bot mutation
-  const deleteBotMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await fetch(`/api/auto-bots/${id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error(await response.text());
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auto-bots"] });
-      toast({ title: "Sukses!", description: "Bot berhasil dihapus" });
-    },
-  });
 
   const addKeyboardButton = () => {
     const newButton: InlineKeyboard = {
@@ -213,6 +241,8 @@ export default function AutoBotBuilderPage() {
     setEditingBot(bot);
     setWelcomeMessage(bot.welcomeMessage);
     setKeyboardButtons(bot.keyboardConfig || []);
+    // Scroll to top to show edit form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = async () => {
