@@ -1604,7 +1604,13 @@ export function registerRoutes(app: Express): Server {
           await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text, replyMarkup);
           console.log("Sent menu response with buttons:", flow.buttons);
         } else {
-          await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text);
+          // Check if flow has inline buttons
+          let replyMarkup = null;
+          if (flow.inlineButtons && flow.inlineButtons.trim()) {
+            replyMarkup = NonAiChatbotService.createInlineKeyboardMarkup(flow.inlineButtons);
+            console.log("Using inline keyboard for text flow");
+          }
+          await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text, replyMarkup);
           console.log("Sent text response:", flow.text);
         }
       } else {
