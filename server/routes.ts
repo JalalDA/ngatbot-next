@@ -9,9 +9,16 @@ import { SmmPanelAPI, generateSmmOrderId, generateMid, parseRate, calculateOrder
 import { z } from "zod";
 
 function requireAuth(req: any, res: any, next: any) {
+  console.log("=== AUTH CHECK ===");
+  console.log("URL:", req.url);
+  console.log("Is authenticated:", req.isAuthenticated());
+  console.log("Session ID:", req.sessionID);
+  
   if (!req.isAuthenticated()) {
+    console.log("Authentication failed - returning 401");
     return res.status(401).json({ message: "Authentication required" });
   }
+  console.log("Authentication successful - proceeding");
   next();
 }
 
