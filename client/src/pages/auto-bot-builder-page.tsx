@@ -46,6 +46,7 @@ export default function AutoBotBuilderPage() {
   const [isValidatingToken, setIsValidatingToken] = useState(false);
   const [showSubMenuSelector, setShowSubMenuSelector] = useState(false);
   const [selectedParentId, setSelectedParentId] = useState<string>("");
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   // Fetch auto bots
   const { data: autoBots = [], isLoading } = useQuery({
@@ -311,9 +312,7 @@ export default function AutoBotBuilderPage() {
     setEditingBot(bot);
     setWelcomeMessage(bot.welcomeMessage);
     setKeyboardButtons(bot.keyboardConfig || []);
-    setActiveTab("create"); // Switch to the edit tab
-    // Scroll to top to show edit form
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setShowEditDialog(true);
   };
 
   const handleSubmit = async () => {
@@ -725,6 +724,130 @@ export default function AutoBotBuilderPage() {
             </Button>
             <Button onClick={addSubMenuToParent} disabled={!selectedParentId}>
               Tambah Sub Menu
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Bot Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bot className="w-5 h-5" />
+              Edit Bot: {editingBot?.botName}
+            </DialogTitle>
+            <DialogDescription>
+              Edit pengaturan dan menu inline keyboard untuk bot Telegram Anda
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Welcome Message */}
+            <div className="space-y-2">
+              <Label htmlFor="editWelcomeMessage">Pesan Selamat Datang</Label>
+              <Textarea
+                id="editWelcomeMessage"
+                placeholder="Pesan yang akan ditampilkan saat pengguna memulai bot"
+                value={welcomeMessage}
+                onChange={(e) => setWelcomeMessage(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            {/* Keyboard Configuration */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-lg font-semibold flex items-center gap-2">
+                  <Keyboard className="w-5 h-5" />
+                  Menu Yang Ada
+                </Label>
+              </div>
+
+              {/* Show existing keyboard buttons */}
+              <div className="space-y-3">
+                {keyboardButtons.map((button, index) => (
+                  <div key={button.id} className="flex items-center gap-3 p-3 border rounded-lg">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant={button.level === 1 ? "secondary" : "default"}>
+                          {button.level === 1 ? "Sub Menu" : "Menu Utama"}
+                        </Badge>
+                        {button.level === 1 && button.parentId && (
+                          <span className="text-sm text-muted-foreground">
+                            → {keyboardButtons.find(b => b.id === button.parentId)?.text}
+                          </span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input
+                          placeholder="Teks tombol"
+                          value={button.text}
+                          onChange={(e) => {
+                            const newButtons = [...keyboardButtons];
+                            newButtons[index].text = e.target.value;
+                            setKeyboardButtons(newButtons);
+                          }}
+                        />
+                        <Input
+                          placeholder="Callback data"
+                          value={button.callbackData}
+                          onChange={(e) => {
+                            const newButtons = [...keyboardButtons];
+                            newButtons[index].callbackData = e.target.value;
+                            setKeyboardButtons(newButtons);
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const newButtons = keyboardButtons.filter((_, i) => i !== index);
+                        setKeyboardButtons(newButtons);
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+
+                {keyboardButtons.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Belum ada menu yang ditambahkan
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowEditDialog(false);
+                setEditingBot(null);
+                setWelcomeMessage("Selamat datang! Silakan pilih opsi di bawah ini:");
+                setKeyboardButtons([]);
+              }}
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={() => {
+                if (editingBot) {
+                  updateBotMutation.mutate({
+                    id: editingBot.id,
+                    welcomeMessage,
+                    keyboardConfig: keyboardButtons,
+                  });
+                  setShowEditDialog(false);
+                }
+              }}
+              disabled={updateBotMutation.isPending}
+            >
+              {updateBotMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
             </Button>
           </DialogFooter>
         </DialogContent>
