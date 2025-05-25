@@ -1600,9 +1600,9 @@ export function registerRoutes(app: Express): Server {
       if (flow) {
         // Send response based on flow type
         if (flow.type === "menu") {
-          const replyMarkup = NonAiChatbotService.createKeyboardMarkup(flow.buttons || []);
+          const replyMarkup = NonAiChatbotService.createInlineKeyboardMarkup(flow.buttons || []);
           await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text, replyMarkup);
-          console.log("Sent menu response with buttons:", flow.buttons);
+          console.log("Sent menu response with inline buttons:", flow.buttons);
         } else {
           await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text);
           console.log("Sent text response:", flow.text);
