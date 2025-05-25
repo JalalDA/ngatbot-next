@@ -1347,6 +1347,15 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Command already exists for this chatbot" });
       }
 
+      console.log("Creating bot flow with data:", {
+        chatbotId,
+        command,
+        type,
+        text,
+        buttons: (type === "menu" || type === "inline") ? buttons : null,
+        parentCommand
+      });
+
       const flow = await storage.createBotFlow({
         chatbotId,
         command,
