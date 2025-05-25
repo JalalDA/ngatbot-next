@@ -331,6 +331,28 @@ export default function DashboardPage() {
     },
   });
 
+  // Update provider balance mutation
+  const updateProviderBalanceMutation = useMutation({
+    mutationFn: async (providerId: number) => {
+      const res = await apiRequest("POST", `/api/smm/providers/${providerId}/update-balance`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/smm/providers"] });
+      toast({
+        title: "Balance Updated",
+        description: "Provider balance has been successfully updated.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update provider balance.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleDeleteService = (serviceId: number) => {
     if (confirm("Are you sure you want to delete this service?")) {
       deleteSmmServiceMutation.mutate(serviceId);
@@ -601,21 +623,39 @@ export default function DashboardPage() {
                       <div className="bg-slate-100 rounded-lg p-3 mb-4">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium text-slate-600">Provider Balance</span>
-                          <Coins className="w-4 h-4 text-slate-500" />
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => updateProviderBalanceMutation.mutate(provider.id)}
+                              disabled={updateProviderBalanceMutation.isPending}
+                              className="h-6 w-6 p-0"
+                            >
+                              <RefreshCw className={`w-3 h-3 ${updateProviderBalanceMutation.isPending ? 'animate-spin' : ''}`} />
+                            </Button>
+                            <Coins className="w-4 h-4 text-slate-500" />
+                          </div>
                         </div>
                         <div className="mt-1">
-                          {provider.balance !== undefined ? (
+                          {provider.balance !== undefined && provider.balance !== null ? (
                             <span className="text-xl font-bold text-slate-900">
                               {provider.currency === 'IDR' && 'Rp '}
                               {provider.currency === 'USD' && '$'}
                               {provider.currency === 'EUR' && '€'}
                               {provider.currency === 'GBP' && '£'}
                               {(!provider.currency || !['IDR', 'USD', 'EUR', 'GBP'].includes(provider.currency)) && ''}
-                              {provider.balance?.toLocaleString() || '0'}
+                              {parseFloat(provider.balance)?.toLocaleString() || '0'}
                               {provider.currency && !['IDR', 'USD', 'EUR', 'GBP'].includes(provider.currency) && ` ${provider.currency}`}
                             </span>
                           ) : (
-                            <span className="text-sm text-slate-500">Loading...</span>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm text-slate-500">Click refresh to load balance</span>
+                            </div>
+                          )}
+                          {provider.balanceUpdatedAt && (
+                            <div className="text-xs text-slate-400 mt-1">
+                              Updated: {new Date(provider.balanceUpdatedAt).toLocaleString()}
+                            </div>
                           )}
                         </div>
                       </div>
