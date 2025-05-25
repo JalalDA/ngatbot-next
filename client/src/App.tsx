@@ -5,11 +5,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
+import { Navigation } from "@/components/navigation";
 import LandingPage from "@/pages/landing-page";
 import AuthPage from "@/pages/auth-page";
-import DashboardPage from "@/pages/dashboard-page";
+import OverviewDashboard from "@/pages/overview-dashboard";
+import MyBotsPage from "@/pages/my-bots-page";
+import SmmServicesPage from "@/pages/smm-services-page";
 import AdminPage from "@/pages/admin-page";
-import SmmPanelPage from "@/pages/smm-panel-page";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -17,9 +19,33 @@ function Router() {
     <Switch>
       <Route path="/auth" component={AuthPage} />
       <Route path="/ilmiadmin" component={AdminPage} />
-      <ProtectedRoute path="/dashboard" component={DashboardPage} />
-      <ProtectedRoute path="/smm-panel" component={SmmPanelPage} />
-      <Route path="/" component={LandingPage} />
+      <ProtectedRoute 
+        path="/bots" 
+        component={() => (
+          <>
+            <Navigation />
+            <MyBotsPage />
+          </>
+        )} 
+      />
+      <ProtectedRoute 
+        path="/smm" 
+        component={() => (
+          <>
+            <Navigation />
+            <SmmServicesPage />
+          </>
+        )} 
+      />
+      <ProtectedRoute 
+        path="/" 
+        component={() => (
+          <>
+            <Navigation />
+            <OverviewDashboard />
+          </>
+        )} 
+      />
       <Route component={NotFound} />
     </Switch>
   );

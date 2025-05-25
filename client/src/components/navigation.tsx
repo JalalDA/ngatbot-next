@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Coins, ChevronDown, LogOut, User, Menu, X, Home } from "lucide-react";
+import { Coins, ChevronDown, LogOut, User, Menu, X, Home, LayoutDashboard, Bot, ShoppingCart } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import type { User as UserType } from "@shared/schema";
@@ -29,8 +29,9 @@ export function Navigation() {
 
   // Navigation items
   const navigationItems = [
-    { name: "Beranda", href: "/", icon: Home },
-    { name: "Dashboard", href: "/dashboard", icon: User },
+    { name: "Dashboard", href: "/", icon: LayoutDashboard },
+    { name: "My Bots", href: "/bots", icon: Bot },
+    { name: "SMM Services", href: "/smm", icon: ShoppingCart },
   ];
 
   return (
