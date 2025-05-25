@@ -12,32 +12,46 @@ function getOpenAIClient() {
 export async function generateBotResponse(userMessage: string, knowledgeBase: string): Promise<string> {
   try {
     const openai = getOpenAIClient();
-    const prompt = `You are a helpful AI assistant for a Telegram bot with access to SMM Panel services and other knowledge. Use the following knowledge base to answer user questions accurately and helpfully.
+    
+    // Check if this is a simple greeting or general question
+    const lowerMessage = userMessage.toLowerCase();
+    const isGreeting = /^(hai|hay|hello|halo|hi|good|selamat|apa kabar|kamu siapa|siapa kamu|who are you)/.test(lowerMessage);
+    
+    let systemPrompt = "";
+    let userPrompt = "";
 
-Knowledge Base:
+    if (isGreeting) {
+      // For greetings, use a more natural response without SMM services
+      systemPrompt = "You are a friendly AI assistant. Respond naturally to greetings and introduce yourself briefly. Be warm and helpful.";
+      userPrompt = `User said: "${userMessage}". Please respond naturally as a helpful AI assistant.`;
+    } else {
+      // For other questions, include knowledge base
+      systemPrompt = `You are a helpful AI assistant with access to knowledge about various topics including SMM Panel services. 
+
+Instructions:
+- For general questions, answer naturally based on your training
+- For SMM-related questions, use the knowledge base to provide specific service details
+- Always be helpful and accurate
+- If knowledge base contains SMM services, format them clearly with IDs and pricing`;
+
+      userPrompt = `Knowledge Base:
 ${knowledgeBase}
 
 User Message: ${userMessage}
 
-Instructions:
-- If users ask about social media services, followers, likes, views, or SMM services, provide specific details including service IDs, pricing, and order limits from the SMM Panel Services section
-- Always mention service IDs (e.g., "ID 1: Instagram Followers") so users can easily identify services
-- Provide accurate pricing information in Indonesian Rupiah (Rp)
-- If asked about available services, list them clearly with specifications
-- Be helpful and provide complete information based on the knowledge base
-
 Please provide a helpful and relevant response:`;
+    }
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: "You are a helpful AI assistant integrated into a Telegram bot. You have access to information about SMM Panel services and other knowledge. When users ask about social media services, followers, likes, views, or similar SMM services, provide detailed information including service IDs, pricing, minimum/maximum orders, and descriptions. Always be helpful and provide accurate information based on the provided knowledge base."
+          content: systemPrompt
         },
         {
           role: "user",
-          content: prompt
+          content: userPrompt
         }
       ],
       max_tokens: 500,

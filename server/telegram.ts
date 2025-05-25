@@ -100,21 +100,46 @@ class TelegramBotManager {
         }
       }).join('\n\n');
 
-      // Get SMM Panel services for the bot owner
-      const smmServices = await storage.getSmmServicesByUserId(bot.userId);
-      const smmKnowledge = smmServices
-        .filter(service => service.isActive)
-        .map(service => 
-          `ID ${service.mid}: ${service.name} - Min: ${service.min}, Max: ${service.max}, Rate: Rp ${service.rate}/1000${service.description ? ` - ${service.description}` : ''}`
-        ).join('\n');
+      // Check if message is asking about SMM services
+      const userMessage = msg.text.toLowerCase();
+      const isSmmQuery = userMessage.includes('service') || 
+                        userMessage.includes('smm') || 
+                        userMessage.includes('layanan') ||
+                        userMessage.includes('harga') ||
+                        userMessage.includes('price') ||
+                        userMessage.includes('youtube') ||
+                        userMessage.includes('instagram') ||
+                        userMessage.includes('tiktok') ||
+                        userMessage.includes('followers') ||
+                        userMessage.includes('views') ||
+                        userMessage.includes('likes') ||
+                        userMessage.includes('order') ||
+                        userMessage.includes('beli') ||
+                        userMessage.includes('daftar') ||
+                        userMessage.includes('list') ||
+                        userMessage.includes('id ') ||
+                        /^id\s*\d+/.test(userMessage);
 
-      // Combine all knowledge
-      const knowledgeBase = [
-        baseKnowledge,
-        smmKnowledge ? `\n\nSMM Panel Services Available:\n${smmKnowledge}` : ''
-      ].filter(Boolean).join('\n\n');
+      let knowledgeBase = baseKnowledge;
 
-      // Generate AI response
+      // Only add SMM services if the query is related to SMM
+      if (isSmmQuery) {
+        const smmServices = await storage.getSmmServicesByUserId(bot.userId);
+        const smmKnowledge = smmServices
+          .filter(service => service.isActive)
+          .map(service => 
+            `ID ${service.mid}: ${service.name} - Min: ${service.min}, Max: ${service.max}, Rate: Rp ${service.rate}/1000${service.description ? ` - ${service.description}` : ''}`
+          ).join('\n');
+
+        if (smmKnowledge) {
+          knowledgeBase = [
+            baseKnowledge,
+            `\n\nSMM Panel Services Available:\n${smmKnowledge}`
+          ].filter(Boolean).join('\n\n');
+        }
+      }
+
+      // Generate AI response with contextual knowledge
       const aiResponse = await generateBotResponse(msg.text, knowledgeBase);
 
       // Send response
