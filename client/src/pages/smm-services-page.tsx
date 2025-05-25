@@ -21,7 +21,11 @@ import {
   Trash2,
   Eye,
   Settings,
-  Activity
+  Activity,
+  Download,
+  Info,
+  X,
+  Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -36,6 +40,7 @@ export default function SmmServicesPage() {
   const [showEditServiceModal, setShowEditServiceModal] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
   const [selectedServicesForDelete, setSelectedServicesForDelete] = useState<Set<number>>(new Set());
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const [smmProviderForm, setSmmProviderForm] = useState({
     name: "",
@@ -425,6 +430,7 @@ export default function SmmServicesPage() {
                     size="sm"
                     variant="outline"
                     className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-blue-600"
+                    onClick={() => setShowImportModal(true)}
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Import Services
@@ -523,6 +529,102 @@ export default function SmmServicesPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Import Services Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold">Import Services from Provider</h3>
+              <button
+                onClick={() => setShowImportModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Provider
+              </label>
+              <select
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={importingProvider?.id || ''}
+                onChange={(e) => {
+                  const provider = smmProviders?.find((p: any) => p.id === parseInt(e.target.value));
+                  setImportingProvider(provider);
+                }}
+              >
+                <option value="">Choose a provider to import services from</option>
+                {Array.isArray(smmProviders) && smmProviders.map((provider: any) => (
+                  <option key={provider.id} value={provider.id}>
+                    {provider.name} - {provider.apiEndpoint}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {importingProvider && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-lg font-medium">Services from {importingProvider.name}</h4>
+                </div>
+
+                <div className="text-sm text-gray-600 mb-4 p-4 bg-blue-50 rounded-lg">
+                  <div className="flex items-start space-x-2">
+                    <Info className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-blue-800">How to import services:</p>
+                      <p className="text-blue-700">
+                        This will fetch services directly from your provider's API and add them to your available services list. 
+                        You can then customize the names, descriptions, and pricing for your customers.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={async () => {
+                    try {
+                      const response = await apiRequest("POST", `/api/smm-providers/${importingProvider.id}/import-services`);
+                      const result = await response.json();
+                      
+                      if (result.success) {
+                        toast({
+                          title: "Services imported successfully",
+                          description: `Imported ${result.count} services from ${importingProvider.name}`,
+                        });
+                        refetchSmmServices();
+                        setShowImportModal(false);
+                        setImportingProvider(null);
+                      } else {
+                        throw new Error(result.message || "Failed to import services");
+                      }
+                    } catch (error: any) {
+                      toast({
+                        title: "Import failed",
+                        description: error.message || "Failed to import services from provider",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Import All Services from {importingProvider.name}
+                </Button>
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-3">
+              <Button variant="outline" onClick={() => setShowImportModal(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
