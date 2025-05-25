@@ -1279,6 +1279,11 @@ export function registerRoutes(app: Express): Server {
   // Fix Non-AI bot webhook (manual trigger)
   app.post("/api/nonai-chatbots/:id/fix-webhook", requireAuth, async (req, res) => {
     try {
+      console.log("🔧 Fix webhook endpoint called");
+      console.log("User authenticated:", req.isAuthenticated());
+      console.log("User ID:", req.user?.id);
+      console.log("Chatbot ID from params:", req.params.id);
+      
       // Ensure proper JSON response
       res.setHeader('Content-Type', 'application/json');
       
@@ -1286,16 +1291,20 @@ export function registerRoutes(app: Express): Server {
       const chatbotId = parseInt(req.params.id);
 
       if (isNaN(chatbotId)) {
+        console.log("❌ Invalid chatbot ID");
         return res.status(400).json({ message: "Invalid chatbot ID" });
       }
 
       // Get chatbot and verify ownership
       const chatbot = await storage.getNonAiChatbot(chatbotId);
+      console.log("Found chatbot:", chatbot ? `${chatbot.botUsername} (userId: ${chatbot.userId})` : "null");
+      
       if (!chatbot) {
         return res.status(404).json({ message: "Chatbot not found" });
       }
       
       if (chatbot.userId !== user.id) {
+        console.log(`❌ User ${user.id} trying to access chatbot owned by ${chatbot.userId}`);
         return res.status(403).json({ message: "Unauthorized access to this chatbot" });
       }
 
