@@ -220,29 +220,6 @@ export class NonAiChatbotService {
   }
 
   /**
-   * Create inline keyboard from structured button data
-   */
-  static createInlineKeyboardFromData(buttonRows: { text: string; callback?: string; url?: string; }[][]): any {
-    const keyboard = buttonRows.map(row => 
-      row.map(button => {
-        const inlineButton: any = { text: button.text };
-        if (button.url) {
-          inlineButton.url = button.url;
-        } else if (button.callback) {
-          inlineButton.callback_data = button.callback;
-        } else {
-          inlineButton.callback_data = button.text;
-        }
-        return inlineButton;
-      })
-    );
-    
-    return {
-      inline_keyboard: keyboard
-    };
-  }
-
-  /**
    * Generate webhook URL for bot
    */
   static generateWebhookUrl(botId: number): string {

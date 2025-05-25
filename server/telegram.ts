@@ -28,9 +28,9 @@ class TelegramBotManager {
 
   async startBot(token: string, botId: number): Promise<void> {
     try {
-      // Stop existing bot if running
+      // Don't start if already running
       if (this.activeBots.has(token)) {
-        await this.stopBot(token);
+        return;
       }
 
       const bot = new TelegramBot(token, { polling: true });

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -128,14 +128,9 @@ export const botFlows = pgTable("bot_flows", {
   id: serial("id").primaryKey(),
   chatbotId: integer("chatbot_id").notNull().references(() => nonAiChatbots.id, { onDelete: "cascade" }),
   command: text("command").notNull(),
-  type: text("type").notNull(), // "menu" | "text"
+  type: text("type").notNull(), // "menu" | "text" | "inline"
   text: text("text").notNull(),
   buttons: text("buttons").array(), // array of button labels
-  inlineButtons: json("inline_buttons").$type<{
-    text: string;
-    callback?: string;
-    url?: string;
-  }[][]>(), // 2D array for inline keyboard buttons
   parentCommand: text("parent_command"), // for sub-menus
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -231,7 +226,6 @@ export const insertBotFlowSchema = createInsertSchema(botFlows).pick({
   type: true,
   text: true,
   buttons: true,
-  inlineButtons: true,
   parentCommand: true,
 });
 

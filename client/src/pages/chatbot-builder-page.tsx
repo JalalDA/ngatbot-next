@@ -29,10 +29,9 @@ interface BotFlow {
   id: number;
   chatbotId: number;
   command: string;
-  type: "menu" | "text";
+  type: "menu" | "text" | "inline";
   text: string;
   buttons: string[] | null;
-  inlineButtons: { text: string; callback: string; url: string; }[][] | null;
   parentCommand: string | null;
   createdAt: string;
   updatedAt: string;
@@ -50,16 +49,15 @@ export default function ChatbotBuilderPage() {
   const [showCreateFlow, setShowCreateFlow] = useState(false);
   const [showEditFlow, setShowEditFlow] = useState(false);
   const [showHierarchicalBuilder, setShowHierarchicalBuilder] = useState(false);
+  const [showCreateInlineFlow, setShowCreateInlineFlow] = useState(false);
   const [editingFlow, setEditingFlow] = useState<BotFlow | null>(null);
   const [newBotToken, setNewBotToken] = useState("");
   const [flowForm, setFlowForm] = useState({
     command: "",
-    type: "text" as "menu" | "text",
+    type: "text" as "menu" | "text" | "inline",
     text: "",
     buttons: [""],
-    inlineButtons: [[{ text: "", callback: "", url: "" }]],
-    parentCommand: "",
-    useInlineKeyboard: false
+    parentCommand: ""
   });
   const [menuHierarchy, setMenuHierarchy] = useState<MenuHierarchy[]>([]);
 
@@ -70,8 +68,9 @@ export default function ChatbotBuilderPage() {
   const { data: chatbots = [], isLoading: loadingChatbots } = useQuery({
     queryKey: ["/api/nonai-chatbots"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/nonai-chatbots");
-      return await res.json();
+      const res = await fetch("/api/nonai-chatbots");
+      if (!res.ok) throw new Error("Failed to fetch chatbots");
+      return res.json();
     },
   });
 
@@ -80,8 +79,9 @@ export default function ChatbotBuilderPage() {
     queryKey: ["/api/nonai-chatbots", selectedChatbot?.id, "flows"],
     queryFn: async () => {
       if (!selectedChatbot) return [];
-      const res = await apiRequest("GET", `/api/nonai-chatbots/${selectedChatbot.id}/flows`);
-      return await res.json();
+      const res = await fetch(`/api/nonai-chatbots/${selectedChatbot.id}/flows`);
+      if (!res.ok) throw new Error("Failed to fetch flows");
+      return res.json();
     },
     enabled: !!selectedChatbot,
   });
@@ -89,7 +89,7 @@ export default function ChatbotBuilderPage() {
   // Create bot mutation
   const createBotMutation = useMutation({
     mutationFn: async (botToken: string) => {
-      const res = await apiRequest("POST", "/api/nonai-chatbots", { token: botToken });
+      const res = await apiRequest("POST", "/api/nonai-chatbots", { botToken });
       return await res.json();
     },
     onSuccess: (newBot) => {
@@ -151,9 +151,7 @@ export default function ChatbotBuilderPage() {
         type: "text",
         text: "",
         buttons: [""],
-        inlineButtons: [[{ text: "", callback: "", url: "" }]],
-        parentCommand: "",
-        useInlineKeyboard: false
+        parentCommand: ""
       });
       toast({
         title: "Success",
@@ -184,9 +182,7 @@ export default function ChatbotBuilderPage() {
         type: "text",
         text: "",
         buttons: [""],
-        inlineButtons: [[{ text: "", callback: "", url: "" }]],
-        parentCommand: "",
-        useInlineKeyboard: false
+        parentCommand: ""
       });
       toast({
         title: "Success",
@@ -245,50 +241,6 @@ export default function ChatbotBuilderPage() {
     },
   });
 
-  // Inline keyboard management functions
-  const addInlineButtonRow = () => {
-    setFlowForm(prev => ({
-      ...prev,
-      inlineButtons: [...prev.inlineButtons, [{ text: "", callback: "", url: "" }]]
-    }));
-  };
-
-  const removeInlineButtonRow = (rowIndex: number) => {
-    setFlowForm(prev => ({
-      ...prev,
-      inlineButtons: prev.inlineButtons.filter((_, i) => i !== rowIndex)
-    }));
-  };
-
-  const addInlineButton = (rowIndex: number) => {
-    setFlowForm(prev => ({
-      ...prev,
-      inlineButtons: prev.inlineButtons.map((row, i) => 
-        i === rowIndex ? [...row, { text: "", callback: "", url: "" }] : row
-      )
-    }));
-  };
-
-  const removeInlineButton = (rowIndex: number, buttonIndex: number) => {
-    setFlowForm(prev => ({
-      ...prev,
-      inlineButtons: prev.inlineButtons.map((row, i) => 
-        i === rowIndex ? row.filter((_, j) => j !== buttonIndex) : row
-      )
-    }));
-  };
-
-  const updateInlineButton = (rowIndex: number, buttonIndex: number, field: 'text' | 'callback' | 'url', value: string) => {
-    setFlowForm(prev => ({
-      ...prev,
-      inlineButtons: prev.inlineButtons.map((row, i) => 
-        i === rowIndex ? row.map((button, j) => 
-          j === buttonIndex ? { ...button, [field]: value } : button
-        ) : row
-      )
-    }));
-  };
-
   const handleCreateBot = () => {
     if (!newBotToken.trim()) {
       toast({
@@ -311,49 +263,11 @@ export default function ChatbotBuilderPage() {
       return;
     }
 
-    // Additional validation for menu type
-    if (flowForm.type === "menu") {
-      if (flowForm.useInlineKeyboard) {
-        // Check if inline buttons have valid data
-        const hasValidInlineButtons = flowForm.inlineButtons.some(row => 
-          row.some(button => button.text.trim() !== "")
-        );
-        if (!hasValidInlineButtons) {
-          toast({
-            title: "Error",
-            description: "Please add at least one inline button with text",
-            variant: "destructive",
-          });
-          return;
-        }
-      } else {
-        // Check if regular buttons have valid data
-        const hasValidButtons = flowForm.buttons.some(button => button.trim() !== "");
-        if (!hasValidButtons) {
-          toast({
-            title: "Error",
-            description: "Please add at least one button",
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-    }
-
-    // Filter out empty inline buttons and prepare data
-    let processedInlineButtons = undefined;
-    if (flowForm.type === "menu" && flowForm.useInlineKeyboard) {
-      processedInlineButtons = flowForm.inlineButtons
-        .map(row => row.filter(button => button.text.trim() !== ""))
-        .filter(row => row.length > 0);
-    }
-
     const flowData = {
       command: flowForm.command,
       type: flowForm.type,
       text: flowForm.text,
-      buttons: flowForm.type === "menu" && !flowForm.useInlineKeyboard ? flowForm.buttons.filter(b => b.trim()) : undefined,
-      inlineButtons: processedInlineButtons,
+      buttons: (flowForm.type === "menu" || flowForm.type === "inline") ? flowForm.buttons.filter(b => b.trim()) : undefined,
       parentCommand: flowForm.parentCommand || undefined
     };
 
@@ -374,8 +288,7 @@ export default function ChatbotBuilderPage() {
       command: flowForm.command,
       type: flowForm.type,
       text: flowForm.text,
-      buttons: flowForm.type === "menu" && !flowForm.useInlineKeyboard ? flowForm.buttons.filter(b => b.trim()) : undefined,
-      inlineButtons: flowForm.type === "menu" && flowForm.useInlineKeyboard ? flowForm.inlineButtons : undefined,
+      buttons: (flowForm.type === "menu" || flowForm.type === "inline") ? flowForm.buttons.filter(b => b.trim()) : undefined,
       parentCommand: flowForm.parentCommand || undefined
     };
 
@@ -389,9 +302,7 @@ export default function ChatbotBuilderPage() {
       type: flow.type,
       text: flow.text,
       buttons: flow.buttons || [""],
-      inlineButtons: flow.inlineButtons || [[{ text: "", callback: "", url: "" }]],
-      parentCommand: flow.parentCommand || "",
-      useInlineKeyboard: !!(flow.inlineButtons && flow.inlineButtons.length > 0)
+      parentCommand: flow.parentCommand || ""
     });
     setShowEditFlow(true);
   };
@@ -416,8 +327,6 @@ export default function ChatbotBuilderPage() {
       buttons: prev.buttons.map((button, i) => i === index ? value : button)
     }));
   };
-
-
 
   // Template creation functions
   const createBusinessMenuTemplate = async () => {
@@ -595,6 +504,219 @@ export default function ChatbotBuilderPage() {
     });
   };
 
+  // Inline Menu Template Functions
+  const createInlineWebsiteTemplate = async () => {
+    if (!selectedChatbot) return;
+    
+    const inlineFlows = [
+      {
+        command: "/start",
+        type: "inline" as const,
+        text: "🌐 Selamat datang di website kami! Pilih menu:",
+        buttons: ["🔧 Fitur Bot", "📄 Panduan", "🌐 Website", "⬅️ Kembali"],
+        parentCommand: null
+      },
+      {
+        command: "🔧 Fitur Bot",
+        type: "inline" as const,
+        text: "🔧 Fitur-fitur yang tersedia di bot kami:",
+        buttons: ["⚡ AI Chat", "📊 Analytics", "🛠️ Tools", "⬅️ Kembali"],
+        parentCommand: "/start"
+      },
+      {
+        command: "📄 Panduan",
+        type: "text" as const,
+        text: "📄 Panduan Penggunaan:\n\n1. Klik menu yang tersedia\n2. Gunakan tombol inline untuk navigasi\n3. Klik 'Kembali' untuk menu sebelumnya\n4. Semua fitur gratis untuk dicoba!",
+        buttons: null,
+        parentCommand: "/start"
+      },
+      {
+        command: "⬅️ Kembali",
+        type: "inline" as const,
+        text: "🌐 Selamat datang di website kami! Pilih menu:",
+        buttons: ["🔧 Fitur Bot", "📄 Panduan", "🌐 Website", "⬅️ Kembali"],
+        parentCommand: null
+      }
+    ];
+
+    try {
+      for (const flow of inlineFlows) {
+        await apiRequest("POST", `/api/nonai-chatbots/${selectedChatbot.id}/flows`, flow);
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/nonai-chatbots", selectedChatbot.id, "flows"] });
+      setShowCreateInlineFlow(false);
+      toast({
+        title: "Success! ⚡",
+        description: "Website inline menu template created! Buttons appear under messages.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to create inline website template",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const createInlineServicesTemplate = async () => {
+    if (!selectedChatbot) return;
+    
+    const serviceFlows = [
+      {
+        command: "/start",
+        type: "inline" as const,
+        text: "🔧 Layanan Profesional Kami - Pilih kategori:",
+        buttons: ["💬 Konsultasi", "🎧 Support", "💰 Pricing", "📞 Contact"],
+        parentCommand: null
+      },
+      {
+        command: "💬 Konsultasi",
+        type: "text" as const,
+        text: "💬 Konsultasi Gratis!\n\n✅ Analisis kebutuhan bisnis\n✅ Rekomendasi solusi terbaik\n✅ Estimasi timeline proyek\n\nHubungi: konsultasi@perusahaan.com",
+        buttons: null,
+        parentCommand: "/start"
+      },
+      {
+        command: "🎧 Support",
+        type: "inline" as const,
+        text: "🎧 Customer Support 24/7:",
+        buttons: ["📧 Email", "💬 Live Chat", "📱 WhatsApp", "⬅️ Kembali"],
+        parentCommand: "/start"
+      },
+      {
+        command: "⬅️ Kembali",
+        type: "inline" as const,
+        text: "🔧 Layanan Profesional Kami - Pilih kategori:",
+        buttons: ["💬 Konsultasi", "🎧 Support", "💰 Pricing", "📞 Contact"],
+        parentCommand: null
+      }
+    ];
+
+    try {
+      for (const flow of serviceFlows) {
+        await apiRequest("POST", `/api/nonai-chatbots/${selectedChatbot.id}/flows`, flow);
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/nonai-chatbots", selectedChatbot.id, "flows"] });
+      setShowCreateInlineFlow(false);
+      toast({
+        title: "Success! 🔧",
+        description: "Services inline menu template created with professional layout!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to create inline services template",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const createInlineSocialTemplate = async () => {
+    if (!selectedChatbot) return;
+    
+    const socialFlows = [
+      {
+        command: "/start",
+        type: "inline" as const,
+        text: "📱 Follow us on Social Media:",
+        buttons: ["📸 Instagram", "📘 Facebook", "🐦 Twitter", "▶️ YouTube"],
+        parentCommand: null
+      },
+      {
+        command: "📸 Instagram",
+        type: "text" as const,
+        text: "📸 Follow us on Instagram!\n\n🔗 Link: https://instagram.com/yourcompany\n\n✨ Dapatkan update terbaru\n📷 Behind the scenes content\n🎁 Exclusive giveaways",
+        buttons: null,
+        parentCommand: "/start"
+      },
+      {
+        command: "📘 Facebook",
+        type: "text" as const,
+        text: "📘 Like our Facebook Page!\n\n🔗 Link: https://facebook.com/yourcompany\n\n📰 Latest news & updates\n👥 Community discussions\n🎯 Targeted content",
+        buttons: null,
+        parentCommand: "/start"
+      }
+    ];
+
+    try {
+      for (const flow of socialFlows) {
+        await apiRequest("POST", `/api/nonai-chatbots/${selectedChatbot.id}/flows`, flow);
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/nonai-chatbots", selectedChatbot.id, "flows"] });
+      setShowCreateInlineFlow(false);
+      toast({
+        title: "Success! 📱",
+        description: "Social Media inline menu with links created!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to create inline social template",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const createInlineNavigationTemplate = async () => {
+    if (!selectedChatbot) return;
+    
+    const navFlows = [
+      {
+        command: "/start",
+        type: "inline" as const,
+        text: "🧭 Navigasi Utama - Pilih halaman:",
+        buttons: ["🏠 Home", "🔧 Services", "ℹ️ About", "📞 Contact"],
+        parentCommand: null
+      },
+      {
+        command: "🏠 Home",
+        type: "text" as const,
+        text: "🏠 Welcome to our Home!\n\n🌟 Perusahaan teknologi terdepan\n💼 Solusi digital terpercaya\n🚀 Inovasi untuk masa depan\n\nTerima kasih telah mengunjungi kami!",
+        buttons: null,
+        parentCommand: "/start"
+      },
+      {
+        command: "🔧 Services",
+        type: "inline" as const,
+        text: "🔧 Our Services:",
+        buttons: ["💻 Web Dev", "📱 Mobile App", "☁️ Cloud", "⬅️ Kembali"],
+        parentCommand: "/start"
+      },
+      {
+        command: "ℹ️ About",
+        type: "text" as const,
+        text: "ℹ️ About Us:\n\n🏢 Didirikan tahun 2020\n👨‍💻 Tim ahli berpengalaman\n🌍 Melayani klien global\n🏆 Award-winning solutions\n\nVisi: Menjadi leader di bidang teknologi",
+        buttons: null,
+        parentCommand: "/start"
+      },
+      {
+        command: "⬅️ Kembali",
+        type: "inline" as const,
+        text: "🧭 Navigasi Utama - Pilih halaman:",
+        buttons: ["🏠 Home", "🔧 Services", "ℹ️ About", "📞 Contact"],
+        parentCommand: null
+      }
+    ];
+
+    try {
+      for (const flow of navFlows) {
+        await apiRequest("POST", `/api/nonai-chatbots/${selectedChatbot.id}/flows`, flow);
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/nonai-chatbots", selectedChatbot.id, "flows"] });
+      setShowCreateInlineFlow(false);
+      toast({
+        title: "Success! 🧭",
+        description: "Navigation inline menu template created with website-style navigation!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to create inline navigation template",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -745,6 +867,15 @@ export default function ChatbotBuilderPage() {
                     <Plus className="h-4 w-4 mr-2" />
                     🌳 Menu Builder
                   </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowCreateInlineFlow(true)}
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0 hover:from-purple-700 hover:to-pink-700"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    ⚡ Inline Menu
+                  </Button>
                   
                   <Dialog open={showCreateFlow} onOpenChange={setShowCreateFlow}>
                     <DialogTrigger asChild>
@@ -774,13 +905,14 @@ export default function ChatbotBuilderPage() {
                           </div>
                           <div>
                             <Label htmlFor="type" className="text-foreground">Type</Label>
-                            <Select value={flowForm.type} onValueChange={(value: "menu" | "text") => setFlowForm(prev => ({ ...prev, type: value }))}>
+                            <Select value={flowForm.type} onValueChange={(value: "menu" | "text" | "inline") => setFlowForm(prev => ({ ...prev, type: value as "menu" | "text" | "inline" }))}>
                               <SelectTrigger className="bg-background border-border text-foreground">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent className="bg-background border-border">
                                 <SelectItem value="text">Text Response</SelectItem>
                                 <SelectItem value="menu">Menu with Buttons</SelectItem>
+                                <SelectItem value="inline">⚡ Inline Keyboard</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -798,7 +930,7 @@ export default function ChatbotBuilderPage() {
                           />
                         </div>
 
-                        {flowForm.type === "menu" && (
+                        {(flowForm.type === "menu" || flowForm.type === "inline") && (
                           <div>
                             <Label className="text-foreground">Menu Buttons</Label>
                             <div className="space-y-2">
@@ -831,102 +963,6 @@ export default function ChatbotBuilderPage() {
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add Button
                               </Button>
-                            </div>
-
-                            {/* Toggle for Inline Keyboard */}
-                            <div className="mt-4 p-3 border rounded bg-muted/10">
-                              <div className="flex items-center space-x-2 mb-3">
-                                <input
-                                  type="checkbox"
-                                  id="useInlineKeyboard"
-                                  checked={flowForm.useInlineKeyboard}
-                                  onChange={(e) => setFlowForm(prev => ({ ...prev, useInlineKeyboard: e.target.checked }))}
-                                  className="rounded border-border"
-                                />
-                                <Label htmlFor="useInlineKeyboard" className="text-foreground font-medium">
-                                  Enable Inline Keyboard (Advanced)
-                                </Label>
-                              </div>
-                              <p className="text-sm text-muted-foreground mb-3">
-                                Inline keyboards allow buttons with callback data and URLs for more interactive experiences.
-                              </p>
-
-                              {flowForm.useInlineKeyboard && (
-                                <div className="space-y-3">
-                                  <Label className="text-foreground">Inline Keyboard Configuration</Label>
-                                  {flowForm.inlineButtons.map((row, rowIndex) => (
-                                    <div key={rowIndex} className="border rounded p-3 bg-background">
-                                      <div className="flex items-center justify-between mb-2">
-                                        <Label className="text-sm font-medium">Row {rowIndex + 1}</Label>
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => removeInlineButtonRow(rowIndex)}
-                                          disabled={flowForm.inlineButtons.length <= 1}
-                                        >
-                                          <Trash2 className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                      <div className="space-y-2">
-                                        {row.map((button, buttonIndex) => (
-                                          <div key={buttonIndex} className="grid grid-cols-3 gap-2">
-                                            <Input
-                                              placeholder="Button Text"
-                                              value={button.text}
-                                              onChange={(e) => updateInlineButton(rowIndex, buttonIndex, 'text', e.target.value)}
-                                              className="bg-background border-border text-foreground"
-                                            />
-                                            <Input
-                                              placeholder="Callback Data"
-                                              value={button.callback}
-                                              onChange={(e) => updateInlineButton(rowIndex, buttonIndex, 'callback', e.target.value)}
-                                              className="bg-background border-border text-foreground"
-                                            />
-                                            <div className="flex gap-1">
-                                              <Input
-                                                placeholder="URL (optional)"
-                                                value={button.url}
-                                                onChange={(e) => updateInlineButton(rowIndex, buttonIndex, 'url', e.target.value)}
-                                                className="bg-background border-border text-foreground"
-                                              />
-                                              <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => removeInlineButton(rowIndex, buttonIndex)}
-                                                disabled={row.length <= 1}
-                                              >
-                                                <Trash2 className="h-3 w-3" />
-                                              </Button>
-                                            </div>
-                                          </div>
-                                        ))}
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => addInlineButton(rowIndex)}
-                                          className="w-full"
-                                        >
-                                          <Plus className="h-3 w-3 mr-2" />
-                                          Add Button to Row
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={addInlineButtonRow}
-                                    className="w-full"
-                                  >
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Add New Row
-                                  </Button>
-                                </div>
-                              )}
                             </div>
                           </div>
                         )}
@@ -970,7 +1006,7 @@ export default function ChatbotBuilderPage() {
                           </div>
                           <div>
                             <Label htmlFor="edit-type" className="text-foreground">Type</Label>
-                            <Select value={flowForm.type} onValueChange={(value: "menu" | "text") => setFlowForm(prev => ({ ...prev, type: value }))}>
+                            <Select value={flowForm.type} onValueChange={(value: "menu" | "text" | "inline") => setFlowForm(prev => ({ ...prev, type: value }))}>
                               <SelectTrigger className="bg-background border-border text-foreground">
                                 <SelectValue />
                               </SelectTrigger>
@@ -994,137 +1030,39 @@ export default function ChatbotBuilderPage() {
                           />
                         </div>
 
-                        {flowForm.type === "menu" && (
-                          <div className="space-y-4">
-                            <div>
-                              <Label className="text-foreground">Regular Menu Buttons</Label>
-                              <div className="space-y-2">
-                                {flowForm.buttons.map((button, index) => (
-                                  <div key={index} className="flex gap-2">
-                                    <Input
-                                      placeholder={`Button ${index + 1}`}
-                                      value={button}
-                                      onChange={(e) => updateButton(index, e.target.value)}
-                                      className="bg-background border-border text-foreground"
-                                    />
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => removeButton(index)}
-                                      disabled={flowForm.buttons.length <= 1}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                ))}
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={addButton}
-                                  className="w-full"
-                                >
-                                  <Plus className="h-4 w-4 mr-2" />
-                                  Add Button
-                                </Button>
-                              </div>
-                            </div>
-
-                            {/* Toggle for Inline Keyboard in Edit Dialog */}
-                            <div className="mt-4 p-3 border rounded bg-muted/10">
-                              <div className="flex items-center space-x-2 mb-3">
-                                <input
-                                  type="checkbox"
-                                  id="useInlineKeyboardEdit"
-                                  checked={flowForm.useInlineKeyboard}
-                                  onChange={(e) => setFlowForm(prev => ({ ...prev, useInlineKeyboard: e.target.checked }))}
-                                  className="rounded border-border"
-                                />
-                                <Label htmlFor="useInlineKeyboardEdit" className="text-foreground font-medium">
-                                  Enable Inline Keyboard (Advanced)
-                                </Label>
-                              </div>
-                              <p className="text-sm text-muted-foreground mb-3">
-                                Inline keyboards allow buttons with callback data and URLs for more interactive experiences.
-                              </p>
-
-                              {flowForm.useInlineKeyboard && (
-                                <div className="space-y-3">
-                                  <Label className="text-foreground">Inline Keyboard Configuration</Label>
-                                  {flowForm.inlineButtons.map((row, rowIndex) => (
-                                    <div key={rowIndex} className="border rounded p-3 bg-background">
-                                      <div className="flex items-center justify-between mb-2">
-                                        <Label className="text-sm font-medium">Row {rowIndex + 1}</Label>
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => removeInlineButtonRow(rowIndex)}
-                                          disabled={flowForm.inlineButtons.length <= 1}
-                                        >
-                                          <Trash2 className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                      <div className="space-y-2">
-                                        {row.map((button, buttonIndex) => (
-                                          <div key={buttonIndex} className="grid grid-cols-3 gap-2">
-                                            <Input
-                                              placeholder="Button Text"
-                                              value={button.text}
-                                              onChange={(e) => updateInlineButton(rowIndex, buttonIndex, 'text', e.target.value)}
-                                              className="bg-background border-border text-foreground"
-                                            />
-                                            <Input
-                                              placeholder="Callback Data"
-                                              value={button.callback}
-                                              onChange={(e) => updateInlineButton(rowIndex, buttonIndex, 'callback', e.target.value)}
-                                              className="bg-background border-border text-foreground"
-                                            />
-                                            <div className="flex gap-1">
-                                              <Input
-                                                placeholder="URL (optional)"
-                                                value={button.url}
-                                                onChange={(e) => updateInlineButton(rowIndex, buttonIndex, 'url', e.target.value)}
-                                                className="bg-background border-border text-foreground"
-                                              />
-                                              <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => removeInlineButton(rowIndex, buttonIndex)}
-                                                disabled={row.length <= 1}
-                                              >
-                                                <Trash2 className="h-3 w-3" />
-                                              </Button>
-                                            </div>
-                                          </div>
-                                        ))}
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => addInlineButton(rowIndex)}
-                                          className="w-full"
-                                        >
-                                          <Plus className="h-3 w-3 mr-2" />
-                                          Add Button to Row
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ))}
+                        {(editingFlow?.type === "menu" || editingFlow?.type === "inline") && (
+                          <div>
+                            <Label className="text-foreground">Menu Buttons</Label>
+                            <div className="space-y-2">
+                              {flowForm.buttons.map((button, index) => (
+                                <div key={index} className="flex gap-2">
+                                  <Input
+                                    placeholder={`Button ${index + 1}`}
+                                    value={button}
+                                    onChange={(e) => updateButton(index, e.target.value)}
+                                    className="bg-background border-border text-foreground"
+                                  />
                                   <Button
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={addInlineButtonRow}
-                                    className="w-full"
+                                    onClick={() => removeButton(index)}
+                                    disabled={flowForm.buttons.length <= 1}
                                   >
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Add New Row
+                                    <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </div>
-                              )}
+                              ))}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={addButton}
+                                className="w-full"
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Button
+                              </Button>
                             </div>
                           </div>
                         )}
@@ -1231,6 +1169,140 @@ export default function ChatbotBuilderPage() {
 
                         <div className="flex gap-2">
                           <Button variant="outline" onClick={() => setShowHierarchicalBuilder(false)} className="flex-1">
+                            Close
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Inline Menu Builder Dialog */}
+                  <Dialog open={showCreateInlineFlow} onOpenChange={setShowCreateInlineFlow}>
+                    <DialogContent className="bg-background border-border max-w-4xl max-h-[80vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle className="text-foreground">⚡ Inline Menu Builder</DialogTitle>
+                        <DialogDescription className="text-muted-foreground">
+                          Create inline keyboard menus that appear directly under messages
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <div className="space-y-6">
+                        {/* Preview Inline Menu */}
+                        <div className="border border-border rounded-lg p-4 bg-accent/20">
+                          <h3 className="text-sm font-medium text-foreground mb-3">📱 Inline Menu Preview</h3>
+                          
+                          <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-3">
+                            <div className="text-sm text-blue-900 dark:text-blue-100 mb-2">
+                              🤖 <strong>Bot:</strong> Selamat datang di bot saya! Silakan pilih menu:
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-1 max-w-xs">
+                              <div className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-3 py-2 rounded text-xs text-center font-medium">
+                                🔧 Fitur Bot
+                              </div>
+                              <div className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-3 py-2 rounded text-xs text-center font-medium">
+                                📄 Panduan
+                              </div>
+                              <div className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-3 py-2 rounded text-xs text-center font-medium">
+                                🌐 Website
+                              </div>
+                              <div className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-3 py-2 rounded text-xs text-center font-medium">
+                                ⬅️ Kembali
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <p className="text-xs text-muted-foreground text-center">
+                            Inline buttons appear directly under the message, not in the keyboard area
+                          </p>
+                        </div>
+
+                        {/* Quick Inline Templates */}
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-semibold text-foreground">⚡ Quick Inline Templates</h3>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Button
+                              variant="outline"
+                              className="h-auto p-4 flex flex-col items-start space-y-2"
+                              onClick={() => createInlineWebsiteTemplate()}
+                            >
+                              <div className="font-medium">🌐 Website Menu</div>
+                              <div className="text-xs text-muted-foreground text-left">
+                                Features → Guide → Website → Back
+                              </div>
+                            </Button>
+
+                            <Button
+                              variant="outline"
+                              className="h-auto p-4 flex flex-col items-start space-y-2"
+                              onClick={() => createInlineServicesTemplate()}
+                            >
+                              <div className="font-medium">🔧 Services Menu</div>
+                              <div className="text-xs text-muted-foreground text-left">
+                                Consultation → Support → Pricing → Contact
+                              </div>
+                            </Button>
+
+                            <Button
+                              variant="outline"
+                              className="h-auto p-4 flex flex-col items-start space-y-2"
+                              onClick={() => createInlineSocialTemplate()}
+                            >
+                              <div className="font-medium">📱 Social Media</div>
+                              <div className="text-xs text-muted-foreground text-left">
+                                Instagram → Facebook → Twitter → YouTube
+                              </div>
+                            </Button>
+
+                            <Button
+                              variant="outline"
+                              className="h-auto p-4 flex flex-col items-start space-y-2"
+                              onClick={() => createInlineNavigationTemplate()}
+                            >
+                              <div className="font-medium">🧭 Navigation Menu</div>
+                              <div className="text-xs text-muted-foreground text-left">
+                                Home → Services → About → Contact
+                              </div>
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                          <div className="flex items-start space-x-3">
+                            <div className="text-yellow-600 dark:text-yellow-400">💡</div>
+                            <div>
+                              <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-1">
+                                Inline Menu Features:
+                              </h4>
+                              <ul className="text-xs text-yellow-700 dark:text-yellow-300 space-y-1">
+                                <li>• Buttons appear directly under messages</li>
+                                <li>• Support for links to external websites</li>
+                                <li>• Navigate to submenus with callback data</li>
+                                <li>• Clean, professional appearance</li>
+                                <li>• Works in both private chats and groups</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="default" 
+                            onClick={() => {
+                              setShowCreateInlineFlow(false);
+                              setShowCreateFlow(true);
+                              toast({
+                                title: "Manual Inline Menu",
+                                description: "Use 'Add Flow' with type 'inline' to create custom inline keyboards manually.",
+                              });
+                            }}
+                            className="flex-1"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Manually
+                          </Button>
+                          <Button variant="outline" onClick={() => setShowCreateInlineFlow(false)} className="flex-1">
                             Close
                           </Button>
                         </div>

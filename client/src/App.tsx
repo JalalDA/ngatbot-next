@@ -13,7 +13,7 @@ import MyBotsPage from "@/pages/my-bots-page";
 import SmmServicesPage from "@/pages/smm-services-page";
 import ProfilePage from "@/pages/profile-page";
 import AdminPage from "@/pages/admin-page";
-import ChatbotBuilderSimple from "@/pages/chatbot-builder-simple";
+import ChatbotBuilderPage from "@/pages/chatbot-builder-page";
 import NotFound from "@/pages/not-found";
 
 function RootRedirect() {
@@ -76,7 +76,7 @@ function Router() {
         component={() => (
           <>
             <Navigation />
-            <ChatbotBuilderSimple />
+            <ChatbotBuilderPage />
           </>
         )} 
       />
