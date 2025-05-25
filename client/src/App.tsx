@@ -14,7 +14,6 @@ import SmmServicesPage from "@/pages/smm-services-page";
 import ProfilePage from "@/pages/profile-page";
 import AdminPage from "@/pages/admin-page";
 import ChatbotBuilderPage from "@/pages/chatbot-builder-page";
-import BotNonAIPage from "@/pages/bot-nonai-page";
 import NotFound from "@/pages/not-found";
 
 function RootRedirect() {
@@ -78,15 +77,6 @@ function Router() {
           <>
             <Navigation />
             <ChatbotBuilderPage />
-          </>
-        )} 
-      />
-      <ProtectedRoute 
-        path="/botnonai" 
-        component={() => (
-          <>
-            <Navigation />
-            <BotNonAIPage />
           </>
         )} 
       />

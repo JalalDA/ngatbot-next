@@ -111,47 +111,6 @@ export const smmOrders = pgTable("smm_orders", {
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
-// Telegram Users untuk chatbot non-AI
-export const telegramUsers = pgTable("telegram_users", {
-  id: serial("id").primaryKey(),
-  telegramId: text("telegram_id").notNull().unique(),
-  username: text("username"),
-  firstName: text("first_name"),
-  lastName: text("last_name"),
-  languageCode: text("language_code"),
-  isBot: boolean("is_bot").default(false),
-  lastActivity: timestamp("last_activity").defaultNow(),
-  createdAt: timestamp("created_at").defaultNow().notNull()
-});
-
-// Orders untuk chatbot non-AI
-export const orders = pgTable("orders", {
-  id: serial("id").primaryKey(),
-  telegramUserId: integer("telegram_user_id").references(() => telegramUsers.id, { onDelete: "cascade" }).notNull(),
-  productType: text("product_type").notNull(), // canva, netflix, etc
-  productName: text("product_name").notNull(),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  status: text("status").default("pending").notNull(), // pending, paid, delivered, failed
-  midtransOrderId: text("midtrans_order_id").unique(),
-  snapToken: text("snap_token"),
-  qrisUrl: text("qris_url"),
-  paymentMethod: text("payment_method"), // qris, bank_transfer, etc
-  deliveredAt: timestamp("delivered_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
-});
-
-// Akun Canva stock
-export const akunCanva = pgTable("akun_canva", {
-  id: serial("id").primaryKey(),
-  email: text("email").notNull(),
-  password: text("password").notNull(),
-  status: text("status").default("available").notNull(), // available, sold, disabled
-  orderId: integer("order_id").references(() => orders.id),
-  soldAt: timestamp("sold_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull()
-});
-
 
 
 // Insert schemas
@@ -229,34 +188,6 @@ export const insertSmmOrderSchema = createInsertSchema(smmOrders).pick({
   notes: true,
 });
 
-export const insertTelegramUserSchema = createInsertSchema(telegramUsers).pick({
-  telegramId: true,
-  username: true,
-  firstName: true,
-  lastName: true,
-  languageCode: true,
-  isBot: true,
-});
-
-export const insertOrderSchema = createInsertSchema(orders).pick({
-  telegramUserId: true,
-  productType: true,
-  productName: true,
-  price: true,
-  status: true,
-  midtransOrderId: true,
-  snapToken: true,
-  qrisUrl: true,
-  paymentMethod: true,
-});
-
-export const insertAkunCanvaSchema = createInsertSchema(akunCanva).pick({
-  email: true,
-  password: true,
-  status: true,
-  orderId: true,
-});
-
 
 
 // Types
@@ -276,10 +207,4 @@ export type SmmService = typeof smmServices.$inferSelect;
 export type InsertSmmService = z.infer<typeof insertSmmServiceSchema>;
 export type SmmOrder = typeof smmOrders.$inferSelect;
 export type InsertSmmOrder = z.infer<typeof insertSmmOrderSchema>;
-export type TelegramUser = typeof telegramUsers.$inferSelect;
-export type InsertTelegramUser = z.infer<typeof insertTelegramUserSchema>;
-export type Order = typeof orders.$inferSelect;
-export type InsertOrder = z.infer<typeof insertOrderSchema>;
-export type AkunCanva = typeof akunCanva.$inferSelect;
-export type InsertAkunCanva = z.infer<typeof insertAkunCanvaSchema>;
 
