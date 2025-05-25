@@ -31,7 +31,6 @@ export function Navigation() {
   const navigationItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "My Bots", href: "/bots", icon: Bot },
-    { name: "Chatbot Builder", href: "/chatbotbuilder", icon: Wrench },
     { name: "SMM Services", href: "/smm", icon: ShoppingCart },
     { name: "Profile", href: "/profile", icon: UserCircle },
   ];

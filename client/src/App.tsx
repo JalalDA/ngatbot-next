@@ -13,7 +13,7 @@ import MyBotsPage from "@/pages/my-bots-page";
 import SmmServicesPage from "@/pages/smm-services-page";
 import ProfilePage from "@/pages/profile-page";
 import AdminPage from "@/pages/admin-page";
-import ChatbotBuilderPage from "@/pages/chatbot-builder-page";
+
 import NotFound from "@/pages/not-found";
 
 function RootRedirect() {
@@ -71,15 +71,7 @@ function Router() {
           </>
         )} 
       />
-      <ProtectedRoute 
-        path="/chatbotbuilder" 
-        component={() => (
-          <>
-            <Navigation />
-            <ChatbotBuilderPage />
-          </>
-        )} 
-      />
+
       <Route path="/landing-page" component={LandingPage} />
       <Route path="/" component={RootRedirect} />
       <Route component={NotFound} />
