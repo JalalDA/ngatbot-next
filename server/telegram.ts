@@ -83,9 +83,9 @@ class TelegramBotManager {
         return;
       }
 
-      // Get knowledge base for the bot
+      // Get knowledge base for the bot including system prompt
       const knowledgeItems = await storage.getKnowledgeByBotId(botId);
-      const baseKnowledge = knowledgeItems.map(item => {
+      const knowledgeContent = knowledgeItems.map(item => {
         switch (item.type) {
           case 'text':
             return item.content;
@@ -99,6 +99,10 @@ class TelegramBotManager {
             return item.content;
         }
       }).join('\n\n');
+
+      // Add bot's system prompt as primary knowledge
+      const systemPromptKnowledge = bot.systemPrompt ? `System Role: ${bot.systemPrompt}` : '';
+      const baseKnowledge = [systemPromptKnowledge, knowledgeContent].filter(Boolean).join('\n\n');
 
       // Check if message is asking about SMM services
       const userMessage = msg.text.toLowerCase();

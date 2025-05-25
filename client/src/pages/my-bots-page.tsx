@@ -37,7 +37,6 @@ export default function MyBotsPage() {
     botToken: "",
     botName: "",
     botUsername: "",
-    description: "",
     systemPrompt: "You are a helpful assistant that can answer questions and provide information."
   });
 
@@ -59,7 +58,6 @@ export default function MyBotsPage() {
         botToken: "",
         botName: "",
         botUsername: "",
-        description: "",
         systemPrompt: "You are a helpful assistant that can answer questions and provide information."
       });
       toast({
@@ -135,7 +133,6 @@ export default function MyBotsPage() {
       token: newBot.botToken,
       botName: newBot.botName,
       botUsername: newBot.botUsername,
-      description: newBot.description,
       systemPrompt: newBot.systemPrompt
     };
     
@@ -205,15 +202,7 @@ export default function MyBotsPage() {
                     onChange={(e) => setNewBot({ ...newBot, botUsername: e.target.value })}
                   />
                 </div>
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Describe what your bot does..."
-                    value={newBot.description}
-                    onChange={(e) => setNewBot({ ...newBot, description: e.target.value })}
-                  />
-                </div>
+
                 <div>
                   <Label htmlFor="systemPrompt">System Prompt</Label>
                   <Textarea
@@ -298,8 +287,8 @@ export default function MyBotsPage() {
                         <Bot className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <CardTitle className="text-lg">{bot.botName}</CardTitle>
-                        <p className="text-sm text-slate-500">{bot.botUsername}</p>
+                        <CardTitle className="text-lg font-bold">{bot.botName}</CardTitle>
+                        <p className="text-sm text-slate-500">@{bot.botUsername}</p>
                       </div>
                     </div>
                     <Badge variant={bot.isActive ? "default" : "secondary"}>
