@@ -278,17 +278,38 @@ export default function AutoBotBuilderPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {!editingBot && (
-                <div className="space-y-2">
-                  <Label htmlFor="botToken">Token Bot Telegram</Label>
-                  <Input
-                    id="botToken"
-                    placeholder="Masukkan token bot (contoh: 123456789:ABCdefGHIjklMNOpqrsTUVwxyz)"
-                    value={newBotToken}
-                    onChange={(e) => setNewBotToken(e.target.value)}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Dapatkan token dari @BotFather di Telegram
-                  </p>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="botToken">Token Bot Telegram</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="botToken"
+                        placeholder="Masukkan token bot (contoh: 123456789:ABCdefGHIjklMNOpqrsTUVwxyz)"
+                        value={newBotToken}
+                        onChange={(e) => setNewBotToken(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button 
+                        type="button"
+                        variant="outline"
+                        onClick={() => validateToken(newBotToken)}
+                        disabled={!newBotToken.trim() || isValidatingToken}
+                      >
+                        {isValidatingToken ? "Validating..." : "Validate"}
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Dapatkan token dari @BotFather di Telegram
+                    </p>
+                  </div>
+
+                  {botName && botUsername && (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-sm font-medium text-green-800">Bot Information:</p>
+                      <p className="text-sm text-green-700">Name: {botName}</p>
+                      <p className="text-sm text-green-700">Username: @{botUsername}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
