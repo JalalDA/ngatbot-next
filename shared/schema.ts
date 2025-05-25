@@ -63,6 +63,9 @@ export const smmProviders = pgTable("smm_providers", {
   name: text("name").notNull(),
   apiKey: text("api_key").notNull(),
   apiEndpoint: text("api_endpoint").notNull(),
+  balance: decimal("balance", { precision: 15, scale: 2 }).default("0"),
+  currency: text("currency").default("USD"),
+  balanceUpdatedAt: timestamp("balance_updated_at"),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()

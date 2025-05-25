@@ -1061,6 +1061,40 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Update provider balance
+  app.post("/api/smm/providers/:id/update-balance", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const providerId = parseInt(req.params.id);
+
+      // Check if provider belongs to user
+      const provider = await storage.getSmmProvider(providerId);
+      if (!provider || provider.userId !== user.id) {
+        return res.status(404).json({ message: "Provider not found" });
+      }
+
+      // Get balance from SMM API
+      const smmAPI = new SmmPanelAPI(provider.apiKey, provider.apiEndpoint);
+      const balanceInfo = await smmAPI.getBalance();
+
+      // Update provider with new balance
+      const updatedProvider = await storage.updateSmmProvider(providerId, {
+        balance: balanceInfo.balance.toString(),
+        currency: balanceInfo.currency,
+        balanceUpdatedAt: new Date()
+      });
+
+      res.json({
+        balance: balanceInfo.balance,
+        currency: balanceInfo.currency,
+        updatedAt: new Date()
+      });
+    } catch (error) {
+      console.error("Update provider balance error:", error);
+      res.status(500).json({ message: "Failed to update provider balance" });
+    }
+  });
+
   // Get SMM orders for current user
   app.get("/api/smm/orders", requireAuth, async (req, res) => {
     try {

@@ -34,6 +34,40 @@ export class SmmPanelAPI {
     this.apiEndpoint = apiEndpoint;
   }
 
+  // Get balance from SMM Panel
+  async getBalance(): Promise<{ balance: number; currency: string }> {
+    try {
+      console.log(`💰 Fetching balance from ${this.apiEndpoint}`);
+      
+      // Use GET request with query parameters for balance
+      const url = `${this.apiEndpoint}?action=balance&key=${this.apiKey}`;
+      const response = await axios.get(url, {
+        timeout: 30000
+      });
+
+      if (response.data) {
+        // Handle different response formats
+        let balance = 0;
+        let currency = 'USD'; // Default currency
+
+        if (typeof response.data === 'object') {
+          balance = parseFloat(response.data.balance || response.data.amount || 0);
+          currency = response.data.currency || 'USD';
+        } else if (typeof response.data === 'string' || typeof response.data === 'number') {
+          balance = parseFloat(response.data.toString());
+        }
+
+        console.log(`✅ Successfully fetched balance: ${balance} ${currency}`);
+        return { balance, currency };
+      } else {
+        throw new Error('Invalid response format from SMM Panel');
+      }
+    } catch (error: any) {
+      console.error('❌ Error fetching balance from SMM Panel:', error.message);
+      return { balance: 0, currency: 'USD' }; // Return default instead of throwing
+    }
+  }
+
   // Get services from SMM Panel
   async getServices(): Promise<SmmService[]> {
     try {

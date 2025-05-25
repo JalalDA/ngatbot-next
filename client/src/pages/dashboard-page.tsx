@@ -573,26 +573,76 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-4">
                 {/* Providers List */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {smmProviders.map((provider: any) => (
-                    <div key={provider.id} className="border border-slate-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-medium text-slate-900">{provider.name}</h4>
-                        <Badge variant={provider.isActive ? "default" : "secondary"}>
-                          {provider.isActive ? "Active" : "Inactive"}
-                        </Badge>
+                    <div key={provider.id} className="border border-slate-200 rounded-xl p-6 bg-gradient-to-br from-white to-slate-50 hover:shadow-lg transition-shadow">
+                      {/* Provider Header with Logo */}
+                      <div className="flex items-center space-x-3 mb-4">
+                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                          {provider.logo ? (
+                            <img 
+                              src={provider.logo} 
+                              alt={provider.name}
+                              className="w-8 h-8 rounded"
+                            />
+                          ) : (
+                            <Package className="w-6 h-6 text-white" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold text-slate-900">{provider.name}</h3>
+                          <Badge variant={provider.isActive ? "default" : "secondary"} className="mt-1">
+                            {provider.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
                       </div>
-                      <p className="text-sm text-slate-500 mb-3 truncate">
-                        {provider.apiEndpoint}
-                      </p>
+
+                      {/* Provider Balance */}
+                      <div className="bg-slate-100 rounded-lg p-3 mb-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-slate-600">Provider Balance</span>
+                          <Coins className="w-4 h-4 text-slate-500" />
+                        </div>
+                        <div className="mt-1">
+                          {provider.balance !== undefined ? (
+                            <span className="text-xl font-bold text-slate-900">
+                              {provider.currency === 'IDR' && 'Rp '}
+                              {provider.currency === 'USD' && '$'}
+                              {provider.currency === 'EUR' && '€'}
+                              {provider.currency === 'GBP' && '£'}
+                              {(!provider.currency || !['IDR', 'USD', 'EUR', 'GBP'].includes(provider.currency)) && ''}
+                              {provider.balance?.toLocaleString() || '0'}
+                              {provider.currency && !['IDR', 'USD', 'EUR', 'GBP'].includes(provider.currency) && ` ${provider.currency}`}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-slate-500">Loading...</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Provider Details */}
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center text-xs text-slate-500">
+                          <span className="font-medium mr-2">Endpoint:</span>
+                          <span className="truncate">{provider.apiEndpoint}</span>
+                        </div>
+                        <div className="flex items-center text-xs text-slate-500">
+                          <span className="font-medium mr-2">Services:</span>
+                          <span>{provider.serviceCount || 0} available</span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
                       <div className="flex space-x-2">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleImportServices(provider)}
                           disabled={fetchServicesMutation.isPending}
+                          className="flex-1"
                         >
-                          <Download className="h-4 w-4" />
+                          <Download className="h-4 w-4 mr-1" />
+                          Import Services
                         </Button>
                         <Button
                           size="sm"
