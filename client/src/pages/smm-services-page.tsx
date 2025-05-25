@@ -25,7 +25,8 @@ import {
   Download,
   Info,
   X,
-  Loader2
+  Loader2,
+  ArrowLeft
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
