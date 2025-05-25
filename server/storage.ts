@@ -67,6 +67,22 @@ export interface IStorage {
   getSmmOrdersByUserId(userId: number): Promise<SmmOrder[]>;
   createSmmOrder(order: InsertSmmOrder): Promise<SmmOrder>;
   updateSmmOrder(id: number, updates: Partial<SmmOrder>): Promise<SmmOrder | undefined>;
+
+  // Non-AI Chatbot management
+  getNonAiChatbot(id: number): Promise<NonAiChatbot | undefined>;
+  getNonAiChatbotsByUserId(userId: number): Promise<NonAiChatbot[]>;
+  getNonAiChatbotByToken(token: string): Promise<NonAiChatbot | undefined>;
+  createNonAiChatbot(chatbot: InsertNonAiChatbot): Promise<NonAiChatbot>;
+  updateNonAiChatbot(id: number, updates: Partial<NonAiChatbot>): Promise<NonAiChatbot | undefined>;
+  deleteNonAiChatbot(id: number): Promise<boolean>;
+
+  // Bot Flow management
+  getBotFlow(id: number): Promise<BotFlow | undefined>;
+  getBotFlowsByChatbotId(chatbotId: number): Promise<BotFlow[]>;
+  getBotFlowByCommand(chatbotId: number, command: string): Promise<BotFlow | undefined>;
+  createBotFlow(flow: InsertBotFlow): Promise<BotFlow>;
+  updateBotFlow(id: number, updates: Partial<BotFlow>): Promise<BotFlow | undefined>;
+  deleteBotFlow(id: number): Promise<boolean>;
   
   sessionStore: any;
 }
@@ -377,6 +393,104 @@ export class DatabaseStorage implements IStorage {
       .where(eq(smmOrders.id, id))
       .returning();
     return order || undefined;
+  }
+
+  // Non-AI Chatbot methods
+  async getNonAiChatbot(id: number): Promise<NonAiChatbot | undefined> {
+    const [chatbot] = await db
+      .select()
+      .from(nonAiChatbots)
+      .where(eq(nonAiChatbots.id, id));
+    return chatbot || undefined;
+  }
+
+  async getNonAiChatbotsByUserId(userId: number): Promise<NonAiChatbot[]> {
+    return await db
+      .select()
+      .from(nonAiChatbots)
+      .where(eq(nonAiChatbots.userId, userId))
+      .orderBy(nonAiChatbots.createdAt);
+  }
+
+  async getNonAiChatbotByToken(token: string): Promise<NonAiChatbot | undefined> {
+    const [chatbot] = await db
+      .select()
+      .from(nonAiChatbots)
+      .where(eq(nonAiChatbots.botToken, token));
+    return chatbot || undefined;
+  }
+
+  async createNonAiChatbot(insertChatbot: InsertNonAiChatbot): Promise<NonAiChatbot> {
+    const [chatbot] = await db
+      .insert(nonAiChatbots)
+      .values(insertChatbot)
+      .returning();
+    return chatbot;
+  }
+
+  async updateNonAiChatbot(id: number, updates: Partial<NonAiChatbot>): Promise<NonAiChatbot | undefined> {
+    const [updated] = await db
+      .update(nonAiChatbots)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(nonAiChatbots.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteNonAiChatbot(id: number): Promise<boolean> {
+    const result = await db
+      .delete(nonAiChatbots)
+      .where(eq(nonAiChatbots.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  // Bot Flow methods
+  async getBotFlow(id: number): Promise<BotFlow | undefined> {
+    const [flow] = await db
+      .select()
+      .from(botFlows)
+      .where(eq(botFlows.id, id));
+    return flow || undefined;
+  }
+
+  async getBotFlowsByChatbotId(chatbotId: number): Promise<BotFlow[]> {
+    return await db
+      .select()
+      .from(botFlows)
+      .where(eq(botFlows.chatbotId, chatbotId))
+      .orderBy(botFlows.createdAt);
+  }
+
+  async getBotFlowByCommand(chatbotId: number, command: string): Promise<BotFlow | undefined> {
+    const [flow] = await db
+      .select()
+      .from(botFlows)
+      .where(and(eq(botFlows.chatbotId, chatbotId), eq(botFlows.command, command)));
+    return flow || undefined;
+  }
+
+  async createBotFlow(insertFlow: InsertBotFlow): Promise<BotFlow> {
+    const [flow] = await db
+      .insert(botFlows)
+      .values(insertFlow)
+      .returning();
+    return flow;
+  }
+
+  async updateBotFlow(id: number, updates: Partial<BotFlow>): Promise<BotFlow | undefined> {
+    const [updated] = await db
+      .update(botFlows)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(botFlows.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteBotFlow(id: number): Promise<boolean> {
+    const result = await db
+      .delete(botFlows)
+      .where(eq(botFlows.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
   }
 }
 
