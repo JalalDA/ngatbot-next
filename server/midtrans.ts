@@ -66,45 +66,50 @@ interface CreateTransactionParams {
   userName: string;
   userEmail: string;
   plan: PlanType;
+  amount?: number;
+  itemDetails?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
+  }>;
 }
 
 export async function createMidtransTransaction(params: CreateTransactionParams) {
-  const { orderId, userId, userName, userEmail, plan } = params;
-  const planConfig = UPGRADE_PLANS[plan];
+  const { orderId, userId, userName, userEmail, plan, amount, itemDetails } = params;
+  
+  // Use custom amount and items if provided, otherwise use plan config
+  let finalAmount: number;
+  let finalItems: any[];
 
-  if (!planConfig) {
-    throw new Error('Invalid plan selected');
+  if (amount && itemDetails) {
+    // Custom transaction (for chatbot non-AI)
+    finalAmount = amount;
+    finalItems = itemDetails;
+  } else {
+    // Standard plan transaction
+    const planConfig = UPGRADE_PLANS[plan];
+    if (!planConfig) {
+      throw new Error('Invalid plan selected');
+    }
+    finalAmount = planConfig.price;
+    finalItems = [
+      {
+        id: plan,
+        name: `Paket ${planConfig.name}`,
+        quantity: 1,
+        price: planConfig.price,
+      },
+    ];
   }
-
-  const transactionDetails = {
-    order_id: orderId,
-    gross_amount: planConfig.price,
-  };
-
-  const itemDetails = [
-    {
-      id: plan,
-      name: `Paket ${planConfig.name}`,
-      quantity: 1,
-      price: planConfig.price,
-    },
-  ];
-
-  const customerDetails = {
-    first_name: userName,
-    email: userEmail,
-  };
-
-  const creditCards = {
-    secure: true,
-  };
 
   // Minimal parameter structure to avoid validation errors
   const parameter = {
     transaction_details: {
       order_id: orderId,
-      gross_amount: planConfig.price,
+      gross_amount: finalAmount,
     },
+    item_details: finalItems,
     customer_details: {
       first_name: userName.replace(/[^a-zA-Z0-9\s]/g, '').trim(),
       email: userEmail,
@@ -119,11 +124,14 @@ export async function createMidtransTransaction(params: CreateTransactionParams)
     return {
       token: transaction.token,
       redirectUrl: transaction.redirect_url,
+      order_id: orderId,
+      qris_url: transaction.redirect_url, // For QRIS payments
+      redirect_url: transaction.redirect_url,
     };
   } catch (error) {
     console.error('Midtrans transaction creation error:', error);
     console.error('Error details:', JSON.stringify(error, null, 2));
-    throw new Error(`Failed to create payment transaction: ${error.message || error}`);
+    throw new Error(`Failed to create payment transaction: ${(error as any).message || error}`);
   }
 }
 

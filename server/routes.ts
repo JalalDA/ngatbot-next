@@ -1121,6 +1121,102 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Chatbot Non-AI Webhook Routes
+  app.post("/api/chatbot-nonai/webhook/:botToken", async (req, res) => {
+    try {
+      const { botToken } = req.params;
+      const update = req.body;
+
+      // Import chatbot service
+      const { createChatbotService } = await import("./chatbot-nonai.js");
+      const chatbotService = createChatbotService(botToken);
+
+      // Process webhook update
+      await chatbotService.processWebhookUpdate(update);
+
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Chatbot webhook error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Check payment status for chatbot orders
+  app.post("/api/chatbot-nonai/check-payment", async (req, res) => {
+    try {
+      const { orderId, botToken } = req.body;
+
+      if (!orderId || !botToken) {
+        return res.status(400).json({ error: "Order ID and bot token required" });
+      }
+
+      const { createChatbotService } = await import("./chatbot-nonai.js");
+      const chatbotService = createChatbotService(botToken);
+
+      const result = await chatbotService.checkPaymentStatus(orderId);
+      res.json(result);
+    } catch (error) {
+      console.error("Check payment status error:", error);
+      res.status(500).json({ error: "Failed to check payment status" });
+    }
+  });
+
+  // Midtrans notification handler for chatbot orders
+  app.post("/api/chatbot-nonai/midtrans-notification", async (req, res) => {
+    try {
+      const notification = req.body;
+      const orderId = notification.order_id;
+      const transactionStatus = notification.transaction_status;
+
+      console.log("Midtrans notification for chatbot:", notification);
+
+      if (transactionStatus === "settlement" || transactionStatus === "capture") {
+        // Import necessary modules
+        const { db } = await import("./db.js");
+        const { orders, telegramUsers } = await import("../shared/schema.js");
+        const { eq } = await import("drizzle-orm");
+
+        // Find order
+        const [order] = await db
+          .select()
+          .from(orders)
+          .where(eq(orders.midtransOrderId, orderId))
+          .limit(1);
+
+        if (order && order.status === "pending") {
+          // Update order status
+          await db
+            .update(orders)
+            .set({
+              status: "paid",
+              updatedAt: new Date(),
+            })
+            .where(eq(orders.id, order.id));
+
+          // Get telegram user info
+          const [telegramUser] = await db
+            .select()
+            .from(telegramUsers)
+            .where(eq(telegramUsers.id, order.telegramUserId))
+            .limit(1);
+
+          if (telegramUser) {
+            // Create dummy chatbot service to deliver product
+            const { createChatbotService } = await import("./chatbot-nonai.js");
+            const chatbotService = createChatbotService("DUMMY_TOKEN"); // We only need delivery function
+            
+            await chatbotService.deliverProduct(order);
+          }
+        }
+      }
+
+      res.json({ status: "ok" });
+    } catch (error) {
+      console.error("Midtrans notification error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Start bot manager after a delay to ensure database is ready
   setTimeout(async () => {
     try {
