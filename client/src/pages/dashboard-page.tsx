@@ -17,7 +17,7 @@ import { insertBotSchema } from "@shared/schema";
 import type { Bot, User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Settings, Trash2, Coins, Bot as BotIcon, MessageSquare, Crown, ShoppingCart, Download, Edit } from "lucide-react";
+import { Loader2, Plus, Settings, Trash2, Coins, Bot as BotIcon, MessageSquare, Crown, ShoppingCart, Download, Edit, Search, Check, X } from "lucide-react";
 import { z } from "zod";
 
 type BotFormData = z.infer<typeof insertBotSchema>;
@@ -422,14 +422,15 @@ export default function DashboardPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => importServicesMutation.mutate(provider.id)}
-                          disabled={importServicesMutation.isPending}
+                          onClick={() => handleImportServices(provider)}
+                          disabled={fetchServicesMutation.isPending}
                         >
                           <Download className="h-4 w-4" />
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => handleEditProvider(provider)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -658,6 +659,150 @@ export default function DashboardPage() {
                 </>
               )}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Services Modal */}
+      <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>Import Services from {importingProvider?.name}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Provider Info */}
+            <div className="bg-slate-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-slate-900">{importingProvider?.name}</h3>
+                  <p className="text-sm text-slate-500">{importingProvider?.apiEndpoint}</p>
+                </div>
+                <Badge variant="secondary">
+                  {availableServices.length} services
+                </Badge>
+              </div>
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search by service ID or name"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Select All */}
+            <div className="flex items-center justify-between py-2 border-b">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="select-all"
+                  checked={selectedServices.size === filteredServices.length && filteredServices.length > 0}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedServices(new Set(filteredServices.map(s => s.service.toString())));
+                    } else {
+                      setSelectedServices(new Set());
+                    }
+                  }}
+                  className="h-4 w-4 rounded border-slate-300"
+                />
+                <Label htmlFor="select-all" className="font-medium">
+                  Select all
+                </Label>
+              </div>
+              <span className="text-sm text-slate-500">
+                {filteredServices.length} services
+              </span>
+            </div>
+
+            {/* Services List */}
+            <div className="max-h-96 overflow-y-auto space-y-2">
+              {fetchServicesMutation.isPending ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <span className="ml-2">Loading services...</span>
+                </div>
+              ) : filteredServices.length > 0 ? (
+                filteredServices.map((service: any) => (
+                  <div key={service.service} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-slate-50">
+                    <input
+                      type="checkbox"
+                      id={`service-${service.service}`}
+                      checked={selectedServices.has(service.service.toString())}
+                      onChange={(e) => {
+                        const newSelected = new Set(selectedServices);
+                        if (e.target.checked) {
+                          newSelected.add(service.service.toString());
+                        } else {
+                          newSelected.delete(service.service.toString());
+                        }
+                        setSelectedServices(newSelected);
+                      }}
+                      className="h-4 w-4 rounded border-slate-300 mt-0.5"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium text-slate-600">ID {service.service}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {service.category}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-slate-900 font-medium mt-1">
+                        {service.name}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Min: {service.min} | Max: {service.max} | Rate: {service.rate}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-slate-500">
+                  {searchQuery ? "No services found matching your search." : "No services available."}
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-between pt-4 border-t">
+              <span className="text-sm text-slate-500">
+                {selectedServices.size} service{selectedServices.size !== 1 ? 's' : ''} selected
+              </span>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowImportModal(false);
+                    setAvailableServices([]);
+                    setSelectedServices(new Set());
+                    setSearchQuery("");
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleImportSelected}
+                  disabled={selectedServices.size === 0 || importServicesMutation.isPending}
+                >
+                  {importServicesMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="mr-2 h-4 w-4" />
+                      Import Selected Services
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

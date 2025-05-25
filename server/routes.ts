@@ -833,6 +833,55 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Update SMM provider
+  app.put("/api/smm/providers/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const providerId = parseInt(req.params.id);
+      const { name, apiKey, apiEndpoint, isActive } = req.body;
+
+      // Check if provider exists and belongs to user
+      const provider = await storage.getSmmProvider(providerId);
+      if (!provider || provider.userId !== user.id) {
+        return res.status(404).json({ message: "Provider not found" });
+      }
+
+      const updatedProvider = await storage.updateSmmProvider(providerId, {
+        name,
+        apiKey,
+        apiEndpoint,
+        isActive
+      });
+
+      res.json(updatedProvider);
+    } catch (error) {
+      console.error("Update provider error:", error);
+      res.status(500).json({ message: "Failed to update provider" });
+    }
+  });
+
+  // Get services from SMM provider (without importing)
+  app.get("/api/smm/providers/:id/services", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const providerId = parseInt(req.params.id);
+
+      // Check if provider exists and belongs to user
+      const provider = await storage.getSmmProvider(providerId);
+      if (!provider || provider.userId !== user.id) {
+        return res.status(404).json({ message: "Provider not found" });
+      }
+
+      const smmApi = new SmmPanelAPI(provider.apiKey, provider.apiEndpoint);
+      const services = await smmApi.getServices();
+
+      res.json({ services });
+    } catch (error) {
+      console.error("Fetch services error:", error);
+      res.status(500).json({ message: "Failed to fetch services from provider" });
+    }
+  });
+
   // Import services from SMM provider
   app.post("/api/smm/providers/:id/import-services", requireAuth, async (req, res) => {
     try {
