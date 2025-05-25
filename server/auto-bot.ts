@@ -154,10 +154,10 @@ export class AutoBotManager {
               });
               
               // Check if this is a main menu button (level 0) that has sub-menus
-              if ((pressedButton.level || 0) === 0) {
+              if (!pressedButton.level || pressedButton.level === 0) {
                 // Find sub-menus for this main menu
                 const subMenus = (autoBot.keyboardConfig || []).filter(btn => 
-                  (btn.level || 0) === 1 && btn.parentId === pressedButton.id
+                  btn.level === 1 && btn.parentId === pressedButton.id
                 );
                 
                 if (subMenus.length > 0) {
