@@ -143,16 +143,12 @@ export const insertSettingSchema = createInsertSchema(settings).pick({
   value: true,
 });
 
-export const insertSmmProviderSchema = createInsertSchema(smmProviders).pick({
-  userId: true,
-  name: true,
-  apiKey: true,
-  apiEndpoint: true,
-  isActive: true,
-}).extend({
-  name: z.string().min(1, "Provider name is required"),
-  apiKey: z.string().min(1, "API key is required"),
-  apiEndpoint: z.string().url("Please enter a valid URL"),
+export const insertSmmProviderSchema = z.object({
+  userId: z.number().optional(),
+  name: z.string(),
+  apiKey: z.string(),
+  apiEndpoint: z.string(),
+  isActive: z.boolean().optional(),
 });
 
 export const insertSmmServiceSchema = createInsertSchema(smmServices).pick({
