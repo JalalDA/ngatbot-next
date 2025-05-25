@@ -381,6 +381,173 @@ export class DatabaseStorage implements IStorage {
     return order || undefined;
   }
 
+  // Auto Bot Methods
+  async getAutoBot(id: number): Promise<AutoBot | undefined> {
+    const [bot] = await db.select().from(autoBots).where(eq(autoBots.id, id));
+    return bot || undefined;
+  }
+
+  async getAutoBotByBotId(botId: string): Promise<AutoBot | undefined> {
+    const [bot] = await db.select().from(autoBots).where(eq(autoBots.botId, botId));
+    return bot || undefined;
+  }
+
+  async getAutoBotsByUserId(userId: number): Promise<AutoBot[]> {
+    return await db.select().from(autoBots).where(eq(autoBots.userId, userId));
+  }
+
+  async createAutoBot(insertBot: InsertAutoBot): Promise<AutoBot> {
+    const [bot] = await db
+      .insert(autoBots)
+      .values(insertBot)
+      .returning();
+    return bot;
+  }
+
+  async updateAutoBot(id: number, updates: Partial<AutoBot>): Promise<AutoBot | undefined> {
+    const [bot] = await db
+      .update(autoBots)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(autoBots.id, id))
+      .returning();
+    return bot || undefined;
+  }
+
+  async deleteAutoBot(id: number): Promise<boolean> {
+    const result = await db.delete(autoBots).where(eq(autoBots.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Product Methods
+  async getProduct(id: number): Promise<Product | undefined> {
+    const [product] = await db.select().from(products).where(eq(products.id, id));
+    return product || undefined;
+  }
+
+  async getProducts(): Promise<Product[]> {
+    return await db.select().from(products).where(eq(products.isActive, true));
+  }
+
+  async getProductsByCategory(category: string): Promise<Product[]> {
+    return await db.select().from(products).where(
+      and(eq(products.category, category), eq(products.isActive, true))
+    );
+  }
+
+  async createProduct(insertProduct: InsertProduct): Promise<Product> {
+    const [product] = await db
+      .insert(products)
+      .values(insertProduct)
+      .returning();
+    return product;
+  }
+
+  async updateProduct(id: number, updates: Partial<Product>): Promise<Product | undefined> {
+    const [product] = await db
+      .update(products)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(products.id, id))
+      .returning();
+    return product || undefined;
+  }
+
+  // Bot Order Methods
+  async getBotOrder(id: number): Promise<BotOrder | undefined> {
+    const [order] = await db.select().from(botOrders).where(eq(botOrders.id, id));
+    return order || undefined;
+  }
+
+  async getBotOrderByMidtransOrderId(midtransOrderId: string): Promise<BotOrder | undefined> {
+    const [order] = await db.select().from(botOrders).where(eq(botOrders.midtransOrderId, midtransOrderId));
+    return order || undefined;
+  }
+
+  async getBotOrdersByUserId(userId: number): Promise<BotOrder[]> {
+    return await db.select().from(botOrders).where(eq(botOrders.userId, userId));
+  }
+
+  async createBotOrder(insertOrder: InsertBotOrder): Promise<BotOrder> {
+    const [order] = await db
+      .insert(botOrders)
+      .values(insertOrder)
+      .returning();
+    return order;
+  }
+
+  async updateBotOrder(id: number, updates: Partial<BotOrder>): Promise<BotOrder | undefined> {
+    const [order] = await db
+      .update(botOrders)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(botOrders.id, id))
+      .returning();
+    return order || undefined;
+  }
+
+  // Account Stock Methods
+  async getAvailableAccount(productId: number): Promise<AccountStock | undefined> {
+    const [account] = await db.select().from(accountStock).where(
+      and(eq(accountStock.productId, productId), eq(accountStock.status, 'available'))
+    ).limit(1);
+    return account || undefined;
+  }
+
+  async getAccountStock(id: number): Promise<AccountStock | undefined> {
+    const [account] = await db.select().from(accountStock).where(eq(accountStock.id, id));
+    return account || undefined;
+  }
+
+  async getAccountStockByProductId(productId: number): Promise<AccountStock[]> {
+    return await db.select().from(accountStock).where(eq(accountStock.productId, productId));
+  }
+
+  async createAccountStock(insertAccount: InsertAccountStock): Promise<AccountStock> {
+    const [account] = await db
+      .insert(accountStock)
+      .values(insertAccount)
+      .returning();
+    return account;
+  }
+
+  async markAccountAsUsed(id: number, userId: number): Promise<AccountStock | undefined> {
+    const [account] = await db
+      .update(accountStock)
+      .set({ 
+        status: 'used',
+        usedBy: userId,
+        usedAt: new Date()
+      })
+      .where(eq(accountStock.id, id))
+      .returning();
+    return account || undefined;
+  }
+
+  // Payment Methods
+  async getPayment(id: number): Promise<Payment | undefined> {
+    const [payment] = await db.select().from(payments).where(eq(payments.id, id));
+    return payment || undefined;
+  }
+
+  async getPaymentByMidtransOrderId(midtransOrderId: string): Promise<Payment | undefined> {
+    const [payment] = await db.select().from(payments).where(eq(payments.midtransOrderId, midtransOrderId));
+    return payment || undefined;
+  }
+
+  async createPayment(insertPayment: InsertPayment): Promise<Payment> {
+    const [payment] = await db
+      .insert(payments)
+      .values(insertPayment)
+      .returning();
+    return payment;
+  }
+
+  async updatePayment(id: number, updates: Partial<Payment>): Promise<Payment | undefined> {
+    const [payment] = await db
+      .update(payments)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(payments.id, id))
+      .returning();
+    return payment || undefined;
+  }
 
 }
 
