@@ -731,33 +731,25 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/smm/providers", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
-      const { name, apiKey, apiEndpoint } = req.body;
+      const { name, apiKey, apiEndpoint, isActive = true } = req.body;
 
       // Validate required fields
       if (!name || !apiKey || !apiEndpoint) {
         return res.status(400).json({ message: "Name, API key, and endpoint are required" });
       }
 
-      // Test connection to SMM provider
-      const smmApi = new SmmPanelAPI(apiKey, apiEndpoint);
-      const connectionTest = await smmApi.testConnection();
-      
-      if (!connectionTest) {
-        return res.status(400).json({ message: "Failed to connect to SMM provider. Please check your API key and endpoint." });
-      }
-
       const provider = await storage.createSmmProvider({
         userId: user.id,
-        name,
-        apiKey,
-        apiEndpoint,
-        isActive: true
+        name: name.trim(),
+        apiKey: apiKey.trim(),
+        apiEndpoint: apiEndpoint.trim(),
+        isActive: Boolean(isActive)
       });
 
       res.status(201).json(provider);
     } catch (error) {
       console.error("Create SMM provider error:", error);
-      res.status(500).json({ message: "Failed to create SMM provider" });
+      res.status(500).json({ message: "Failed to create SMM provider: " + error.message });
     }
   });
 
