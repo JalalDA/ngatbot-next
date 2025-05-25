@@ -29,6 +29,12 @@ export default function DashboardPage() {
   const [showKnowledgeModal, setShowKnowledgeModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showSmmProviderModal, setShowSmmProviderModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [editingProvider, setEditingProvider] = useState<any>(null);
+  const [importingProvider, setImportingProvider] = useState<any>(null);
+  const [availableServices, setAvailableServices] = useState<any[]>([]);
+  const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
   const [smmProviderForm, setSmmProviderForm] = useState({
     name: "",
     apiKey: "",
@@ -130,14 +136,64 @@ export default function DashboardPage() {
     },
   });
 
-  // Import services mutation
-  const importServicesMutation = useMutation({
+  // Update SMM Provider mutation
+  const updateSmmProviderMutation = useMutation({
+    mutationFn: async ({ id, ...data }: { id: number } & Partial<typeof smmProviderForm>) => {
+      const res = await apiRequest("PUT", `/api/smm/providers/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/smm/providers"] });
+      setShowSmmProviderModal(false);
+      setEditingProvider(null);
+      setSmmProviderForm({ name: "", apiKey: "", apiEndpoint: "", isActive: true });
+      toast({
+        title: "Provider Updated",
+        description: "SMM provider has been successfully updated.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update provider",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Fetch services from provider mutation
+  const fetchServicesMutation = useMutation({
     mutationFn: async (providerId: number) => {
-      const res = await apiRequest("POST", `/api/smm/providers/${providerId}/import-services`);
+      const res = await apiRequest("GET", `/api/smm/providers/${providerId}/services`);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setAvailableServices(data.services || []);
+      setSelectedServices(new Set());
+      setShowImportModal(true);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Load Services",
+        description: error.message || "Could not fetch services from provider",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Import selected services mutation
+  const importServicesMutation = useMutation({
+    mutationFn: async ({ providerId, serviceIds }: { providerId: number; serviceIds: string[] }) => {
+      const res = await apiRequest("POST", `/api/smm/providers/${providerId}/import-services`, {
+        serviceIds
+      });
       return res.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/smm/services"] });
+      setShowImportModal(false);
+      setAvailableServices([]);
+      setSelectedServices(new Set());
       toast({
         title: "Services Imported",
         description: data.message || `Successfully imported ${data.importedCount} services`,
@@ -155,6 +211,50 @@ export default function DashboardPage() {
   const onCreateBot = async (data: BotFormData) => {
     createBotMutation.mutate(data);
   };
+
+  // Handler functions
+  const handleCreateProvider = () => {
+    if (editingProvider) {
+      updateSmmProviderMutation.mutate({ id: editingProvider.id, ...smmProviderForm });
+    } else {
+      createSmmProviderMutation.mutate(smmProviderForm);
+    }
+  };
+
+  const handleEditProvider = (provider: any) => {
+    setEditingProvider(provider);
+    setSmmProviderForm({
+      name: provider.name,
+      apiKey: provider.apiKey,
+      apiEndpoint: provider.apiEndpoint,
+      isActive: provider.isActive
+    });
+    setShowSmmProviderModal(true);
+  };
+
+  const handleImportServices = (provider: any) => {
+    setImportingProvider(provider);
+    fetchServicesMutation.mutate(provider.id);
+  };
+
+  const handleImportSelected = () => {
+    if (importingProvider && selectedServices.size > 0) {
+      importServicesMutation.mutate({
+        providerId: importingProvider.id,
+        serviceIds: Array.from(selectedServices)
+      });
+    }
+  };
+
+  const resetProviderForm = () => {
+    setSmmProviderForm({ name: "", apiKey: "", apiEndpoint: "", isActive: true });
+    setEditingProvider(null);
+  };
+
+  const filteredServices = availableServices.filter(service =>
+    service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    service.service.toString().includes(searchQuery)
+  );
 
   const handleDeleteBot = async (botId: number) => {
     if (confirm("Are you sure you want to delete this bot? This action cannot be undone.")) {
