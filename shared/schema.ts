@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -56,6 +56,57 @@ export const settings = pgTable("settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// SMM Panel Providers
+export const smmProviders = pgTable("smm_providers", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  name: text("name").notNull(),
+  apiKey: text("api_key").notNull(),
+  apiEndpoint: text("api_endpoint").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// SMM Panel Services
+export const smmServices = pgTable("smm_services", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  providerId: integer("provider_id").references(() => smmProviders.id, { onDelete: "cascade" }).notNull(),
+  mid: integer("mid").notNull(), // Internal ID 1-10
+  name: text("name").notNull(),
+  description: text("description"),
+  min: integer("min").notNull(),
+  max: integer("max").notNull(),
+  rate: decimal("rate", { precision: 10, scale: 2 }).notNull(),
+  category: text("category").notNull(),
+  serviceIdApi: text("service_id_api").notNull(), // Original service ID from provider
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// SMM Orders
+export const smmOrders = pgTable("smm_orders", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  serviceId: integer("service_id").references(() => smmServices.id, { onDelete: "cascade" }).notNull(),
+  providerId: integer("provider_id").references(() => smmProviders.id, { onDelete: "cascade" }).notNull(),
+  orderId: text("order_id").unique().notNull(), // Our internal order ID
+  providerOrderId: text("provider_order_id"), // Order ID from SMM provider
+  transactionId: integer("transaction_id").references(() => transactions.id),
+  link: text("link").notNull(), // Target URL/username
+  quantity: integer("quantity").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  status: text("status").default("pending").notNull(), // pending, processing, completed, failed, cancelled
+  paymentStatus: text("payment_status").default("pending").notNull(), // pending, paid, failed
+  startCount: integer("start_count"),
+  remains: integer("remains"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -92,6 +143,45 @@ export const insertSettingSchema = createInsertSchema(settings).pick({
   value: true,
 });
 
+export const insertSmmProviderSchema = createInsertSchema(smmProviders).pick({
+  userId: true,
+  name: true,
+  apiKey: true,
+  apiEndpoint: true,
+  isActive: true,
+});
+
+export const insertSmmServiceSchema = createInsertSchema(smmServices).pick({
+  userId: true,
+  providerId: true,
+  mid: true,
+  name: true,
+  description: true,
+  min: true,
+  max: true,
+  rate: true,
+  category: true,
+  serviceIdApi: true,
+  isActive: true,
+});
+
+export const insertSmmOrderSchema = createInsertSchema(smmOrders).pick({
+  userId: true,
+  serviceId: true,
+  providerId: true,
+  orderId: true,
+  providerOrderId: true,
+  transactionId: true,
+  link: true,
+  quantity: true,
+  amount: true,
+  status: true,
+  paymentStatus: true,
+  startCount: true,
+  remains: true,
+  notes: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -103,3 +193,9 @@ export type Transaction = typeof transactions.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Setting = typeof settings.$inferSelect;
 export type InsertSetting = z.infer<typeof insertSettingSchema>;
+export type SmmProvider = typeof smmProviders.$inferSelect;
+export type InsertSmmProvider = z.infer<typeof insertSmmProviderSchema>;
+export type SmmService = typeof smmServices.$inferSelect;
+export type InsertSmmService = z.infer<typeof insertSmmServiceSchema>;
+export type SmmOrder = typeof smmOrders.$inferSelect;
+export type InsertSmmOrder = z.infer<typeof insertSmmOrderSchema>;

@@ -1,4 +1,4 @@
-import { users, bots, knowledge, transactions, settings, type User, type InsertUser, type Bot, type InsertBot, type Knowledge, type InsertKnowledge, type Transaction, type InsertTransaction, type Setting, type InsertSetting } from "@shared/schema";
+import { users, bots, knowledge, transactions, settings, smmProviders, smmServices, smmOrders, type User, type InsertUser, type Bot, type InsertBot, type Knowledge, type InsertKnowledge, type Transaction, type InsertTransaction, type Setting, type InsertSetting, type SmmProvider, type InsertSmmProvider, type SmmService, type InsertSmmService, type SmmOrder, type InsertSmmOrder } from "@shared/schema";
 import session from "express-session";
 import { db, pool } from "./db";
 import { eq } from "drizzle-orm";
@@ -43,6 +43,30 @@ export interface IStorage {
   getSetting(key: string): Promise<Setting | undefined>;
   setSetting(setting: InsertSetting): Promise<Setting>;
   updateSetting(key: string, value: string): Promise<Setting | undefined>;
+  
+  // SMM Provider management
+  getSmmProvider(id: number): Promise<SmmProvider | undefined>;
+  getSmmProvidersByUserId(userId: number): Promise<SmmProvider[]>;
+  createSmmProvider(provider: InsertSmmProvider): Promise<SmmProvider>;
+  updateSmmProvider(id: number, updates: Partial<SmmProvider>): Promise<SmmProvider | undefined>;
+  deleteSmmProvider(id: number): Promise<boolean>;
+  
+  // SMM Service management
+  getSmmService(id: number): Promise<SmmService | undefined>;
+  getSmmServicesByUserId(userId: number): Promise<SmmService[]>;
+  getSmmServicesByProviderId(providerId: number): Promise<SmmService[]>;
+  getSmmServiceByMid(userId: number, mid: number): Promise<SmmService | undefined>;
+  createSmmService(service: InsertSmmService): Promise<SmmService>;
+  updateSmmService(id: number, updates: Partial<SmmService>): Promise<SmmService | undefined>;
+  deleteSmmService(id: number): Promise<boolean>;
+  getUsedMids(userId: number): Promise<number[]>;
+  
+  // SMM Order management
+  getSmmOrder(id: number): Promise<SmmOrder | undefined>;
+  getSmmOrderByOrderId(orderId: string): Promise<SmmOrder | undefined>;
+  getSmmOrdersByUserId(userId: number): Promise<SmmOrder[]>;
+  createSmmOrder(order: InsertSmmOrder): Promise<SmmOrder>;
+  updateSmmOrder(id: number, updates: Partial<SmmOrder>): Promise<SmmOrder | undefined>;
   
   sessionStore: any;
 }
@@ -237,6 +261,123 @@ export class DatabaseStorage implements IStorage {
       .where(eq(settings.key, key))
       .returning();
     return setting || undefined;
+  }
+
+  // SMM Provider methods
+  async getSmmProvider(id: number): Promise<SmmProvider | undefined> {
+    const [provider] = await db.select().from(smmProviders).where(eq(smmProviders.id, id));
+    return provider || undefined;
+  }
+
+  async getSmmProvidersByUserId(userId: number): Promise<SmmProvider[]> {
+    return await db.select().from(smmProviders).where(eq(smmProviders.userId, userId));
+  }
+
+  async createSmmProvider(insertProvider: InsertSmmProvider): Promise<SmmProvider> {
+    const [provider] = await db
+      .insert(smmProviders)
+      .values(insertProvider)
+      .returning();
+    return provider;
+  }
+
+  async updateSmmProvider(id: number, updates: Partial<SmmProvider>): Promise<SmmProvider | undefined> {
+    const [provider] = await db
+      .update(smmProviders)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(smmProviders.id, id))
+      .returning();
+    return provider || undefined;
+  }
+
+  async deleteSmmProvider(id: number): Promise<boolean> {
+    const result = await db.delete(smmProviders).where(eq(smmProviders.id, id));
+    return result.rowCount > 0;
+  }
+
+  // SMM Service methods
+  async getSmmService(id: number): Promise<SmmService | undefined> {
+    const [service] = await db.select().from(smmServices).where(eq(smmServices.id, id));
+    return service || undefined;
+  }
+
+  async getSmmServicesByUserId(userId: number): Promise<SmmService[]> {
+    return await db.select().from(smmServices).where(eq(smmServices.userId, userId));
+  }
+
+  async getSmmServicesByProviderId(providerId: number): Promise<SmmService[]> {
+    return await db.select().from(smmServices).where(eq(smmServices.providerId, providerId));
+  }
+
+  async getSmmServiceByMid(userId: number, mid: number): Promise<SmmService | undefined> {
+    const [service] = await db
+      .select()
+      .from(smmServices)
+      .where(eq(smmServices.userId, userId))
+      .where(eq(smmServices.mid, mid));
+    return service || undefined;
+  }
+
+  async createSmmService(insertService: InsertSmmService): Promise<SmmService> {
+    const [service] = await db
+      .insert(smmServices)
+      .values(insertService)
+      .returning();
+    return service;
+  }
+
+  async updateSmmService(id: number, updates: Partial<SmmService>): Promise<SmmService | undefined> {
+    const [service] = await db
+      .update(smmServices)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(smmServices.id, id))
+      .returning();
+    return service || undefined;
+  }
+
+  async deleteSmmService(id: number): Promise<boolean> {
+    const result = await db.delete(smmServices).where(eq(smmServices.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getUsedMids(userId: number): Promise<number[]> {
+    const services = await db
+      .select({ mid: smmServices.mid })
+      .from(smmServices)
+      .where(eq(smmServices.userId, userId));
+    return services.map(s => s.mid);
+  }
+
+  // SMM Order methods
+  async getSmmOrder(id: number): Promise<SmmOrder | undefined> {
+    const [order] = await db.select().from(smmOrders).where(eq(smmOrders.id, id));
+    return order || undefined;
+  }
+
+  async getSmmOrderByOrderId(orderId: string): Promise<SmmOrder | undefined> {
+    const [order] = await db.select().from(smmOrders).where(eq(smmOrders.orderId, orderId));
+    return order || undefined;
+  }
+
+  async getSmmOrdersByUserId(userId: number): Promise<SmmOrder[]> {
+    return await db.select().from(smmOrders).where(eq(smmOrders.userId, userId));
+  }
+
+  async createSmmOrder(insertOrder: InsertSmmOrder): Promise<SmmOrder> {
+    const [order] = await db
+      .insert(smmOrders)
+      .values(insertOrder)
+      .returning();
+    return order;
+  }
+
+  async updateSmmOrder(id: number, updates: Partial<SmmOrder>): Promise<SmmOrder | undefined> {
+    const [order] = await db
+      .update(smmOrders)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(smmOrders.id, id))
+      .returning();
+    return order || undefined;
   }
 }
 

@@ -1,0 +1,69 @@
+(Penambahan Fitur Integrasi SMM Panel & Midtrans di Website Telegram AI Bot)
+
+Buat fitur ini terletak di dasbor pengguna
+
+Website saya sudah berjalan dan sudah terintegrasi dengan knowledge base untuk AI Telegram Bot.
+
+Sekarang saya ingin menambahkan fitur baru, yaitu:
+
+⸻
+
+✅ Integrasi Produk SMM Panel (Layanan Seperti Followers, Likes, Views, dll)
+
+🔧 Mekanisme yang saya inginkan:
+	1.	Add Provider (SMM Panel API):
+	•	Form untuk input API Key dan API Endpoint (misalnya dari smmserver, justanotherpanel, dll)
+	•	Disimpan di database untuk tiap user
+	2.	Import Service dari Provider:
+	•	Setelah provider ditambahkan, user klik “Import Service”
+	•	Website akan call API provider (GET /services) dan menampilkan daftar layanan
+	•	Semua layanan di-import ke database user
+	•	Setiap layanan akan diberi ID internal mid dari 1–10 secara otomatis
+	•	Data layanan disimpan dalam format:
+	•	mid, name, description, min, max, rate, category, service_id_api
+	3.	Produk dari SMM Panel akan otomatis masuk ke knowledge base AI user
+	•	Bot Telegram bisa menjawab pertanyaan berdasarkan produk ini
+
+⸻
+
+✅ Integrasi Midtrans (QRIS Payment Gateway):
+
+🔧 Mekanisme:
+	•	Admin bisa mengisi API Key dan Server Key Midtrans dari dashboard admin
+	•	Ketika ada user ingin membeli layanan lewat bot:
+	1.	Bot akan tanya produk (berdasarkan mid)
+	2.	Setelah user pilih ID produk, bot akan menghitung harga dan buat tagihan
+	3.	Bot akan kirim QRIS (Midtrans Snap/QR) ke user
+	4.	Setelah user bayar, backend menerima webhook
+	5.	Sistem akan otomatis call API ke provider SMM Panel untuk order layanan
+	6.	Bot akan balas ke user bahwa order berhasil
+
+⸻
+
+✅ Mekanisme Bot Telegram (Berbasis AI):
+	•	Ketika user chat /start, AI bot menyapa dan menawarkan produk
+	•	Jika user mengetik “Saya mau beli followers”:
+	•	AI bot akan mencocokkan dengan daftar layanan yang sudah diimport
+	•	AI bot akan menjawab: “Silakan pilih ID produk (mid) yang Anda inginkan: 1. Followers IG, 2. Likes IG, dst.”
+	•	Setelah user balas “Saya pilih ID 2”, bot memahami dan menyiapkan tagihan
+	•	Kirim QRIS → Tunggu webhook Midtrans
+	•	Setelah bayar, bot memproses order ke API SMM Panel
+	•	Bot balas ke user: “✅ Pesanan Anda sedang diproses”
+
+⸻
+
+✅ Teknologi yang digunakan saat ini:
+	•	Frontend: React.js + TailwindCSS
+	•	Backend: Node.js + Express
+	•	Database: MongoDB
+	•	Sudah terintegrasi OpenAI (global API key)
+	•	Sudah bisa handle Telegram bot + knowledge base
+
+Tolong bantu saya menambahkan fitur ini tanpa merusak sistem yang sudah ada, dan pastikan:
+	•	Struktur folder backend tetap clean
+	•	Tambahkan validasi saat import service
+	•	Tambahkan logging order, dan fallback kalau order gagal
+	•	Tambahkan history order user di dashboard
+	•	Bot Telegram bisa memproses alur transaksi dengan bahasa natural
+
+Terima kasih 🙏
