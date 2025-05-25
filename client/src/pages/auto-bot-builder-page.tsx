@@ -32,6 +32,7 @@ interface InlineKeyboard {
 
 export default function AutoBotBuilderPage() {
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("create");
   const [newBotToken, setNewBotToken] = useState("");
   const [botName, setBotName] = useState("");
   const [botUsername, setBotUsername] = useState("");
@@ -238,9 +239,11 @@ export default function AutoBotBuilderPage() {
   };
 
   const startEditing = (bot: AutoBot) => {
+    console.log('🔧 Starting to edit bot:', bot);
     setEditingBot(bot);
     setWelcomeMessage(bot.welcomeMessage);
     setKeyboardButtons(bot.keyboardConfig || []);
+    setActiveTab("create"); // Switch to the edit tab
     // Scroll to top to show edit form
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -283,7 +286,7 @@ export default function AutoBotBuilderPage() {
         <p className="text-muted-foreground">Buat bot Telegram otomatis dengan keyboard inline</p>
       </div>
 
-      <Tabs defaultValue="create" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="create">
             <Plus className="w-4 h-4 mr-2" />
