@@ -41,6 +41,8 @@ export default function SmmServicesPage() {
   const [editingService, setEditingService] = useState<any>(null);
   const [selectedServicesForDelete, setSelectedServicesForDelete] = useState<Set<number>>(new Set());
   const [showImportModal, setShowImportModal] = useState(false);
+  const [providerServices, setProviderServices] = useState<any[]>([]);
+  const [loadingProviderServices, setLoadingProviderServices] = useState(false);
 
   const [smmProviderForm, setSmmProviderForm] = useState({
     name: "",
@@ -533,93 +535,320 @@ export default function SmmServicesPage() {
       {/* Import Services Modal */}
       {showImportModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">Import Services from Provider</h3>
+          <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-semibold text-gray-800">Import Services from Provider</h3>
               <button
-                onClick={() => setShowImportModal(false)}
-                className="text-gray-500 hover:text-gray-700"
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportingProvider(null);
+                  setSelectedServices(new Set());
+                }}
+                className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100"
               >
-                <X className="w-5 h-5" />
+                <X className="w-6 h-6" />
               </button>
             </div>
 
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Provider
-              </label>
-              <select
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={importingProvider?.id || ''}
-                onChange={(e) => {
-                  const provider = smmProviders?.find((p: any) => p.id === parseInt(e.target.value));
-                  setImportingProvider(provider);
-                }}
-              >
-                <option value="">Choose a provider to import services from</option>
-                {Array.isArray(smmProviders) && smmProviders.map((provider: any) => (
-                  <option key={provider.id} value={provider.id}>
-                    {provider.name} - {provider.apiEndpoint}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {importingProvider && (
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-lg font-medium">Services from {importingProvider.name}</h4>
+            {!importingProvider ? (
+              // Step 1: Provider Selection
+              <div>
+                <h4 className="text-lg font-medium mb-4 text-gray-700">Step 1: Select Provider</h4>
+                <div className="grid gap-4">
+                  {Array.isArray(smmProviders) && smmProviders.length > 0 ? (
+                    smmProviders.map((provider: any) => (
+                      <div
+                        key={provider.id}
+                        onClick={() => setImportingProvider(provider)}
+                        className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-all duration-200"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h5 className="font-medium text-gray-800">{provider.name}</h5>
+                            <p className="text-sm text-gray-600">{provider.apiEndpoint}</p>
+                            <div className="flex items-center space-x-4 mt-2">
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                provider.isActive 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {provider.isActive ? 'Active' : 'Inactive'}
+                              </span>
+                              {provider.balance && (
+                                <span className="text-sm text-gray-600">
+                                  Balance: ${provider.balance} {provider.currency || 'USD'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-blue-600">
+                            <Plus className="w-6 h-6" />
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <Server className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">No providers available. Please add a provider first.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              // Step 2: Service Selection
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h4 className="text-lg font-medium text-gray-700">
+                      Step 2: Select Services from {importingProvider.name}
+                    </h4>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Choose which services you want to import to your panel
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setImportingProvider(null);
+                      setSelectedServices(new Set());
+                    }}
+                    className="text-gray-600"
+                  >
+                    ← Back to Providers
+                  </Button>
                 </div>
 
-                <div className="text-sm text-gray-600 mb-4 p-4 bg-blue-50 rounded-lg">
-                  <div className="flex items-start space-x-2">
-                    <Info className="w-5 h-5 text-blue-600 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-blue-800">How to import services:</p>
-                      <p className="text-blue-700">
-                        This will fetch services directly from your provider's API and add them to your available services list. 
-                        You can then customize the names, descriptions, and pricing for your customers.
-                      </p>
+                <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                        <Server className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h5 className="font-medium text-blue-900">{importingProvider.name}</h5>
+                        <p className="text-sm text-blue-700">{importingProvider.apiEndpoint}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-blue-700">Services to import:</p>
+                      <p className="text-xl font-bold text-blue-900">{selectedServices.size}</p>
                     </div>
                   </div>
                 </div>
 
-                <Button
-                  onClick={async () => {
-                    try {
-                      const response = await apiRequest("POST", `/api/smm-providers/${importingProvider.id}/import-services`);
-                      const result = await response.json();
-                      
-                      if (result.success) {
-                        toast({
-                          title: "Services imported successfully",
-                          description: `Imported ${result.count} services from ${importingProvider.name}`,
-                        });
-                        refetchSmmServices();
-                        setShowImportModal(false);
-                        setImportingProvider(null);
-                      } else {
-                        throw new Error(result.message || "Failed to import services");
-                      }
-                    } catch (error: any) {
-                      toast({
-                        title: "Import failed",
-                        description: error.message || "Failed to import services from provider",
-                        variant: "destructive",
-                      });
-                    }
-                  }}
-                  className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Import All Services from {importingProvider.name}
-                </Button>
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          setLoadingProviderServices(true);
+                          toast({
+                            title: "Loading services...",
+                            description: "Fetching available services from provider",
+                          });
+                          
+                          // Call API to get services from the provider
+                          const response = await apiRequest("GET", `/api/smm-providers/${importingProvider.id}/services`);
+                          const services = await response.json();
+                          
+                          if (Array.isArray(services)) {
+                            setProviderServices(services);
+                            toast({
+                              title: "Services loaded successfully",
+                              description: `Found ${services.length} services from ${importingProvider.name}`,
+                            });
+                          } else {
+                            throw new Error("Invalid response format");
+                          }
+                          
+                        } catch (error: any) {
+                          toast({
+                            title: "Failed to load services",
+                            description: error.message || "Could not fetch services from provider",
+                            variant: "destructive",
+                          });
+                          setProviderServices([]);
+                        } finally {
+                          setLoadingProviderServices(false);
+                        }
+                      }}
+                      disabled={loadingProviderServices}
+                    >
+                      {loadingProviderServices ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                      )}
+                      {loadingProviderServices ? "Loading..." : "Load Services from Provider"}
+                    </Button>
+                    
+                    <div className="text-sm text-gray-600">
+                      Available Services: <span className="font-medium">{providerServices.length}</span>
+                    </div>
+                  </div>
+                  
+                  {selectedServices.size > 0 && (
+                    <Button
+                      onClick={async () => {
+                        try {
+                          const response = await apiRequest("POST", `/api/smm-providers/${importingProvider.id}/import-services`, {
+                            serviceIds: Array.from(selectedServices)
+                          });
+                          const result = await response.json();
+                          
+                          if (result.success) {
+                            toast({
+                              title: "Services imported successfully",
+                              description: `Imported ${selectedServices.size} services from ${importingProvider.name}`,
+                            });
+                            // Refresh services list
+                            window.location.reload();
+                            setShowImportModal(false);
+                            setImportingProvider(null);
+                            setSelectedServices(new Set());
+                          } else {
+                            throw new Error(result.message || "Failed to import services");
+                          }
+                        } catch (error: any) {
+                          toast({
+                            title: "Import failed",
+                            description: error.message || "Failed to import selected services",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Import Selected ({selectedServices.size})
+                    </Button>
+                  )}
+                </div>
+
+                {/* Services Table */}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                    <div className="grid grid-cols-12 gap-4 items-center">
+                      <div className="col-span-1">
+                        <label className="flex items-center space-x-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            checked={providerServices.length > 0 && selectedServices.size === providerServices.length}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                // Select all services
+                                const allServiceIds = new Set(providerServices.map(service => service.service || service.id));
+                                setSelectedServices(allServiceIds);
+                              } else {
+                                // Deselect all
+                                setSelectedServices(new Set());
+                              }
+                            }}
+                          />
+                          <span className="text-xs font-medium text-gray-700">All</span>
+                        </label>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-sm font-medium text-gray-700">Service ID</span>
+                      </div>
+                      <div className="col-span-4">
+                        <span className="text-sm font-medium text-gray-700">Service Name</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-sm font-medium text-gray-700">Category</span>
+                      </div>
+                      <div className="col-span-1">
+                        <span className="text-sm font-medium text-gray-700">Rate</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-sm font-medium text-gray-700">Min/Max</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="max-h-96 overflow-y-auto">
+                    {providerServices.length > 0 ? (
+                      providerServices.map((service: any) => {
+                        const serviceId = service.service || service.id;
+                        const isSelected = selectedServices.has(serviceId);
+                        
+                        return (
+                          <div
+                            key={serviceId}
+                            className={`px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                              isSelected ? 'bg-blue-50 border-blue-200' : ''
+                            }`}
+                          >
+                            <div className="grid grid-cols-12 gap-4 items-center">
+                              <div className="col-span-1">
+                                <input
+                                  type="checkbox"
+                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    const newSelected = new Set(selectedServices);
+                                    if (e.target.checked) {
+                                      newSelected.add(serviceId);
+                                    } else {
+                                      newSelected.delete(serviceId);
+                                    }
+                                    setSelectedServices(newSelected);
+                                  }}
+                                />
+                              </div>
+                              <div className="col-span-2">
+                                <span className="text-sm font-mono text-gray-600">{serviceId}</span>
+                              </div>
+                              <div className="col-span-4">
+                                <span className="text-sm font-medium text-gray-800">{service.name}</span>
+                                {service.type && (
+                                  <div className="text-xs text-gray-500 mt-1">Type: {service.type}</div>
+                                )}
+                              </div>
+                              <div className="col-span-2">
+                                <span className="text-sm text-gray-600">{service.category || 'General'}</span>
+                              </div>
+                              <div className="col-span-1">
+                                <span className="text-sm text-green-600 font-medium">
+                                  ${parseFloat(service.rate || '0').toFixed(4)}
+                                </span>
+                              </div>
+                              <div className="col-span-2">
+                                <div className="text-xs text-gray-600">
+                                  <div>Min: {service.min || 'N/A'}</div>
+                                  <div>Max: {service.max || 'N/A'}</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="p-8 text-center text-gray-500">
+                        <ShoppingCart className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                        <p className="text-lg font-medium mb-2">No services loaded yet</p>
+                        <p className="text-sm">Click "Load Services from Provider" to fetch available services</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
-            <div className="flex justify-end space-x-3">
-              <Button variant="outline" onClick={() => setShowImportModal(false)}>
-                Close
+            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportingProvider(null);
+                  setSelectedServices(new Set());
+                }}
+              >
+                Cancel
               </Button>
             </div>
           </div>
