@@ -13,6 +13,7 @@ import MyBotsPage from "@/pages/my-bots-page";
 import SmmServicesPage from "@/pages/smm-services-page";
 import ProfilePage from "@/pages/profile-page";
 import AdminPage from "@/pages/admin-page";
+import AutoBotBuilderPage from "@/pages/auto-bot-builder-page";
 
 import NotFound from "@/pages/not-found";
 
@@ -68,6 +69,15 @@ function Router() {
           <>
             <Navigation />
             <ProfilePage />
+          </>
+        )} 
+      />
+      <ProtectedRoute 
+        path="/builderbotnonai" 
+        component={() => (
+          <>
+            <Navigation />
+            <AutoBotBuilderPage />
           </>
         )} 
       />
