@@ -1279,13 +1279,24 @@ export function registerRoutes(app: Express): Server {
   // Fix Non-AI bot webhook (manual trigger)
   app.post("/api/nonai-chatbots/:id/fix-webhook", requireAuth, async (req, res) => {
     try {
+      // Ensure proper JSON response
+      res.setHeader('Content-Type', 'application/json');
+      
       const user = req.user!;
       const chatbotId = parseInt(req.params.id);
 
+      if (isNaN(chatbotId)) {
+        return res.status(400).json({ message: "Invalid chatbot ID" });
+      }
+
       // Get chatbot and verify ownership
       const chatbot = await storage.getNonAiChatbot(chatbotId);
-      if (!chatbot || chatbot.userId !== user.id) {
+      if (!chatbot) {
         return res.status(404).json({ message: "Chatbot not found" });
+      }
+      
+      if (chatbot.userId !== user.id) {
+        return res.status(403).json({ message: "Unauthorized access to this chatbot" });
       }
 
       console.log(`🔧 Fixing webhook for bot: ${chatbot.botUsername}`);
@@ -1293,6 +1304,7 @@ export function registerRoutes(app: Express): Server {
       const { NonAiChatbotService } = await import("./non-ai-chatbot");
 
       // Step 1: Remove existing webhook
+      console.log("  🗑️ Removing existing webhook...");
       await NonAiChatbotService.removeWebhook(chatbot.botToken);
       
       // Step 2: Wait a bit
@@ -1300,19 +1312,29 @@ export function registerRoutes(app: Express): Server {
       
       // Step 3: Set new webhook
       const webhookUrl = NonAiChatbotService.generateWebhookUrl(chatbot.id);
+      console.log(`  🔗 Setting webhook to: ${webhookUrl}`);
       const webhookResult = await NonAiChatbotService.setWebhook(chatbot.botToken, webhookUrl);
       
       if (webhookResult.success) {
         await storage.updateNonAiChatbot(chatbot.id, { webhookUrl });
         console.log(`✅ Webhook fixed for ${chatbot.botUsername}`);
-        res.json({ message: "Webhook berhasil diperbaiki! Inline buttons sekarang akan berfungsi." });
+        return res.status(200).json({ 
+          success: true,
+          message: "Webhook berhasil diperbaiki! Inline buttons sekarang akan berfungsi." 
+        });
       } else {
         console.error(`❌ Failed to fix webhook:`, webhookResult.error);
-        res.status(500).json({ message: `Gagal memperbaiki webhook: ${webhookResult.error}` });
+        return res.status(500).json({ 
+          success: false,
+          message: `Gagal memperbaiki webhook: ${webhookResult.error}` 
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Fix webhook error:", error);
-      res.status(500).json({ message: "Gagal memperbaiki webhook" });
+      return res.status(500).json({ 
+        success: false,
+        message: error.message || "Gagal memperbaiki webhook" 
+      });
     }
   });
 
