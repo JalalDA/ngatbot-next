@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Bot, Keyboard, Settings, Play, Square, Edit3, Layers } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface AutoBot {
   id: number;
@@ -42,6 +44,8 @@ export default function AutoBotBuilderPage() {
   const [keyboardButtons, setKeyboardButtons] = useState<InlineKeyboard[]>([]);
   const [editingBot, setEditingBot] = useState<AutoBot | null>(null);
   const [isValidatingToken, setIsValidatingToken] = useState(false);
+  const [showSubMenuSelector, setShowSubMenuSelector] = useState(false);
+  const [selectedParentId, setSelectedParentId] = useState<string>("");
 
   // Fetch auto bots
   const { data: autoBots = [], isLoading } = useQuery({
@@ -261,6 +265,26 @@ export default function AutoBotBuilderPage() {
     });
   };
 
+  const addSubMenuToParent = () => {
+    if (!selectedParentId) {
+      toast({
+        title: "Pilih Menu Utama",
+        description: "Silakan pilih menu utama terlebih dahulu",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    addKeyboardButton(1, selectedParentId);
+    setShowSubMenuSelector(false);
+    setSelectedParentId("");
+    
+    toast({
+      title: "Sub Menu Ditambahkan!",
+      description: "Sub menu baru berhasil ditambahkan ke menu utama yang dipilih",
+    });
+  };
+
   const updateKeyboardButton = (id: string, field: keyof InlineKeyboard, value: string) => {
     setKeyboardButtons(buttons =>
       buttons.map(button =>
@@ -418,8 +442,23 @@ export default function AutoBotBuilderPage() {
                   className="flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
-                  Tambah Tombol
+                  Tambah Menu Utama
                 </Button>
+                
+                {/* Show "Add Sub Menu" button only if there are main menu buttons */}
+                {keyboardButtons.some(btn => (btn.level || 0) === 0) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSubMenuSelector(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Layers className="w-4 h-4" />
+                    Tambah Sub Menu
+                  </Button>
+                )}
+                
                 <Button
                   type="button"
                   variant="outline"
@@ -646,6 +685,50 @@ export default function AutoBotBuilderPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Dialog untuk memilih parent menu */}
+      <Dialog open={showSubMenuSelector} onOpenChange={setShowSubMenuSelector}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tambah Sub Menu</DialogTitle>
+            <DialogDescription>
+              Pilih menu utama yang akan menjadi parent dari sub menu baru
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Pilih Menu Utama</Label>
+              <Select value={selectedParentId} onValueChange={setSelectedParentId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih menu utama..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {keyboardButtons
+                    .filter(btn => (btn.level || 0) === 0)
+                    .map(btn => (
+                      <SelectItem key={btn.id} value={btn.id}>
+                        {btn.text || 'Menu tanpa nama'}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowSubMenuSelector(false);
+              setSelectedParentId("");
+            }}>
+              Batal
+            </Button>
+            <Button onClick={addSubMenuToParent} disabled={!selectedParentId}>
+              Tambah Sub Menu
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
