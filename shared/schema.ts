@@ -128,7 +128,7 @@ export const botFlows = pgTable("bot_flows", {
   id: serial("id").primaryKey(),
   chatbotId: integer("chatbot_id").notNull().references(() => nonAiChatbots.id, { onDelete: "cascade" }),
   command: text("command").notNull(),
-  type: text("type").notNull(), // "menu" | "text"
+  type: text("type").notNull(), // "menu" | "text" | "inline"
   text: text("text").notNull(),
   buttons: text("buttons").array(), // array of button labels
   parentCommand: text("parent_command"), // for sub-menus
