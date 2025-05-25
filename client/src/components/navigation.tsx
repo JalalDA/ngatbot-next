@@ -35,16 +35,17 @@ export function Navigation() {
   ];
 
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-primary to-blue-600 rounded-lg flex items-center justify-center">
-              <i className="fas fa-robot text-white text-sm"></i>
-            </div>
-            <span className="text-xl font-bold text-slate-900">BotBuilder AI</span>
-          </Link>
+    <>
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo */}
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-r from-primary to-blue-600 rounded-lg flex items-center justify-center">
+                <i className="fas fa-robot text-white text-sm"></i>
+              </div>
+              <span className="text-xl font-bold text-slate-900">BotBuilder AI</span>
+            </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
@@ -179,5 +180,70 @@ export function Navigation() {
         </div>
       </div>
     </header>
+
+    {/* Mobile Bottom Navigation - Futuristic Design */}
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 backdrop-blur-lg border-t border-slate-700/50 shadow-2xl">
+      <div className="flex justify-around items-center py-2 px-4">
+        {navigationItems.map((item, index) => {
+          const isActive = location === item.href;
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={`
+                relative flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-300 transform
+                ${isActive 
+                  ? 'bg-gradient-to-t from-primary/30 to-primary/10 scale-110 shadow-lg shadow-primary/20' 
+                  : 'hover:bg-slate-700/50 hover:scale-105'
+                }
+              `}
+              style={{ 
+                animationDelay: `${index * 100}ms`,
+                animation: 'slideUp 0.6s ease-out forwards'
+              }}
+            >
+              {/* Glowing background effect for active item */}
+              {isActive && (
+                <div className="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent rounded-2xl blur-sm"></div>
+              )}
+              
+              {/* Icon with futuristic glow */}
+              <div className={`
+                relative p-2 rounded-xl transition-all duration-300
+                ${isActive 
+                  ? 'bg-primary/20 shadow-md shadow-primary/30' 
+                  : 'bg-slate-800/50'
+                }
+              `}>
+                <item.icon 
+                  className={`
+                    h-6 w-6 transition-all duration-300
+                    ${isActive 
+                      ? 'text-primary drop-shadow-sm' 
+                      : 'text-slate-300 hover:text-white'
+                    }
+                  `} 
+                />
+              </div>
+
+              {/* Active indicator dot */}
+              {isActive && (
+                <div className="absolute -top-1 w-2 h-2 bg-primary rounded-full shadow-lg shadow-primary/50 animate-pulse"></div>
+              )}
+              
+              {/* Subtle ripple effect */}
+              <div className={`
+                absolute inset-0 rounded-2xl transition-opacity duration-300
+                ${isActive ? 'bg-primary/5 animate-pulse' : 'opacity-0'}
+              `}></div>
+            </Link>
+          );
+        })}
+      </div>
+      
+      {/* Bottom accent line */}
+      <div className="h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
+    </div>
+    </>
   );
 }
