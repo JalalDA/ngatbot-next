@@ -32,6 +32,7 @@ interface BotFlow {
   type: "menu" | "text";
   text: string;
   buttons: string[] | null;
+  inlineButtons: { text: string; callback: string; url: string; }[][] | null;
   parentCommand: string | null;
   createdAt: string;
   updatedAt: string;
@@ -56,7 +57,9 @@ export default function ChatbotBuilderPage() {
     type: "text" as "menu" | "text",
     text: "",
     buttons: [""],
-    parentCommand: ""
+    inlineButtons: [[{ text: "", callback: "", url: "" }]],
+    parentCommand: "",
+    useInlineKeyboard: false
   });
   const [menuHierarchy, setMenuHierarchy] = useState<MenuHierarchy[]>([]);
 
@@ -150,7 +153,9 @@ export default function ChatbotBuilderPage() {
         type: "text",
         text: "",
         buttons: [""],
-        parentCommand: ""
+        inlineButtons: [[{ text: "", callback: "", url: "" }]],
+        parentCommand: "",
+        useInlineKeyboard: false
       });
       toast({
         title: "Success",
@@ -301,7 +306,9 @@ export default function ChatbotBuilderPage() {
       type: flow.type,
       text: flow.text,
       buttons: flow.buttons || [""],
-      parentCommand: flow.parentCommand || ""
+      inlineButtons: flow.inlineButtons || [[{ text: "", callback: "", url: "" }]],
+      parentCommand: flow.parentCommand || "",
+      useInlineKeyboard: !!(flow.inlineButtons && flow.inlineButtons.length > 0)
     });
     setShowEditFlow(true);
   };
