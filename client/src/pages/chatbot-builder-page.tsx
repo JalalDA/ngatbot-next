@@ -930,7 +930,7 @@ export default function ChatbotBuilderPage() {
                           />
                         </div>
 
-                        {flowForm.type === "menu" && (
+                        {(flowForm.type === "menu" || flowForm.type === "inline") && (
                           <div>
                             <Label className="text-foreground">Menu Buttons</Label>
                             <div className="space-y-2">
@@ -1030,7 +1030,7 @@ export default function ChatbotBuilderPage() {
                           />
                         </div>
 
-                        {flowForm.type === "menu" && (
+                        {(editingFlow?.type === "menu" || editingFlow?.type === "inline") && (
                           <div>
                             <Label className="text-foreground">Menu Buttons</Label>
                             <div className="space-y-2">
