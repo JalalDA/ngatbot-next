@@ -200,6 +200,8 @@ export const autoBots = pgTable("auto_bots", {
     text: string;
     callbackData: string;
     url?: string;
+    level?: number;
+    parentId?: string;
   }[]>(),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),

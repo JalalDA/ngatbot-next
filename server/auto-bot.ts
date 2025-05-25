@@ -24,6 +24,8 @@ interface InlineKeyboard {
   text: string;
   callbackData: string;
   url?: string;
+  level?: number;
+  parentId?: string;
 }
 
 export class AutoBotManager {
@@ -117,8 +119,9 @@ export class AutoBotManager {
         const chatId = msg.chat.id;
         const welcomeMessage = autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:";
         
-        // Create inline keyboard from config
-        const keyboard = this.createInlineKeyboard(autoBot.keyboardConfig || []);
+        // Only show main menu buttons (level 0) for /start command
+        const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => !btn.level || btn.level === 0);
+        const keyboard = this.createInlineKeyboard(mainMenuButtons);
         
         const options: any = {
           reply_markup: keyboard
@@ -150,10 +153,32 @@ export class AutoBotManager {
                 show_alert: false
               });
               
-              // Send response message
-              await bot.sendMessage(chatId, `✅ Anda telah memilih: *${pressedButton.text}*`, {
-                parse_mode: 'Markdown'
-              });
+              // Check if this is a main menu button (level 0) that has sub-menus
+              if ((pressedButton.level || 0) === 0) {
+                // Find sub-menus for this main menu
+                const subMenus = (autoBot.keyboardConfig || []).filter(btn => 
+                  (btn.level || 0) === 1 && btn.parentId === pressedButton.id
+                );
+                
+                if (subMenus.length > 0) {
+                  // Show sub-menus
+                  const subMenuKeyboard = this.createInlineKeyboard(subMenus);
+                  
+                  await bot.sendMessage(chatId, `📋 Menu ${pressedButton.text}:`, {
+                    reply_markup: subMenuKeyboard
+                  });
+                } else {
+                  // No sub-menus, just send confirmation
+                  await bot.sendMessage(chatId, `✅ Anda telah memilih: *${pressedButton.text}*`, {
+                    parse_mode: 'Markdown'
+                  });
+                }
+              } else {
+                // This is a sub-menu button, send confirmation
+                await bot.sendMessage(chatId, `✅ Anda telah memilih: *${pressedButton.text}*`, {
+                  parse_mode: 'Markdown'
+                });
+              }
             } catch (error) {
               console.error(`Error handling callback for bot ${autoBot.botName}:`, error);
             }
