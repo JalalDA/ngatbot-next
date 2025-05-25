@@ -9,13 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertBotSchema } from "@shared/schema";
 import type { Bot, User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Settings, Trash2, Coins, Bot as BotIcon, MessageSquare, Crown } from "lucide-react";
+import { Loader2, Plus, Settings, Trash2, Coins, Bot as BotIcon, MessageSquare, Crown, ShoppingCart, Download, Edit } from "lucide-react";
 import { z } from "zod";
 
 type BotFormData = z.infer<typeof insertBotSchema>;
@@ -26,6 +28,13 @@ export default function DashboardPage() {
   const [selectedBotId, setSelectedBotId] = useState<number | null>(null);
   const [showKnowledgeModal, setShowKnowledgeModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showSmmProviderModal, setShowSmmProviderModal] = useState(false);
+  const [smmProviderForm, setSmmProviderForm] = useState({
+    name: "",
+    apiKey: "",
+    apiEndpoint: "",
+    isActive: true
+  });
 
   const botForm = useForm<BotFormData>({
     resolver: zodResolver(insertBotSchema),
@@ -40,6 +49,16 @@ export default function DashboardPage() {
   // Fetch user bots
   const { data: bots, isLoading: botsLoading } = useQuery<Bot[]>({
     queryKey: ["/api/bots"],
+  });
+
+  // Fetch SMM providers
+  const { data: smmProviders = [] } = useQuery({
+    queryKey: ["/api/smm/providers"],
+  });
+
+  // Fetch SMM services
+  const { data: smmServices = [] } = useQuery({
+    queryKey: ["/api/smm/services"],
   });
 
   // Create bot mutation
@@ -87,7 +106,51 @@ export default function DashboardPage() {
     },
   });
 
+  // Create SMM Provider mutation
+  const createSmmProviderMutation = useMutation({
+    mutationFn: async (data: typeof smmProviderForm) => {
+      const res = await apiRequest("POST", "/api/smm/providers", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/smm/providers"] });
+      setShowSmmProviderModal(false);
+      setSmmProviderForm({ name: "", apiKey: "", apiEndpoint: "", isActive: true });
+      toast({
+        title: "Provider Created",
+        description: "SMM provider has been successfully added.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create provider",
+        variant: "destructive",
+      });
+    },
+  });
 
+  // Import services mutation
+  const importServicesMutation = useMutation({
+    mutationFn: async (providerId: number) => {
+      const res = await apiRequest("POST", `/api/smm/providers/${providerId}/import-services`);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/smm/services"] });
+      toast({
+        title: "Services Imported",
+        description: data.message || `Successfully imported ${data.importedCount} services`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Import Failed",
+        description: error.message || "Failed to import services",
+        variant: "destructive",
+      });
+    },
+  });
 
   const onCreateBot = async (data: BotFormData) => {
     createBotMutation.mutate(data);
@@ -199,6 +262,112 @@ export default function DashboardPage() {
                 )}
               </Button>
             </form>
+          </CardContent>
+        </Card>
+
+        {/* SMM Panel Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center space-x-2">
+                <ShoppingCart className="h-5 w-5" />
+                <span>SMM Panel Services</span>
+              </CardTitle>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-slate-500">
+                  {smmServices?.length || 0} services available
+                </span>
+                <Button 
+                  size="sm"
+                  onClick={() => setShowSmmProviderModal(true)}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Provider
+                </Button>
+              </div>
+            </div>
+            <CardDescription>
+              Manage your social media marketing services and providers
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {smmProviders.length === 0 ? (
+              <div className="text-center py-8 text-slate-500">
+                <ShoppingCart className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+                <p className="mb-4">No SMM providers configured yet</p>
+                <Button 
+                  onClick={() => setShowSmmProviderModal(true)}
+                  variant="outline"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Your First Provider
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Providers List */}
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {smmProviders.map((provider: any) => (
+                    <div key={provider.id} className="border border-slate-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-medium text-slate-900">{provider.name}</h4>
+                        <Badge variant={provider.isActive ? "default" : "secondary"}>
+                          {provider.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-slate-500 mb-3 truncate">
+                        {provider.apiEndpoint}
+                      </p>
+                      <div className="flex space-x-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => importServicesMutation.mutate(provider.id)}
+                          disabled={importServicesMutation.isPending}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Services Preview */}
+                {smmServices.length > 0 && (
+                  <div className="mt-6">
+                    <h4 className="font-medium text-slate-900 mb-3">Available Services</h4>
+                    <div className="max-h-60 overflow-y-auto space-y-2">
+                      {smmServices.slice(0, 5).map((service: any) => (
+                        <div key={service.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                          <div className="flex items-center space-x-3">
+                            <Badge variant="outline" className="font-mono">
+                              ID {service.mid}
+                            </Badge>
+                            <span className="font-medium">{service.name}</span>
+                          </div>
+                          <div className="text-sm text-slate-500">
+                            Rp {service.rate}/1000
+                          </div>
+                        </div>
+                      ))}
+                      {smmServices.length > 5 && (
+                        <div className="text-center py-2">
+                          <span className="text-sm text-slate-500">
+                            +{smmServices.length - 5} more services
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
