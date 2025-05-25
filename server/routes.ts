@@ -1154,20 +1154,25 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Invalid bot token" });
       }
 
-      // Check if bot token already exists
-      const existingBot = await storage.getChatBotByToken(token.trim());
-      if (existingBot) {
-        return res.status(400).json({ message: "Bot token already in use" });
+      // Check if bot token already exists in regular bots
+      const existingRegularBot = await storage.getBotByToken(token.trim());
+      if (existingRegularBot) {
+        return res.status(400).json({ message: "Bot token already in use by an AI bot" });
+      }
+
+      // Check if bot token already exists in chatbots
+      const existingChatBot = await storage.getChatBotByToken(token.trim());
+      if (existingChatBot) {
+        return res.status(400).json({ message: "Bot token already in use by a ChatBot" });
       }
 
       // Create chatbot
       const chatBot = await storage.createChatBot({
-        userId: user.id,
         token: token.trim(),
+        welcomeMessage: welcomeMessage || "Selamat datang! Pilih menu di bawah ini:",
+        userId: user.id,
         botName: validation.botInfo.first_name,
         botUsername: validation.botInfo.username,
-        welcomeMessage: welcomeMessage || "Selamat datang! Pilih menu di bawah ini:",
-        isActive: true,
       });
 
       res.status(201).json(chatBot);

@@ -242,10 +242,7 @@ export const insertSmmOrderSchema = createInsertSchema(smmOrders).pick({
   notes: true,
 });
 
-export const insertChatBotSchema = createInsertSchema(chatBots).pick({
-  token: true,
-  welcomeMessage: true,
-}).extend({
+export const insertChatBotSchema = z.object({
   token: z.string().min(1, "Bot token is required"),
   welcomeMessage: z.string().optional(),
 });
