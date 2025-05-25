@@ -168,6 +168,27 @@ export default function ChatbotBuilderPage() {
     },
   });
 
+  const createExampleFlowsMutation = useMutation({
+    mutationFn: async (chatbotId: number) => {
+      const res = await apiRequest("POST", `/api/nonai-chatbots/${chatbotId}/create-example`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/nonai-chatbots", selectedChatbot?.id, "flows"] });
+      toast({
+        title: "Success! 🎉",
+        description: "Contoh menu bertingkat berhasil dibuat! Bot Anda siap digunakan.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create example flows",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateBot = () => {
     if (!newBotToken.trim()) {
       toast({
@@ -353,21 +374,32 @@ export default function ChatbotBuilderPage() {
                   <p className="text-muted-foreground">Manage your bot's commands and responses</p>
                 </div>
                 
-                <Dialog open={showCreateFlow} onOpenChange={setShowCreateFlow}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Flow
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="bg-background border-border max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle className="text-foreground">Create New Bot Flow</DialogTitle>
-                      <DialogDescription className="text-muted-foreground">
-                        Add a new command and response for your bot
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => createExampleFlowsMutation.mutate(selectedChatbot.id)}
+                    disabled={createExampleFlowsMutation.isPending}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0 hover:from-blue-700 hover:to-purple-700"
+                  >
+                    <Menu className="h-4 w-4 mr-2" />
+                    {createExampleFlowsMutation.isPending ? "Membuat..." : "🚀 Buat Contoh Menu"}
+                  </Button>
+                  
+                  <Dialog open={showCreateFlow} onOpenChange={setShowCreateFlow}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Flow
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="bg-background border-border max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle className="text-foreground">Create New Bot Flow</DialogTitle>
+                        <DialogDescription className="text-muted-foreground">
+                          Add a new command and response for your bot
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="command" className="text-foreground">Command</Label>
