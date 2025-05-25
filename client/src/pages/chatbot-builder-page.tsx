@@ -488,10 +488,10 @@ export default function ChatbotBuilderPage() {
                       </div>
                     </div>
                   </DialogContent>
-                </Dialog>
-              </div>
+                  </Dialog>
+                </div>
 
-              {loadingFlows ? (
+                {loadingFlows ? (
                 <div className="text-center py-8 text-muted-foreground">Loading flows...</div>
               ) : flows.length === 0 ? (
                 <Card className="bg-card border-border">
@@ -547,10 +547,10 @@ export default function ChatbotBuilderPage() {
                     </Card>
                   ))}
                 </div>
-              )}
-            </>
-          )}
-        </TabsContent>
+                )}
+              </>
+            )}
+          </TabsContent>
       </Tabs>
     </div>
   );
