@@ -73,15 +73,15 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-background">
       {/* Left side - Auth forms */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-white">
+      <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md">
           <div className="flex items-center space-x-2 mb-8">
-            <div className="w-8 h-8 bg-gradient-to-r from-primary to-secondary-500 rounded-lg flex items-center justify-center">
-              <i className="fas fa-robot text-white text-sm"></i>
+            <div className="w-8 h-8 bg-gradient-to-r from-primary to-primary/80 rounded-lg flex items-center justify-center animate-glow-pulse">
+              <i className="fas fa-robot text-primary-foreground text-sm"></i>
             </div>
-            <span className="text-xl font-bold text-slate-900">BotBuilder AI</span>
+            <span className="text-xl font-bold text-foreground">BotBuilder AI</span>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -91,21 +91,22 @@ export default function AuthPage() {
             </TabsList>
 
             <TabsContent value="login">
-              <Card>
+              <Card className="interactive-card">
                 <CardHeader>
-                  <CardTitle>Welcome Back</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-foreground">Welcome Back</CardTitle>
+                  <CardDescription className="text-muted-foreground">
                     Sign in to your account to continue building bots
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="login-username">Username</Label>
+                      <Label htmlFor="login-username" className="text-foreground">Username</Label>
                       <Input
                         id="login-username"
                         type="text"
                         placeholder="Enter your username"
+                        className="bg-input border-border text-foreground placeholder:text-muted-foreground"
                         {...loginForm.register("username")}
                         disabled={loginMutation.isPending}
                       />
@@ -117,11 +118,12 @@ export default function AuthPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="login-password">Password</Label>
+                      <Label htmlFor="login-password" className="text-foreground">Password</Label>
                       <Input
                         id="login-password"
                         type="password"
                         placeholder="Enter your password"
+                        className="bg-input border-border text-foreground placeholder:text-muted-foreground"
                         {...loginForm.register("password")}
                         disabled={loginMutation.isPending}
                       />
@@ -134,7 +136,7 @@ export default function AuthPage() {
 
                     <Button 
                       type="submit" 
-                      className="w-full bg-primary text-white hover:bg-primary/90"
+                      className="w-full interactive-button bg-primary text-primary-foreground hover:bg-primary/90"
                       disabled={loginMutation.isPending}
                     >
                       {loginMutation.isPending ? "Signing in..." : "Sign In"}
