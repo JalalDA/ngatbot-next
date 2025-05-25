@@ -33,29 +33,57 @@ interface InlineKeyboard {
 export default function AutoBotBuilderPage() {
   const { toast } = useToast();
   const [newBotToken, setNewBotToken] = useState("");
+  const [botName, setBotName] = useState("");
+  const [botUsername, setBotUsername] = useState("");
   const [welcomeMessage, setWelcomeMessage] = useState("Selamat datang! Silakan pilih opsi di bawah ini:");
   const [keyboardButtons, setKeyboardButtons] = useState<InlineKeyboard[]>([]);
   const [editingBot, setEditingBot] = useState<AutoBot | null>(null);
+  const [isValidatingToken, setIsValidatingToken] = useState(false);
 
   // Fetch auto bots
   const { data: autoBots = [], isLoading } = useQuery({
-    queryKey: ["/api/auto-bots"],
+    queryKey: ["/api/autobots"],
     enabled: true,
   });
 
   // Create auto bot mutation
   const createBotMutation = useMutation({
-    mutationFn: async (data: { token: string; welcomeMessage: string; keyboardConfig: InlineKeyboard[] }) => {
-      const response = await fetch("/api/auto-bots", {
+    mutationFn: async (data: { token: string; botName: string; botUsername: string; welcomeMessage: string; keyboardConfig: InlineKeyboard[] }) => {
+      console.log('🚀 Creating bot with data:', data);
+      
+      const response = await fetch("/api/autobots", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error(await response.text());
-      return response.json();
+
+      console.log('📡 Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Error response:', errorText);
+        
+        // Try to parse as JSON for better error message
+        try {
+          const errorJson = JSON.parse(errorText);
+          throw new Error(errorJson.message || errorText);
+        } catch {
+          throw new Error(errorText);
+        }
+      }
+
+      const responseText = await response.text();
+      console.log('📜 Success response:', responseText.substring(0, 200));
+
+      try {
+        return JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('❌ JSON parse error:', parseError);
+        throw new Error('Invalid response format from server');
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auto-bots"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/autobots"] });
       toast({ title: "Sukses!", description: "Bot berhasil dibuat dan diaktifkan" });
       resetForm();
     },
@@ -137,8 +165,45 @@ export default function AutoBotBuilderPage() {
     setKeyboardButtons(buttons => buttons.filter(button => button.id !== id));
   };
 
+  const validateToken = async (token: string) => {
+    if (!token.trim()) return false;
+    
+    setIsValidatingToken(true);
+    try {
+      const response = await fetch('/api/autobots/validate-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+
+      if (!response.ok) {
+        toast({ title: "Error", description: "Gagal memvalidasi token", variant: "destructive" });
+        return false;
+      }
+
+      const result = await response.json();
+      
+      if (result.valid && result.botInfo) {
+        setBotName(result.botInfo.first_name);
+        setBotUsername(result.botInfo.username);
+        toast({ title: "Sukses!", description: "Token bot valid!" });
+        return true;
+      } else {
+        toast({ title: "Error", description: result.error || "Token tidak valid", variant: "destructive" });
+        return false;
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Gagal memvalidasi token", variant: "destructive" });
+      return false;
+    } finally {
+      setIsValidatingToken(false);
+    }
+  };
+
   const resetForm = () => {
     setNewBotToken("");
+    setBotName("");
+    setBotUsername("");
     setWelcomeMessage("Selamat datang! Silakan pilih opsi di bawah ini:");
     setKeyboardButtons([]);
     setEditingBot(null);
@@ -150,7 +215,7 @@ export default function AutoBotBuilderPage() {
     setKeyboardButtons(bot.keyboardConfig || []);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (editingBot) {
       updateBotMutation.mutate({
         id: editingBot.id,
@@ -162,8 +227,19 @@ export default function AutoBotBuilderPage() {
         toast({ title: "Error", description: "Token bot harus diisi", variant: "destructive" });
         return;
       }
+      
+      // Validate token first if botName and botUsername are not set
+      if (!botName || !botUsername) {
+        const isValid = await validateToken(newBotToken);
+        if (!isValid) {
+          return;
+        }
+      }
+      
       createBotMutation.mutate({
         token: newBotToken,
+        botName,
+        botUsername,
         welcomeMessage,
         keyboardConfig: keyboardButtons,
       });

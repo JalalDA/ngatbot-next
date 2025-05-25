@@ -54,6 +54,15 @@ export class AutoBotManager {
       const responseText = await response.text();
       console.log('📜 Raw response:', responseText.substring(0, 200) + '...');
 
+      // Check if response is HTML (error page)
+      if (responseText.startsWith('<!DOCTYPE') || responseText.startsWith('<html')) {
+        console.error('❌ Received HTML response instead of JSON');
+        return {
+          valid: false,
+          error: 'Token bot tidak valid atau ada masalah dengan koneksi ke Telegram API'
+        };
+      }
+
       let data: TelegramApiResponse<TelegramBotInfo>;
       try {
         data = JSON.parse(responseText);
@@ -62,7 +71,7 @@ export class AutoBotManager {
         console.error('📄 Response text that failed to parse:', responseText);
         return {
           valid: false,
-          error: 'Response dari Telegram API tidak valid. Pastikan token benar.'
+          error: 'Format response dari Telegram API tidak valid. Pastikan token bot benar.'
         };
       }
 
