@@ -123,6 +123,7 @@ export class NonAiChatbotService {
 
       if (replyMarkup) {
         payload.reply_markup = replyMarkup;
+        console.log("Sending with inline keyboard:", JSON.stringify(replyMarkup, null, 2));
       }
 
       const response = await axios.post<TelegramApiResponse<any>>(
