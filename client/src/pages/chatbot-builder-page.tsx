@@ -1006,7 +1006,7 @@ export default function ChatbotBuilderPage() {
                           </div>
                           <div>
                             <Label htmlFor="edit-type" className="text-foreground">Type</Label>
-                            <Select value={flowForm.type} onValueChange={(value: "menu" | "text") => setFlowForm(prev => ({ ...prev, type: value }))}>
+                            <Select value={flowForm.type} onValueChange={(value: "menu" | "text" | "inline") => setFlowForm(prev => ({ ...prev, type: value }))}>
                               <SelectTrigger className="bg-background border-border text-foreground">
                                 <SelectValue />
                               </SelectTrigger>
