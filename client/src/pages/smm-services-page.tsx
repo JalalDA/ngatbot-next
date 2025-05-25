@@ -495,14 +495,38 @@ export default function SmmServicesPage() {
                             <p className="text-sm text-slate-500">{service.category}</p>
                           </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => deleteSmmServiceMutation.mutate(service.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center space-x-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditingService(service);
+                              setServiceForm({
+                                name: service.name || "",
+                                description: service.description || "",
+                                category: service.category || "",
+                                rate: service.rate || "",
+                                min: service.min || "",
+                                max: service.max || "",
+                                syncMinMax: true,
+                                customRate: service.customRate || "",
+                                useCustomRate: false
+                              });
+                              setShowEditServiceModal(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => deleteSmmServiceMutation.mutate(service.id)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
@@ -561,7 +585,42 @@ export default function SmmServicesPage() {
                     smmProviders.map((provider: any) => (
                       <div
                         key={provider.id}
-                        onClick={() => setImportingProvider(provider)}
+                        onClick={async () => {
+                          setImportingProvider(provider);
+                          // Auto load services when provider is selected
+                          try {
+                            setLoadingProviderServices(true);
+                            toast({
+                              title: "Loading services...",
+                              description: `Fetching available services from ${provider.name}`,
+                            });
+                            
+                            const response = await apiRequest("GET", `/api/smm/providers/${provider.id}/services`);
+                            const data = await response.json();
+                            
+                            const services = data.services || data;
+                            
+                            if (Array.isArray(services)) {
+                              setProviderServices(services);
+                              toast({
+                                title: "Services loaded successfully",
+                                description: `Found ${services.length} services from ${provider.name}`,
+                              });
+                            } else {
+                              throw new Error("Invalid response format");
+                            }
+                            
+                          } catch (error: any) {
+                            toast({
+                              title: "Failed to load services",
+                              description: error.message || "Could not fetch services from provider",
+                              variant: "destructive",
+                            });
+                            setProviderServices([]);
+                          } finally {
+                            setLoadingProviderServices(false);
+                          }
+                        }}
                         className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-all duration-200"
                       >
                         <div className="flex items-center justify-between">
@@ -643,109 +702,66 @@ export default function SmmServicesPage() {
                   </div>
                 </div>
 
-                <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:space-x-4">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={async () => {
-                        try {
-                          setLoadingProviderServices(true);
-                          toast({
-                            title: "Loading services...",
-                            description: "Fetching available services from provider",
-                          });
-                          
-                          // Call API to get services from the provider
-                          const response = await apiRequest("GET", `/api/smm/providers/${importingProvider.id}/services`);
-                          const data = await response.json();
-                          
-                          // Backend returns { services: [] }
-                          const services = data.services || data;
-                          
-                          if (Array.isArray(services)) {
-                            setProviderServices(services);
-                            toast({
-                              title: "Services loaded successfully",
-                              description: `Found ${services.length} services from ${importingProvider.name}`,
-                            });
-                          } else {
-                            throw new Error("Invalid response format");
-                          }
-                          
-                        } catch (error: any) {
-                          toast({
-                            title: "Failed to load services",
-                            description: error.message || "Could not fetch services from provider",
-                            variant: "destructive",
-                          });
-                          setProviderServices([]);
-                        } finally {
-                          setLoadingProviderServices(false);
-                        }
-                      }}
-                      disabled={loadingProviderServices}
-                      className="w-full sm:w-auto"
-                    >
-                      {loadingProviderServices ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                      )}
-                      <span className="hidden sm:inline">{loadingProviderServices ? "Loading..." : "Load Services from Provider"}</span>
-                      <span className="sm:hidden">{loadingProviderServices ? "Loading..." : "Load Services"}</span>
-                    </Button>
-                    
+                {loadingProviderServices ? (
+                  <div className="mb-4 flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 mr-2 animate-spin text-blue-600" />
+                    <span className="text-sm text-gray-600">Loading services from provider...</span>
+                  </div>
+                ) : (
+                  <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
                       Available Services: <span className="font-medium">{providerServices.length}</span>
                     </div>
-                  </div>
-                  
-                  {selectedServices.size > 0 && (
-                    <Button
-                      onClick={async () => {
-                        try {
-                          // Get selected service objects
-                          const selectedServiceObjects = providerServices.filter(service => 
-                            selectedServices.has(service.service || service.id)
-                          );
+                    
+                    {selectedServices.size > 0 && (
+                      <Button
+                        onClick={async () => {
+                          try {
+                            // Get selected service objects - PERBAIKAN MASALAH 2
+                            const selectedServiceObjects = providerServices.filter(service => 
+                              selectedServices.has(service.service || service.id)
+                            );
 
-                          const response = await apiRequest("POST", `/api/smm/providers/${importingProvider.id}/import-services`, {
-                            services: selectedServiceObjects
-                          });
-                          const result = await response.json();
-                          
-                          if (response.ok) {
-                            toast({
-                              title: "Services imported successfully",
-                              description: `Imported ${selectedServices.size} services from ${importingProvider.name}`,
+                            console.log('Selected services:', selectedServiceObjects);
+                            console.log('Selected IDs:', Array.from(selectedServices));
+
+                            const response = await apiRequest("POST", `/api/smm/providers/${importingProvider.id}/import-services`, {
+                              services: selectedServiceObjects
                             });
-                            // Refresh services list
-                            window.location.reload();
-                            setShowImportModal(false);
-                            setImportingProvider(null);
-                            setSelectedServices(new Set());
-                            setProviderServices([]);
-                          } else {
-                            throw new Error(result.message || "Failed to import services");
+                            const result = await response.json();
+                            
+                            if (response.ok) {
+                              toast({
+                                title: "Services imported successfully",
+                                description: `Imported ${selectedServiceObjects.length} services from ${importingProvider.name}`,
+                              });
+                              // Refresh services list
+                              window.location.reload();
+                              setShowImportModal(false);
+                              setImportingProvider(null);
+                              setSelectedServices(new Set());
+                              setProviderServices([]);
+                            } else {
+                              throw new Error(result.message || "Failed to import services");
+                            }
+                          } catch (error: any) {
+                            toast({
+                              title: "Import failed",
+                              description: error.message || "Failed to import selected services",
+                              variant: "destructive",
+                            });
                           }
-                        } catch (error: any) {
-                          toast({
-                            title: "Import failed",
-                            description: error.message || "Failed to import selected services",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 w-full sm:w-auto"
-                      size="sm"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      <span className="hidden sm:inline">Import Selected ({selectedServices.size})</span>
-                      <span className="sm:hidden">Import ({selectedServices.size})</span>
-                    </Button>
-                  )}
-                </div>
+                        }}
+                        className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 w-full sm:w-auto"
+                        size="sm"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        <span className="hidden sm:inline">Import Selected ({selectedServices.size})</span>
+                        <span className="sm:hidden">Import ({selectedServices.size})</span>
+                      </Button>
+                    )}
+                  </div>
+                )}
 
                 {/* Services Table */}
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
@@ -932,6 +948,221 @@ export default function SmmServicesPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Enhanced Edit Service Modal - MASALAH 3 */}
+      {showEditServiceModal && editingService && (
+        <Dialog open={showEditServiceModal} onOpenChange={setShowEditServiceModal}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <Edit className="w-5 h-5 text-blue-600" />
+                <span>Edit Service</span>
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              {/* Service Type (Provider Info) */}
+              <div className="bg-slate-50 p-4 rounded-lg">
+                <h4 className="font-medium text-slate-900 mb-2">Service Type</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Provider:</span>
+                    <span className="font-medium">{editingService.provider?.name || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Provider Service ID:</span>
+                    <span className="font-medium">{editingService.serviceId || editingService.mid}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Original Rate:</span>
+                    <span className="font-medium">Rp {editingService.originalRate || editingService.rate}/1000</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Service Name */}
+              <div>
+                <Label htmlFor="serviceName">Service Name</Label>
+                <Input
+                  id="serviceName"
+                  value={serviceForm.name}
+                  onChange={(e) => setServiceForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter custom service name"
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Service Description */}
+              <div>
+                <Label htmlFor="serviceDescription">Service Description</Label>
+                <textarea
+                  id="serviceDescription"
+                  value={serviceForm.description}
+                  onChange={(e) => setServiceForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Describe what this service does (for AI bot information)"
+                  className="mt-1 w-full p-3 border border-gray-300 rounded-md resize-none h-24"
+                />
+                <p className="text-xs text-slate-500 mt-1">This description helps the AI bot provide accurate information about this service.</p>
+              </div>
+
+              {/* Min Max Settings */}
+              <div className="border border-slate-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h4 className="font-medium text-slate-900">Min/Max Settings</h4>
+                    <p className="text-sm text-slate-500">Sync with provider or set custom values</p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="syncMinMax" className="text-sm">Sync with Provider</Label>
+                    <Switch
+                      id="syncMinMax"
+                      checked={serviceForm.syncMinMax}
+                      onCheckedChange={(checked) => setServiceForm(prev => ({ ...prev, syncMinMax: checked }))}
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="minValue">Minimum</Label>
+                    <Input
+                      id="minValue"
+                      type="number"
+                      value={serviceForm.syncMinMax ? editingService.min : serviceForm.min}
+                      onChange={(e) => setServiceForm(prev => ({ ...prev, min: e.target.value }))}
+                      disabled={serviceForm.syncMinMax}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="maxValue">Maximum</Label>
+                    <Input
+                      id="maxValue"
+                      type="number"
+                      value={serviceForm.syncMinMax ? editingService.max : serviceForm.max}
+                      onChange={(e) => setServiceForm(prev => ({ ...prev, max: e.target.value }))}
+                      disabled={serviceForm.syncMinMax}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Service Price */}
+              <div className="border border-slate-200 rounded-lg p-4">
+                <h4 className="font-medium text-slate-900 mb-4">Service Price</h4>
+                
+                <div className="bg-slate-50 p-3 rounded-lg mb-4">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-slate-600">Provider Price:</span>
+                      <div className="font-medium">Rp {editingService.originalRate || editingService.rate}/1000</div>
+                    </div>
+                    <div>
+                      <span className="text-slate-600">Your Current Price:</span>
+                      <div className="font-medium text-blue-600">Rp {serviceForm.rate}/1000</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="percentagePrice"
+                        name="priceType"
+                        checked={!serviceForm.useCustomRate}
+                        onChange={() => setServiceForm(prev => ({ ...prev, useCustomRate: false }))}
+                        className="text-blue-600"
+                      />
+                      <Label htmlFor="percentagePrice">Percentage Price</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="fixedPrice"
+                        name="priceType"
+                        checked={serviceForm.useCustomRate}
+                        onChange={() => setServiceForm(prev => ({ ...prev, useCustomRate: true }))}
+                        className="text-blue-600"
+                      />
+                      <Label htmlFor="fixedPrice">Fixed Price</Label>
+                    </div>
+                  </div>
+
+                  {!serviceForm.useCustomRate ? (
+                    <div>
+                      <Label htmlFor="percentageValue">Markup Percentage (%)</Label>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <Input
+                          id="percentageValue"
+                          type="number"
+                          placeholder="25"
+                          className="flex-1"
+                        />
+                        <span className="text-sm text-slate-500">% markup from provider price</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <Label htmlFor="fixedPriceValue">Fixed Price (Rp per 1000)</Label>
+                      <Input
+                        id="fixedPriceValue"
+                        type="number"
+                        value={serviceForm.customRate}
+                        onChange={(e) => setServiceForm(prev => ({ ...prev, customRate: e.target.value }))}
+                        placeholder="5000"
+                        className="mt-1"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end space-x-3 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowEditServiceModal(false);
+                    setEditingService(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={async () => {
+                    try {
+                      const response = await apiRequest("PUT", `/api/smm/services/${editingService.id}`, serviceForm);
+                      if (response.ok) {
+                        toast({
+                          title: "Service updated successfully",
+                          description: "Service settings have been saved.",
+                        });
+                        queryClient.invalidateQueries({ queryKey: ["/api/smm/services"] });
+                        setShowEditServiceModal(false);
+                        setEditingService(null);
+                      } else {
+                        throw new Error("Failed to update service");
+                      }
+                    } catch (error: any) {
+                      toast({
+                        title: "Update failed",
+                        description: error.message || "Failed to update service",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
