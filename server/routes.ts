@@ -34,7 +34,7 @@ export function registerRoutes(app: Express): Server {
         systemPrompt: z.string().optional()
       });
       const validatedData = createBotSchema.parse(req.body);
-      
+
       // Validate bot token with Telegram
       const validation = await telegramBotManager.validateBotToken(validatedData.token);
       if (!validation.valid) {
@@ -91,21 +91,21 @@ export function registerRoutes(app: Express): Server {
     try {
       const botId = parseInt(req.params.id);
       const bot = await storage.getBot(botId);
-      
+
       if (!bot) {
         return res.status(404).json({ message: "Bot not found" });
       }
-      
+
       if (bot.userId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized to delete this bot" });
       }
 
       // Stop the bot
       await telegramBotManager.stopBot(bot.token);
-      
+
       // Delete from storage
       await storage.deleteBot(botId);
-      
+
       res.json({ message: "Bot deleted successfully" });
     } catch (error) {
       console.error("Delete bot error:", error);
@@ -117,7 +117,7 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/knowledge", requireAuth, async (req, res) => {
     try {
       const validatedData = insertKnowledgeSchema.parse(req.body);
-      
+
       // Verify bot ownership
       const bot = await storage.getBot(validatedData.botId);
       if (!bot || bot.userId !== req.user.id) {
@@ -138,7 +138,7 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/knowledge/:botId", requireAuth, async (req, res) => {
     try {
       const botId = parseInt(req.params.botId);
-      
+
       // Verify bot ownership
       const bot = await storage.getBot(botId);
       if (!bot || bot.userId !== req.user.id) {
@@ -158,7 +158,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const knowledgeId = parseInt(req.params.id);
       const updateData = insertKnowledgeSchema.parse(req.body);
-      
+
       const knowledge = await storage.getKnowledge(knowledgeId);
       if (!knowledge) {
         return res.status(404).json({ message: "Knowledge not found" });
@@ -182,7 +182,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const knowledgeId = parseInt(req.params.id);
       const knowledge = await storage.getKnowledge(knowledgeId);
-      
+
       if (!knowledge) {
         return res.status(404).json({ message: "Knowledge not found" });
       }
@@ -208,7 +208,7 @@ export function registerRoutes(app: Express): Server {
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      
+
       // Don't send password
       const { password, ...userProfile } = user;
       res.json(userProfile);
@@ -252,7 +252,7 @@ export function registerRoutes(app: Express): Server {
       if (!req.session.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
-      
+
       const users = await storage.getAllUsers();
       const usersWithBotCount = await Promise.all(
         users.map(async (user) => {
@@ -264,7 +264,7 @@ export function registerRoutes(app: Express): Server {
           };
         })
       );
-      
+
       res.json(usersWithBotCount);
     } catch (error) {
       console.error("Get admin users error:", error);
@@ -277,15 +277,15 @@ export function registerRoutes(app: Express): Server {
       if (!req.session.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
-      
+
       const userId = parseInt(req.params.id);
       const { level, credits } = req.body;
-      
+
       const updatedUser = await storage.updateUser(userId, { level, credits });
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
       }
-      
+
       const { password, ...userWithoutPassword } = updatedUser;
       res.json(userWithoutPassword);
     } catch (error) {
@@ -299,16 +299,16 @@ export function registerRoutes(app: Express): Server {
       if (!req.session.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
-      
+
       const userId = parseInt(req.params.id);
-      
+
       // Delete user's bots first
       const userBots = await storage.getBotsByUserId(userId);
       for (const bot of userBots) {
         await telegramBotManager.stopBot(bot.token);
         await storage.deleteBot(bot.id);
       }
-      
+
       await storage.deleteUser(userId);
       res.json({ message: "User deleted successfully" });
     } catch (error) {
@@ -322,10 +322,10 @@ export function registerRoutes(app: Express): Server {
       if (!req.session.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
-      
+
       const hasApiKey = !!process.env.OPENAI_API_KEY;
       let isConnected = false;
-      
+
       if (hasApiKey) {
         try {
           const { checkOpenAIConnection } = await import("./openai");
@@ -334,7 +334,7 @@ export function registerRoutes(app: Express): Server {
           console.error("OpenAI connection check failed:", error);
         }
       }
-      
+
       res.json({ 
         hasApiKey,
         isConnected,
@@ -351,17 +351,17 @@ export function registerRoutes(app: Express): Server {
       if (!req.session.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
-      
+
       const users = await storage.getAllUsers();
       const bots = await storage.getAllBots();
-      
+
       const stats = {
         totalUsers: users.length,
         activeBots: bots.filter(bot => bot.isActive).length,
         messagesCount: bots.reduce((sum, bot) => sum + bot.messageCount, 0),
         revenue: 0, // Mock value as payment is not implemented
       };
-      
+
       res.json(stats);
     } catch (error) {
       console.error("Get admin stats error:", error);
@@ -383,7 +383,7 @@ export function registerRoutes(app: Express): Server {
     try {
       console.log("Upgrade endpoint called with plan:", req.body.plan);
       const { plan } = req.body;
-      
+
       if (!plan || !UPGRADE_PLANS[plan as PlanType]) {
         console.log("Invalid plan:", plan);
         return res.status(400).json({ message: "Invalid plan selected" });
@@ -431,10 +431,10 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/payments/upgrade", requireAuth, async (req, res) => {
     try {
       const { plan } = req.body;
-      
+
       // Mock payment redirect URL
       const paymentUrl = `https://app.midtrans.com/snap/v1/payment-page?plan=${plan}&user_id=${req.user.id}`;
-      
+
       res.json({ 
         paymentUrl,
         message: "Redirecting to payment gateway (Mock)" 
@@ -448,7 +448,7 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/upgrade-plan", requireAuth, async (req, res) => {
     try {
       const { plan } = req.body;
-      
+
       if (!plan || !UPGRADE_PLANS[plan as PlanType]) {
         return res.status(400).json({ message: "Invalid plan selected" });
       }
@@ -503,7 +503,7 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/payment-callback", async (req, res) => {
     try {
       console.log("Midtrans callback received:", req.body);
-      
+
       const {
         order_id,
         status_code,
@@ -528,41 +528,41 @@ export function registerRoutes(app: Express): Server {
 
       // Get transaction from database
       const transaction = await storage.getTransactionByOrderId(order_id);
-      
+
       if (!transaction) {
         console.error("Transaction not found for order:", order_id);
         return res.status(404).json({ message: "Transaction not found" });
       }
 
       let newStatus = "pending";
-      
+
       // Handle payment status - more comprehensive status handling
       console.log(`Processing payment status: ${transaction_status}, fraud_status: ${fraud_status}`);
-      
+
       // Define successful payment statuses for Midtrans
       const successStatuses = ['capture', 'settlement', 'success'];
       const pendingStatuses = ['pending', 'authorize'];
       const failedStatuses = ['cancel', 'deny', 'expire', 'failure'];
-      
+
       if (successStatuses.includes(transaction_status)) {
         if (!fraud_status || fraud_status === 'accept') {
           newStatus = "success";
-          
+
           // Update user level and credits
           const planConfig = UPGRADE_PLANS[transaction.plan as PlanType];
           const currentUser = await storage.getUser(transaction.userId);
-          
+
           if (currentUser && planConfig) {
             console.log(`✅ Upgrading user ${currentUser.id} from ${currentUser.level} to ${planConfig.level}`);
             console.log(`✅ Adding ${planConfig.credits} credits to current ${currentUser.credits} credits`);
-            
+
             const newCredits = currentUser.credits + planConfig.credits;
-            
+
             const updatedUser = await storage.updateUser(transaction.userId, {
               level: planConfig.level,
               credits: newCredits
             });
-            
+
             console.log(`✅ User upgrade completed successfully!`);
             console.log(`   - New level: ${planConfig.level}`);
             console.log(`   - Total credits: ${newCredits}`);
@@ -606,53 +606,53 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/payment-status/:orderId", requireAuth, async (req, res) => {
     try {
       const { orderId } = req.params;
-      
+
       // Get transaction from database
       const transaction = await storage.getTransactionByOrderId(orderId);
-      
+
       if (!transaction) {
         return res.status(404).json({ message: "Transaction not found" });
       }
-      
+
       // Check if transaction belongs to current user
       if (transaction.userId !== req.user!.id) {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       console.log(`🔍 Checking payment status for order: ${orderId}`);
-      
+
       // Get status from Midtrans
       const midtransStatus = await getTransactionStatus(orderId);
-      
+
       if (midtransStatus && midtransStatus.transaction_status) {
         const transactionStatus = midtransStatus.transaction_status;
         let newStatus = transaction.status;
-        
+
         console.log(`💳 Midtrans status for ${orderId}: ${transactionStatus}`);
-        
+
         // Process payment status similar to callback with improved logic
         const successStatuses = ['capture', 'settlement', 'success'];
         const failedStatuses = ['cancel', 'deny', 'expire', 'failure'];
-        
+
         if (successStatuses.includes(transactionStatus)) {
           if (!midtransStatus.fraud_status || midtransStatus.fraud_status === 'accept') {
             newStatus = "success";
-            
+
             // Update user level and credits if not already done
             if (transaction.status !== 'success') {
               console.log(`🎉 Payment successful! Upgrading user account...`);
-              
+
               const planConfig = UPGRADE_PLANS[transaction.plan as PlanType];
               const currentUser = await storage.getUser(transaction.userId);
-              
+
               if (currentUser && planConfig) {
                 const newCredits = currentUser.credits + planConfig.credits;
-                
+
                 const updatedUser = await storage.updateUser(transaction.userId, {
                   level: planConfig.level,
                   credits: newCredits
                 });
-                
+
                 console.log(`✅ User ${currentUser.id} upgraded successfully!`);
                 console.log(`   - New level: ${planConfig.level}`);
                 console.log(`   - Total credits: ${newCredits}`);
@@ -663,13 +663,13 @@ export function registerRoutes(app: Express): Server {
           newStatus = "failed";
           console.log(`❌ Payment failed with status: ${transactionStatus}`);
         }
-        
+
         // Update transaction status if changed
         if (newStatus !== transaction.status) {
           await storage.updateTransaction(transaction.id, { status: newStatus });
           console.log(`📝 Transaction ${orderId} status updated to: ${newStatus}`);
         }
-        
+
         res.json({
           orderId,
           status: newStatus,
@@ -745,7 +745,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const user = req.user!;
       console.log("Request body:", req.body);
-      
+
       const { name, apiKey, apiEndpoint, isActive = true } = req.body;
 
       // Validate required fields
@@ -803,10 +803,10 @@ export function registerRoutes(app: Express): Server {
       if (apiKey || apiEndpoint) {
         const testKey = apiKey || existingProvider.apiKey;
         const testEndpoint = apiEndpoint || existingProvider.apiEndpoint;
-        
+
         const smmApi = new SmmPanelAPI(testKey, testEndpoint);
         const connectionTest = await smmApi.testConnection();
-        
+
         if (!connectionTest) {
           return res.status(400).json({ message: "Failed to connect to SMM provider with new credentials" });
         }
@@ -914,7 +914,7 @@ export function registerRoutes(app: Express): Server {
 
       // Get used MIDs for this user
       const usedMids = await storage.getUsedMids(user.id);
-      
+
       let importedCount = 0;
       const errors: string[] = [];
 
@@ -1125,15 +1125,15 @@ export function registerRoutes(app: Express): Server {
   // NON-AI CHATBOT BUILDER ROUTES
   // ===============================
 
-  // Get all non-AI chatbots for current user
+  // Get all non-AI chatbots for user
   app.get("/api/nonai-chatbots", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
-      const chatbots = await storage.getNonAiChatbotsByUserId(user.id);
+      const chatbots = await storage.getAllNonAiChatbotsByUserId(user.id);
       res.json(chatbots);
     } catch (error) {
-      console.error("Get non-AI chatbots error:", error);
-      res.status(500).json({ message: "Failed to fetch non-AI chatbots" });
+      console.error("Get chatbots error:", error);
+      res.status(500).json({ message: "Failed to fetch chatbots" });
     }
   });
 
@@ -1156,9 +1156,9 @@ export function registerRoutes(app: Express): Server {
       console.log("Step 1: Validating bot token with Telegram...");
       const { NonAiChatbotService } = await import("./non-ai-chatbot");
       const validation = await NonAiChatbotService.validateBotToken(botToken);
-      
+
       console.log("Validation result:", validation);
-      
+
       if (!validation.valid) {
         console.log("ERROR: Bot token validation failed:", validation.error);
         return res.status(400).json({ 
@@ -1210,10 +1210,10 @@ export function registerRoutes(app: Express): Server {
       console.error("Error details:", error);
       console.error("Error message:", error instanceof Error ? error.message : 'Unknown error');
       console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
-      
+
       // Provide more specific error messages
       let errorMessage = "Gagal membuat chatbot";
-      
+
       if (error instanceof Error) {
         if (error.message.includes('duplicate') || error.message.includes('unique')) {
           errorMessage = "Token bot sudah digunakan";
@@ -1225,7 +1225,7 @@ export function registerRoutes(app: Express): Server {
           errorMessage = "Bot berhasil dibuat tetapi gagal mengatur webhook";
         }
       }
-      
+
       res.status(500).json({ message: errorMessage });
     }
   });
@@ -1235,7 +1235,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const user = req.user!;
       const chatbotId = parseInt(req.params.id);
-      
+
       const chatbot = await storage.getNonAiChatbot(chatbotId);
       if (!chatbot || chatbot.userId !== user.id) {
         return res.status(404).json({ message: "Chatbot not found" });
@@ -1297,19 +1297,25 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Get bot flows for specific chatbot
-  app.get("/api/nonai-chatbots/:id/flows", requireAuth, async (req, res) => {
+  // Get bot flows for chatbot
+  app.get("/api/nonai-chatbots/:chatbotId/flows", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
-      const chatbotId = parseInt(req.params.id);
+      const chatbotId = parseInt(req.params.chatbotId);
 
       const chatbot = await storage.getNonAiChatbot(chatbotId);
       if (!chatbot || chatbot.userId !== user.id) {
         return res.status(404).json({ message: "Chatbot not found" });
       }
 
-      const flows = await storage.getBotFlowsByChatbotId(chatbotId);
-      res.json(flows);
+      const flows = await storage.getBotFlowsByBotId(chatbotId);
+      // Parse JSON fields
+      const parsedFlows = flows.map(flow => ({
+        ...flow,
+        buttons: flow.buttons ? JSON.parse(flow.buttons) : null,
+        inlineButtons: flow.inlineButtons ? JSON.parse(flow.inlineButtons) : null
+      }));
+      res.json(parsedFlows);
     } catch (error) {
       console.error("Get bot flows error:", error);
       res.status(500).json({ message: "Failed to fetch bot flows" });
@@ -1341,7 +1347,7 @@ export function registerRoutes(app: Express): Server {
       if (type === "menu") {
         const hasRegularButtons = buttons && Array.isArray(buttons) && buttons.length > 0;
         const hasInlineButtons = inlineButtons && Array.isArray(inlineButtons) && inlineButtons.length > 0;
-        
+
         if (!hasRegularButtons && !hasInlineButtons) {
           return res.status(400).json({ message: "Either regular buttons or inline buttons are required for menu type" });
         }
@@ -1594,7 +1600,7 @@ export function registerRoutes(app: Express): Server {
 
       // Process webhook update
       const { NonAiChatbotService, WebhookProcessor } = await import("./non-ai-chatbot");
-      
+
       // Handle callback queries (inline keyboard button presses)
       if (update.callback_query) {
         const callbackQuery = update.callback_query;
@@ -1611,9 +1617,9 @@ export function registerRoutes(app: Express): Server {
 
         if (flow) {
           console.log(`Found matching flow for callback: ${flow.command}`);
-          
+
           let replyMarkup = null;
-          
+
           // Priority: Use inline buttons if available, otherwise fall back to regular buttons
           if (flow.inlineButtons && flow.inlineButtons.length > 0) {
             replyMarkup = NonAiChatbotService.createInlineKeyboardFromData(flow.inlineButtons);
@@ -1644,18 +1650,18 @@ export function registerRoutes(app: Express): Server {
 
       // Handle regular text messages
       const { chatId, text, messageType } = WebhookProcessor.extractUserInput(update);
-      
+
       console.log("Extracted input:", { chatId, text, messageType });
 
       // Find matching flow for the command/button text
       const flow = await storage.getBotFlowByCommand(chatbotId, text);
-      
+
       console.log("Found flow:", flow ? `${flow.command} (${flow.type})` : "None");
 
       if (flow) {
         // Send response based on flow type
         let replyMarkup = null;
-        
+
         // Priority: Use inline buttons if available, otherwise fall back to regular buttons
         if (flow.inlineButtons && flow.inlineButtons.length > 0) {
           replyMarkup = NonAiChatbotService.createInlineKeyboardFromData(flow.inlineButtons);

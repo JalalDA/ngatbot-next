@@ -70,9 +70,8 @@ export default function ChatbotBuilderPage() {
   const { data: chatbots = [], isLoading: loadingChatbots } = useQuery({
     queryKey: ["/api/nonai-chatbots"],
     queryFn: async () => {
-      const res = await fetch("/api/nonai-chatbots");
-      if (!res.ok) throw new Error("Failed to fetch chatbots");
-      return res.json();
+      const res = await apiRequest("GET", "/api/nonai-chatbots");
+      return await res.json();
     },
   });
 
@@ -81,9 +80,8 @@ export default function ChatbotBuilderPage() {
     queryKey: ["/api/nonai-chatbots", selectedChatbot?.id, "flows"],
     queryFn: async () => {
       if (!selectedChatbot) return [];
-      const res = await fetch(`/api/nonai-chatbots/${selectedChatbot.id}/flows`);
-      if (!res.ok) throw new Error("Failed to fetch flows");
-      return res.json();
+      const res = await apiRequest("GET", `/api/nonai-chatbots/${selectedChatbot.id}/flows`);
+      return await res.json();
     },
     enabled: !!selectedChatbot,
   });
@@ -91,7 +89,7 @@ export default function ChatbotBuilderPage() {
   // Create bot mutation
   const createBotMutation = useMutation({
     mutationFn: async (botToken: string) => {
-      const res = await apiRequest("POST", "/api/nonai-chatbots", { botToken });
+      const res = await apiRequest("POST", "/api/nonai-chatbots", { token: botToken });
       return await res.json();
     },
     onSuccess: (newBot) => {

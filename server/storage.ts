@@ -15,7 +15,7 @@ export interface IStorage {
   updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
   deleteUser(id: number): Promise<boolean>;
   getAllUsers(): Promise<User[]>;
-  
+
   // Bot management
   getBot(id: number): Promise<Bot | undefined>;
   getBotsByUserId(userId: number): Promise<Bot[]>;
@@ -24,33 +24,33 @@ export interface IStorage {
   updateBot(id: number, updates: Partial<Bot>): Promise<Bot | undefined>;
   deleteBot(id: number): Promise<boolean>;
   getAllBots(): Promise<Bot[]>;
-  
+
   // Knowledge management
   getKnowledge(id: number): Promise<Knowledge | undefined>;
   getKnowledgeByBotId(botId: number): Promise<Knowledge[]>;
   createKnowledge(knowledge: InsertKnowledge): Promise<Knowledge>;
   updateKnowledge(id: number, updates: Partial<Knowledge>): Promise<Knowledge | undefined>;
   deleteKnowledge(id: number): Promise<boolean>;
-  
+
   // Transaction management
   getTransaction(id: number): Promise<Transaction | undefined>;
   getTransactionsByUserId(userId: number): Promise<Transaction[]>;
   getTransactionByOrderId(orderId: string): Promise<Transaction | undefined>;
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   updateTransaction(id: number, updates: Partial<Transaction>): Promise<Transaction | undefined>;
-  
+
   // Settings management
   getSetting(key: string): Promise<Setting | undefined>;
   setSetting(setting: InsertSetting): Promise<Setting>;
   updateSetting(key: string, value: string): Promise<Setting | undefined>;
-  
+
   // SMM Provider management
   getSmmProvider(id: number): Promise<SmmProvider | undefined>;
   getSmmProvidersByUserId(userId: number): Promise<SmmProvider[]>;
   createSmmProvider(provider: InsertSmmProvider): Promise<SmmProvider>;
   updateSmmProvider(id: number, updates: Partial<SmmProvider>): Promise<SmmProvider | undefined>;
   deleteSmmProvider(id: number): Promise<boolean>;
-  
+
   // SMM Service management
   getSmmService(id: number): Promise<SmmService | undefined>;
   getSmmServicesByUserId(userId: number): Promise<SmmService[]>;
@@ -60,7 +60,7 @@ export interface IStorage {
   updateSmmService(id: number, updates: Partial<SmmService>): Promise<SmmService | undefined>;
   deleteSmmService(id: number): Promise<boolean>;
   getUsedMids(userId: number): Promise<number[]>;
-  
+
   // SMM Order management
   getSmmOrder(id: number): Promise<SmmOrder | undefined>;
   getSmmOrderByOrderId(orderId: string): Promise<SmmOrder | undefined>;
@@ -83,7 +83,7 @@ export interface IStorage {
   createBotFlow(flow: InsertBotFlow): Promise<BotFlow>;
   updateBotFlow(id: number, updates: Partial<BotFlow>): Promise<BotFlow | undefined>;
   deleteBotFlow(id: number): Promise<boolean>;
-  
+
   sessionStore: any;
 }
 
