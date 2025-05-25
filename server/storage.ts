@@ -390,7 +390,7 @@ export class DatabaseStorage implements IStorage {
 
   // Auto Bot management
   async createAutoBot(insertAutoBot: InsertAutoBot): Promise<AutoBot> {
-    const [autoBot] = await this.db
+    const [autoBot] = await db
       .insert(autoBots)
       .values(insertAutoBot)
       .returning();
@@ -398,7 +398,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAutoBot(id: number): Promise<AutoBot | undefined> {
-    const [autoBot] = await this.db
+    const [autoBot] = await db
       .select()
       .from(autoBots)
       .where(eq(autoBots.id, id));
@@ -406,7 +406,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAutoBotsByUserId(userId: number): Promise<AutoBot[]> {
-    return await this.db
+    return await db
       .select()
       .from(autoBots)
       .where(eq(autoBots.userId, userId))
@@ -414,7 +414,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateAutoBot(id: number, updates: Partial<AutoBot>): Promise<AutoBot | undefined> {
-    const [autoBot] = await this.db
+    const [autoBot] = await db
       .update(autoBots)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(autoBots.id, id))
@@ -423,21 +423,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAutoBot(id: number): Promise<boolean> {
-    const result = await this.db
+    const result = await db
       .delete(autoBots)
       .where(eq(autoBots.id, id));
     return result.rowCount !== null && result.rowCount > 0;
   }
 
   async getAllAutoBots(): Promise<AutoBot[]> {
-    return await this.db
+    return await db
       .select()
       .from(autoBots)
       .orderBy(desc(autoBots.createdAt));
   }
 
   async getAutoBotByToken(token: string): Promise<AutoBot | undefined> {
-    const [autoBot] = await this.db
+    const [autoBot] = await db
       .select()
       .from(autoBots)
       .where(eq(autoBots.token, token));

@@ -3,9 +3,10 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { telegramBotManager } from "./telegram";
-import { insertBotSchema, insertKnowledgeSchema, insertSettingSchema, insertSmmProviderSchema, insertSmmServiceSchema, insertSmmOrderSchema } from "@shared/schema";
+import { insertBotSchema, insertKnowledgeSchema, insertSettingSchema, insertSmmProviderSchema, insertSmmServiceSchema, insertSmmOrderSchema, insertAutoBotSchema } from "@shared/schema";
 import { createMidtransTransaction, generateOrderId, verifySignatureKey, getTransactionStatus, UPGRADE_PLANS, type PlanType } from "./midtrans";
 import { SmmPanelAPI, generateSmmOrderId, generateMid, parseRate, calculateOrderAmount } from "./smm-panel";
+import { autoBotManager } from "./auto-bot";
 import { z } from "zod";
 
 function requireAuth(req: any, res: any, next: any) {
@@ -1121,10 +1122,193 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Auto Bot Routes
+  
+  // Validate bot token
+  app.post("/api/autobots/validate-token", requireAuth, async (req, res) => {
+    try {
+      const { token } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({ message: "Bot token is required" });
+      }
+
+      const validation = await autoBotManager.validateBotToken(token);
+      
+      if (validation.valid) {
+        res.json({
+          valid: true,
+          botInfo: validation.botInfo
+        });
+      } else {
+        res.status(400).json({
+          valid: false,
+          error: validation.error
+        });
+      }
+    } catch (error) {
+      console.error("Token validation error:", error);
+      res.status(500).json({ message: "Failed to validate token" });
+    }
+  });
+
+  // Get user's auto bots
+  app.get("/api/autobots", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const autoBots = await storage.getAutoBotsByUserId(user.id);
+      res.json(autoBots);
+    } catch (error) {
+      console.error("Get auto bots error:", error);
+      res.status(500).json({ message: "Failed to fetch auto bots" });
+    }
+  });
+
+  // Create auto bot
+  app.post("/api/autobots", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { token, botName, botUsername, welcomeMessage, keyboardConfig, isActive } = req.body;
+
+      // Validate required fields
+      if (!token || !botName || !botUsername) {
+        return res.status(400).json({ message: "Token, bot name, and bot username are required" });
+      }
+
+      // Check if token is already in use
+      const existingBot = await storage.getAutoBotByToken(token);
+      if (existingBot) {
+        return res.status(400).json({ message: "This bot token is already in use" });
+      }
+
+      // Validate token first
+      const validation = await autoBotManager.validateBotToken(token);
+      if (!validation.valid) {
+        return res.status(400).json({ message: validation.error || "Invalid bot token" });
+      }
+
+      const autoBot = await storage.createAutoBot({
+        userId: user.id,
+        token,
+        botName,
+        botUsername,
+        welcomeMessage: welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:",
+        keyboardConfig: keyboardConfig || [],
+        isActive: isActive !== false
+      });
+
+      // Start the bot if it's active
+      if (autoBot.isActive) {
+        await autoBotManager.startAutoBot(autoBot);
+      }
+
+      res.json(autoBot);
+    } catch (error) {
+      console.error("Create auto bot error:", error);
+      res.status(500).json({ message: "Failed to create auto bot" });
+    }
+  });
+
+  // Update auto bot
+  app.put("/api/autobots/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const botId = parseInt(req.params.id);
+      const updates = req.body;
+
+      // Get existing bot
+      const existingBot = await storage.getAutoBot(botId);
+      if (!existingBot || existingBot.userId !== user.id) {
+        return res.status(404).json({ message: "Auto bot not found" });
+      }
+
+      // Update bot
+      const updatedBot = await storage.updateAutoBot(botId, updates);
+      if (!updatedBot) {
+        return res.status(404).json({ message: "Auto bot not found" });
+      }
+
+      // Restart bot if it's active
+      if (updatedBot.isActive) {
+        await autoBotManager.stopAutoBot(updatedBot.token);
+        await autoBotManager.startAutoBot(updatedBot);
+      } else {
+        await autoBotManager.stopAutoBot(updatedBot.token);
+      }
+
+      res.json(updatedBot);
+    } catch (error) {
+      console.error("Update auto bot error:", error);
+      res.status(500).json({ message: "Failed to update auto bot" });
+    }
+  });
+
+  // Delete auto bot
+  app.delete("/api/autobots/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const botId = parseInt(req.params.id);
+
+      // Get existing bot
+      const existingBot = await storage.getAutoBot(botId);
+      if (!existingBot || existingBot.userId !== user.id) {
+        return res.status(404).json({ message: "Auto bot not found" });
+      }
+
+      // Stop bot if running
+      await autoBotManager.stopAutoBot(existingBot.token);
+
+      // Delete bot
+      const deleted = await storage.deleteAutoBot(botId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Auto bot not found" });
+      }
+
+      res.json({ message: "Auto bot deleted successfully" });
+    } catch (error) {
+      console.error("Delete auto bot error:", error);
+      res.status(500).json({ message: "Failed to delete auto bot" });
+    }
+  });
+
+  // Start/Stop auto bot
+  app.post("/api/autobots/:id/toggle", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const botId = parseInt(req.params.id);
+      const { isActive } = req.body;
+
+      // Get existing bot
+      const existingBot = await storage.getAutoBot(botId);
+      if (!existingBot || existingBot.userId !== user.id) {
+        return res.status(404).json({ message: "Auto bot not found" });
+      }
+
+      // Update bot status
+      const updatedBot = await storage.updateAutoBot(botId, { isActive });
+      if (!updatedBot) {
+        return res.status(404).json({ message: "Auto bot not found" });
+      }
+
+      // Start or stop bot
+      if (isActive) {
+        await autoBotManager.startAutoBot(updatedBot);
+      } else {
+        await autoBotManager.stopAutoBot(updatedBot.token);
+      }
+
+      res.json(updatedBot);
+    } catch (error) {
+      console.error("Toggle auto bot error:", error);
+      res.status(500).json({ message: "Failed to toggle auto bot" });
+    }
+  });
+
   // Start bot manager after a delay to ensure database is ready
   setTimeout(async () => {
     try {
       await telegramBotManager.restartAllBots();
+      await autoBotManager.restartAllAutoBots();
     } catch (error) {
       console.error("Failed to restart bots on server start:", error);
     }
