@@ -1352,7 +1352,7 @@ export function registerRoutes(app: Express): Server {
         command,
         type,
         text,
-        buttons: type === "menu" ? buttons : null,
+        buttons: (type === "menu" || type === "inline") ? buttons : null,
         parentCommand
       });
 
@@ -1533,7 +1533,7 @@ export function registerRoutes(app: Express): Server {
         command,
         type,
         text,
-        buttons: type === "menu" ? buttons : null,
+        buttons: (type === "menu" || type === "inline") ? buttons : null,
         parentCommand
       });
 

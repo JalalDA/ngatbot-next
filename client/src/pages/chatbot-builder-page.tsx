@@ -1286,6 +1286,21 @@ export default function ChatbotBuilderPage() {
                         </div>
 
                         <div className="flex gap-2">
+                          <Button 
+                            variant="default" 
+                            onClick={() => {
+                              setShowCreateInlineFlow(false);
+                              setShowCreateFlow(true);
+                              toast({
+                                title: "Manual Inline Menu",
+                                description: "Use 'Add Flow' with type 'inline' to create custom inline keyboards manually.",
+                              });
+                            }}
+                            className="flex-1"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Manually
+                          </Button>
                           <Button variant="outline" onClick={() => setShowCreateInlineFlow(false)} className="flex-1">
                             Close
                           </Button>
