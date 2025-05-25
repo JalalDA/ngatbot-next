@@ -1130,6 +1130,119 @@ export default function DashboardPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* See All Services Modal */}
+      <Dialog open={showAllServicesModal} onOpenChange={setShowAllServicesModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>All SMM Panel Services ({smmServices?.length || 0} total)</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Search Services */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+              <Input
+                placeholder="Search services..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Services List */}
+            <div className="grid gap-3 max-h-96 overflow-y-auto">
+              {smmServices
+                ?.filter((service: any) => 
+                  service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  service.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  service.mid.toString().includes(searchQuery)
+                )
+                .map((service: any) => (
+                  <div key={service.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border hover:bg-slate-100 transition-colors">
+                    <div className="flex items-center space-x-3 flex-1">
+                      <Badge variant="outline" className="font-mono shrink-0">
+                        ID {service.mid}
+                      </Badge>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-slate-900 truncate">{service.name}</div>
+                        {service.description && (
+                          <div className="text-sm text-slate-500 truncate">{service.description}</div>
+                        )}
+                        <div className="text-xs text-slate-400 mt-1">
+                          Min: {service.min} | Max: {service.max}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3 shrink-0">
+                      <div className="text-right">
+                        <div className="font-semibold text-slate-900">
+                          Rp {service.rate}/1000
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {service.isActive ? 'Active' : 'Inactive'}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          handleEditService(service);
+                          setShowAllServicesModal(false);
+                        }}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              }
+              
+              {smmServices
+                ?.filter((service: any) => 
+                  service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  service.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  service.mid.toString().includes(searchQuery)
+                ).length === 0 && (
+                <div className="text-center py-8 text-slate-500">
+                  {searchQuery ? 'No services found matching your search.' : 'No services available.'}
+                </div>
+              )}
+            </div>
+
+            {/* Statistics */}
+            <div className="border-t pt-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div>
+                  <div className="text-2xl font-bold text-slate-900">
+                    {smmServices?.length || 0}
+                  </div>
+                  <div className="text-sm text-slate-500">Total Services</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {smmServices?.filter((s: any) => s.isActive).length || 0}
+                  </div>
+                  <div className="text-sm text-slate-500">Active</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-slate-400">
+                    {smmServices?.filter((s: any) => !s.isActive).length || 0}
+                  </div>
+                  <div className="text-sm text-slate-500">Inactive</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {new Set(smmServices?.map((s: any) => s.providerId)).size || 0}
+                  </div>
+                  <div className="text-sm text-slate-500">Providers</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
