@@ -37,11 +37,18 @@ interface BotFlow {
   updatedAt: string;
 }
 
+interface MenuHierarchy {
+  command: string;
+  text: string;
+  submenus: MenuHierarchy[];
+}
+
 export default function ChatbotBuilderPage() {
   const [selectedChatbot, setSelectedChatbot] = useState<NonAiChatbot | null>(null);
   const [showCreateBot, setShowCreateBot] = useState(false);
   const [showCreateFlow, setShowCreateFlow] = useState(false);
   const [showEditFlow, setShowEditFlow] = useState(false);
+  const [showHierarchicalBuilder, setShowHierarchicalBuilder] = useState(false);
   const [editingFlow, setEditingFlow] = useState<BotFlow | null>(null);
   const [newBotToken, setNewBotToken] = useState("");
   const [flowForm, setFlowForm] = useState({
@@ -51,6 +58,7 @@ export default function ChatbotBuilderPage() {
     buttons: [""],
     parentCommand: ""
   });
+  const [menuHierarchy, setMenuHierarchy] = useState<MenuHierarchy[]>([]);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -319,6 +327,182 @@ export default function ChatbotBuilderPage() {
     }));
   };
 
+  // Template creation functions
+  const createBusinessMenuTemplate = async () => {
+    if (!selectedChatbot) return;
+    
+    const businessFlows = [
+      {
+        command: "/start",
+        type: "menu" as const,
+        text: "🏢 Selamat datang di bisnis kami! Pilih menu di bawah:",
+        buttons: ["🔧 Layanan", "💰 Harga", "📞 Kontak", "ℹ️ Tentang Kami"],
+        parentCommand: null
+      },
+      {
+        command: "🔧 Layanan",
+        type: "menu" as const,
+        text: "🔧 Berikut adalah layanan yang kami tawarkan:",
+        buttons: ["⚡ Konsultasi", "🛠️ Implementasi", "🔄 Maintenance", "🔙 Kembali"],
+        parentCommand: "/start"
+      },
+      {
+        command: "💰 Harga",
+        type: "menu" as const,
+        text: "💰 Paket harga kami:",
+        buttons: ["📦 Basic", "⭐ Premium", "💎 Enterprise", "🔙 Kembali"],
+        parentCommand: "/start"
+      },
+      {
+        command: "📞 Kontak",
+        type: "text" as const,
+        text: "📞 Hubungi kami:\n📧 Email: info@bisnis.com\n📱 WhatsApp: +62812345678\n🌐 Website: www.bisnis.com",
+        buttons: null,
+        parentCommand: "/start"
+      },
+      {
+        command: "🔙 Kembali",
+        type: "menu" as const,
+        text: "🏢 Selamat datang di bisnis kami! Pilih menu di bawah:",
+        buttons: ["🔧 Layanan", "💰 Harga", "📞 Kontak", "ℹ️ Tentang Kami"],
+        parentCommand: null
+      }
+    ];
+
+    try {
+      for (const flow of businessFlows) {
+        await apiRequest("POST", `/api/nonai-chatbots/${selectedChatbot.id}/flows`, flow);
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/nonai-chatbots", selectedChatbot.id, "flows"] });
+      setShowHierarchicalBuilder(false);
+      toast({
+        title: "Success! 🎉",
+        description: "Business menu template created with 2x2 layout for main menu!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to create business menu template",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const createEcommerceMenuTemplate = async () => {
+    if (!selectedChatbot) return;
+    
+    const ecommerceFlows = [
+      {
+        command: "/start",
+        type: "menu" as const,
+        text: "🛒 Selamat datang di toko online kami! Pilih menu:",
+        buttons: ["📱 Produk", "📦 Pesanan", "🎧 Support", "👤 Akun"],
+        parentCommand: null
+      },
+      {
+        command: "📱 Produk",
+        type: "menu" as const,
+        text: "📱 Kategori produk kami:",
+        buttons: ["💻 Electronics", "👕 Fashion", "🏠 Home", "🔙 Kembali"],
+        parentCommand: "/start"
+      },
+      {
+        command: "📦 Pesanan",
+        type: "menu" as const,
+        text: "📦 Kelola pesanan Anda:",
+        buttons: ["🔍 Cek Status", "📋 Riwayat", "❌ Batal", "🔙 Kembali"],
+        parentCommand: "/start"
+      },
+      {
+        command: "🔙 Kembali",
+        type: "menu" as const,
+        text: "🛒 Selamat datang di toko online kami! Pilih menu:",
+        buttons: ["📱 Produk", "📦 Pesanan", "🎧 Support", "👤 Akun"],
+        parentCommand: null
+      }
+    ];
+
+    try {
+      for (const flow of ecommerceFlows) {
+        await apiRequest("POST", `/api/nonai-chatbots/${selectedChatbot.id}/flows`, flow);
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/nonai-chatbots", selectedChatbot.id, "flows"] });
+      setShowHierarchicalBuilder(false);
+      toast({
+        title: "Success! 🎉",
+        description: "E-commerce menu template created with 2x2 layout!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to create e-commerce menu template",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const createSocialMediaMenuTemplate = async () => {
+    if (!selectedChatbot) return;
+    
+    const socialFlows = [
+      {
+        command: "/start",
+        type: "menu" as const,
+        text: "📱 Social Media Services - Pilih layanan:",
+        buttons: ["👥 Followers", "❤️ Likes", "👁️ Views", "📊 Analytics"],
+        parentCommand: null
+      },
+      {
+        command: "👥 Followers",
+        type: "menu" as const,
+        text: "👥 Followers Services:",
+        buttons: ["📸 Instagram", "📘 Facebook", "🐦 Twitter", "🔙 Kembali"],
+        parentCommand: "/start"
+      },
+      {
+        command: "❤️ Likes",
+        type: "menu" as const,
+        text: "❤️ Likes Services:",
+        buttons: ["📸 Instagram", "📘 Facebook", "▶️ YouTube", "🔙 Kembali"],
+        parentCommand: "/start"
+      },
+      {
+        command: "🔙 Kembali",
+        type: "menu" as const,
+        text: "📱 Social Media Services - Pilih layanan:",
+        buttons: ["👥 Followers", "❤️ Likes", "👁️ Views", "📊 Analytics"],
+        parentCommand: null
+      }
+    ];
+
+    try {
+      for (const flow of socialFlows) {
+        await apiRequest("POST", `/api/nonai-chatbots/${selectedChatbot.id}/flows`, flow);
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/nonai-chatbots", selectedChatbot.id, "flows"] });
+      setShowHierarchicalBuilder(false);
+      toast({
+        title: "Success! 🎉",
+        description: "Social Media menu template created with 2x2 layout!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to create social media menu template",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const createCustomMenuTemplate = () => {
+    setShowHierarchicalBuilder(false);
+    setShowCreateFlow(true);
+    toast({
+      title: "Custom Menu Builder",
+      description: "Use 'Add Flow' to create your custom menu structure. Remember: 4 buttons = 2x2 layout!",
+    });
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -459,6 +643,15 @@ export default function ChatbotBuilderPage() {
                   >
                     <Menu className="h-4 w-4 mr-2" />
                     {createExampleFlowsMutation.isPending ? "Membuat..." : "🚀 Buat Contoh Menu"}
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowHierarchicalBuilder(true)}
+                    className="bg-gradient-to-r from-green-600 to-teal-600 text-white border-0 hover:from-green-700 hover:to-teal-700"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    🌳 Menu Builder
                   </Button>
                   
                   <Dialog open={showCreateFlow} onOpenChange={setShowCreateFlow}>
@@ -660,6 +853,99 @@ export default function ChatbotBuilderPage() {
                           </Button>
                           <Button variant="outline" onClick={() => setShowEditFlow(false)}>
                             Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Hierarchical Menu Builder Dialog */}
+                  <Dialog open={showHierarchicalBuilder} onOpenChange={setShowHierarchicalBuilder}>
+                    <DialogContent className="bg-background border-border max-w-4xl max-h-[80vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle className="text-foreground">🌳 Hierarchical Menu Builder</DialogTitle>
+                        <DialogDescription className="text-muted-foreground">
+                          Create structured menu systems with multiple levels of submenus
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <div className="space-y-6">
+                        {/* Preview Layout for 4 buttons */}
+                        <div className="border border-border rounded-lg p-4 bg-accent/20">
+                          <h3 className="text-sm font-medium text-foreground mb-3">📱 Layout Preview (4 buttons = 2x2 grid)</h3>
+                          <div className="grid grid-cols-2 gap-2 max-w-xs mx-auto">
+                            <div className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 p-2 rounded text-xs text-center">
+                              Button 1
+                            </div>
+                            <div className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 p-2 rounded text-xs text-center">
+                              Button 2
+                            </div>
+                            <div className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 p-2 rounded text-xs text-center">
+                              Button 3
+                            </div>
+                            <div className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 p-2 rounded text-xs text-center">
+                              Button 4
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2 text-center">
+                            4 buttons will automatically arrange in 2x2 grid layout
+                          </p>
+                        </div>
+
+                        {/* Quick Menu Templates */}
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-semibold text-foreground">🚀 Quick Templates</h3>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Button
+                              variant="outline"
+                              className="h-auto p-4 flex flex-col items-start space-y-2"
+                              onClick={() => createBusinessMenuTemplate()}
+                            >
+                              <div className="font-medium">🏢 Business Menu</div>
+                              <div className="text-xs text-muted-foreground text-left">
+                                Services → Pricing → Contact → About
+                              </div>
+                            </Button>
+
+                            <Button
+                              variant="outline"
+                              className="h-auto p-4 flex flex-col items-start space-y-2"
+                              onClick={() => createEcommerceMenuTemplate()}
+                            >
+                              <div className="font-medium">🛒 E-commerce Menu</div>
+                              <div className="text-xs text-muted-foreground text-left">
+                                Products → Orders → Support → Account
+                              </div>
+                            </Button>
+
+                            <Button
+                              variant="outline"
+                              className="h-auto p-4 flex flex-col items-start space-y-2"
+                              onClick={() => createSocialMediaMenuTemplate()}
+                            >
+                              <div className="font-medium">📱 Social Media Menu</div>
+                              <div className="text-xs text-muted-foreground text-left">
+                                Followers → Likes → Views → Analytics
+                              </div>
+                            </Button>
+
+                            <Button
+                              variant="outline"
+                              className="h-auto p-4 flex flex-col items-start space-y-2"
+                              onClick={() => createCustomMenuTemplate()}
+                            >
+                              <div className="font-medium">⚡ Custom Menu</div>
+                              <div className="text-xs text-muted-foreground text-left">
+                                Build your own menu structure
+                              </div>
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button variant="outline" onClick={() => setShowHierarchicalBuilder(false)} className="flex-1">
+                            Close
                           </Button>
                         </div>
                       </div>
