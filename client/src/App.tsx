@@ -9,6 +9,7 @@ import LandingPage from "@/pages/landing-page";
 import AuthPage from "@/pages/auth-page";
 import DashboardPage from "@/pages/dashboard-page";
 import AdminPage from "@/pages/admin-page";
+import SmmPanelPage from "@/pages/smm-panel-page";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       <Route path="/ilmiadmin" component={AdminPage} />
       <ProtectedRoute path="/dashboard" component={DashboardPage} />
+      <ProtectedRoute path="/smm-panel" component={SmmPanelPage} />
       <Route path="/" component={LandingPage} />
       <Route component={NotFound} />
     </Switch>
