@@ -20,6 +20,15 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       <Route path="/ilmiadmin" component={AdminPage} />
       <ProtectedRoute 
+        path="/dashboard" 
+        component={() => (
+          <>
+            <Navigation />
+            <OverviewDashboard />
+          </>
+        )} 
+      />
+      <ProtectedRoute 
         path="/bots" 
         component={() => (
           <>
@@ -37,15 +46,7 @@ function Router() {
           </>
         )} 
       />
-      <ProtectedRoute 
-        path="/" 
-        component={() => (
-          <>
-            <Navigation />
-            <OverviewDashboard />
-          </>
-        )} 
-      />
+      <Route path="/" component={LandingPage} />
       <Route component={NotFound} />
     </Switch>
   );
