@@ -41,8 +41,6 @@ export default function ChatbotBuilderPage() {
   const [selectedChatbot, setSelectedChatbot] = useState<NonAiChatbot | null>(null);
   const [showCreateBot, setShowCreateBot] = useState(false);
   const [showCreateFlow, setShowCreateFlow] = useState(false);
-  const [showEditFlow, setShowEditFlow] = useState(false);
-  const [editingFlow, setEditingFlow] = useState<BotFlow | null>(null);
   const [newBotToken, setNewBotToken] = useState("");
   const [flowForm, setFlowForm] = useState({
     command: "",
@@ -158,37 +156,6 @@ export default function ChatbotBuilderPage() {
     },
   });
 
-  // Update flow mutation
-  const updateFlowMutation = useMutation({
-    mutationFn: async ({ flowId, flowData }: { flowId: number; flowData: any }) => {
-      const res = await apiRequest("PUT", `/api/nonai-chatbots/${selectedChatbot?.id}/flows/${flowId}`, flowData);
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/nonai-chatbots", selectedChatbot?.id, "flows"] });
-      setShowEditFlow(false);
-      setEditingFlow(null);
-      setFlowForm({
-        command: "",
-        type: "text",
-        text: "",
-        buttons: [""],
-        parentCommand: ""
-      });
-      toast({
-        title: "Success",
-        description: "Flow updated successfully!",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update flow",
-        variant: "destructive",
-      });
-    },
-  });
-
   // Delete flow mutation
   const deleteFlowMutation = useMutation({
     mutationFn: async (flowId: number) => {
@@ -263,39 +230,6 @@ export default function ChatbotBuilderPage() {
     };
 
     createFlowMutation.mutate(flowData);
-  };
-
-  const handleUpdateFlow = () => {
-    if (!editingFlow || !flowForm.command || !flowForm.text) {
-      toast({
-        title: "Error",
-        description: "Command and text are required",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const flowData = {
-      command: flowForm.command,
-      type: flowForm.type,
-      text: flowForm.text,
-      buttons: flowForm.type === "menu" ? flowForm.buttons.filter(b => b.trim()) : undefined,
-      parentCommand: flowForm.parentCommand || undefined
-    };
-
-    updateFlowMutation.mutate({ flowId: editingFlow.id, flowData });
-  };
-
-  const handleEditFlow = (flow: BotFlow) => {
-    setEditingFlow(flow);
-    setFlowForm({
-      command: flow.command,
-      type: flow.type,
-      text: flow.text,
-      buttons: flow.buttons || [""],
-      parentCommand: flow.parentCommand || ""
-    });
-    setShowEditFlow(true);
   };
 
   const addButton = () => {
@@ -441,7 +375,7 @@ export default function ChatbotBuilderPage() {
 
         <TabsContent value="flows" className="space-y-4">
           {selectedChatbot && (
-            <div className="space-y-6">
+            <>
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-semibold text-foreground">
@@ -565,106 +499,6 @@ export default function ChatbotBuilderPage() {
                       </div>
                     </DialogContent>
                   </Dialog>
-
-                  {/* Edit Flow Dialog */}
-                  <Dialog open={showEditFlow} onOpenChange={setShowEditFlow}>
-                    <DialogContent className="bg-background border-border max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle className="text-foreground">Edit Bot Flow</DialogTitle>
-                        <DialogDescription className="text-muted-foreground">
-                          Update the command and response for your bot
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="edit-command" className="text-foreground">Command</Label>
-                            <Input
-                              id="edit-command"
-                              placeholder="/start, Followers, Info, etc."
-                              value={flowForm.command}
-                              onChange={(e) => setFlowForm(prev => ({ ...prev, command: e.target.value }))}
-                              className="bg-background border-border text-foreground"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="edit-type" className="text-foreground">Type</Label>
-                            <Select value={flowForm.type} onValueChange={(value: "menu" | "text") => setFlowForm(prev => ({ ...prev, type: value }))}>
-                              <SelectTrigger className="bg-background border-border text-foreground">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent className="bg-background border-border">
-                                <SelectItem value="text">Text Response</SelectItem>
-                                <SelectItem value="menu">Menu with Buttons</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        <div>
-                          <Label htmlFor="edit-text" className="text-foreground">Response Text</Label>
-                          <Textarea
-                            id="edit-text"
-                            placeholder="Enter the response message..."
-                            value={flowForm.text}
-                            onChange={(e) => setFlowForm(prev => ({ ...prev, text: e.target.value }))}
-                            className="bg-background border-border text-foreground"
-                            rows={3}
-                          />
-                        </div>
-
-                        {flowForm.type === "menu" && (
-                          <div>
-                            <Label className="text-foreground">Menu Buttons</Label>
-                            <div className="space-y-2">
-                              {flowForm.buttons.map((button, index) => (
-                                <div key={index} className="flex gap-2">
-                                  <Input
-                                    placeholder={`Button ${index + 1}`}
-                                    value={button}
-                                    onChange={(e) => updateButton(index, e.target.value)}
-                                    className="bg-background border-border text-foreground"
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => removeButton(index)}
-                                    disabled={flowForm.buttons.length <= 1}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              ))}
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={addButton}
-                                className="w-full"
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Button
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={handleUpdateFlow}
-                            disabled={updateFlowMutation.isPending}
-                            className="flex-1"
-                          >
-                            {updateFlowMutation.isPending ? "Updating..." : "Update Flow"}
-                          </Button>
-                          <Button variant="outline" onClick={() => setShowEditFlow(false)}>
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
                 </div>
               </div>
 
@@ -717,7 +551,6 @@ export default function ChatbotBuilderPage() {
                             variant="outline"
                             size="sm"
                             className="flex-1"
-                            onClick={() => handleEditFlow(flow)}
                           >
                             <Edit className="h-4 w-4 mr-2" />
                             Edit
@@ -736,10 +569,11 @@ export default function ChatbotBuilderPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </>
           )}
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      </div>
     </div>
   );
 }

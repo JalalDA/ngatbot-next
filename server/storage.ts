@@ -1,7 +1,7 @@
-import { users, bots, knowledge, transactions, settings, smmProviders, smmServices, smmOrders, chatBots, menuItems, flowRules, chatBotOrders, type User, type InsertUser, type Bot, type InsertBot, type Knowledge, type InsertKnowledge, type Transaction, type InsertTransaction, type Setting, type InsertSetting, type SmmProvider, type InsertSmmProvider, type SmmService, type InsertSmmService, type SmmOrder, type InsertSmmOrder, type ChatBot, type InsertChatBot, type MenuItem, type InsertMenuItem, type FlowRule, type InsertFlowRule, type ChatBotOrder, type InsertChatBotOrder } from "@shared/schema";
+import { users, bots, knowledge, transactions, settings, smmProviders, smmServices, smmOrders, nonAiChatbots, botFlows, type User, type InsertUser, type Bot, type InsertBot, type Knowledge, type InsertKnowledge, type Transaction, type InsertTransaction, type Setting, type InsertSetting, type SmmProvider, type InsertSmmProvider, type SmmService, type InsertSmmService, type SmmOrder, type InsertSmmOrder, type NonAiChatbot, type InsertNonAiChatbot, type BotFlow, type InsertBotFlow } from "@shared/schema";
 import session from "express-session";
 import { db, pool } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 
 const PostgresSessionStore = connectPg(session);
@@ -67,35 +67,22 @@ export interface IStorage {
   getSmmOrdersByUserId(userId: number): Promise<SmmOrder[]>;
   createSmmOrder(order: InsertSmmOrder): Promise<SmmOrder>;
   updateSmmOrder(id: number, updates: Partial<SmmOrder>): Promise<SmmOrder | undefined>;
-  
-  // ChatBot Builder management
-  getChatBot(id: number): Promise<ChatBot | undefined>;
-  getChatBotsByUserId(userId: number): Promise<ChatBot[]>;
-  getChatBotByToken(token: string): Promise<ChatBot | undefined>;
-  createChatBot(chatBot: InsertChatBot & { userId: number; botName: string; botUsername: string }): Promise<ChatBot>;
-  updateChatBot(id: number, updates: Partial<ChatBot>): Promise<ChatBot | undefined>;
-  deleteChatBot(id: number): Promise<boolean>;
-  
-  // Menu Items management
-  getMenuItem(id: number): Promise<MenuItem | undefined>;
-  getMenuItemsByChatBotId(chatBotId: number): Promise<MenuItem[]>;
-  createMenuItem(menuItem: InsertMenuItem): Promise<MenuItem>;
-  updateMenuItem(id: number, updates: Partial<MenuItem>): Promise<MenuItem | undefined>;
-  deleteMenuItem(id: number): Promise<boolean>;
-  
-  // Flow Rules management
-  getFlowRule(id: number): Promise<FlowRule | undefined>;
-  getFlowRulesByChatBotId(chatBotId: number): Promise<FlowRule[]>;
-  createFlowRule(flowRule: InsertFlowRule): Promise<FlowRule>;
-  updateFlowRule(id: number, updates: Partial<FlowRule>): Promise<FlowRule | undefined>;
-  deleteFlowRule(id: number): Promise<boolean>;
-  
-  // ChatBot Orders management
-  getChatBotOrder(id: number): Promise<ChatBotOrder | undefined>;
-  getChatBotOrdersByUserId(userId: number): Promise<ChatBotOrder[]>;
-  getChatBotOrderByMidtransOrderId(orderId: string): Promise<ChatBotOrder | undefined>;
-  createChatBotOrder(order: InsertChatBotOrder): Promise<ChatBotOrder>;
-  updateChatBotOrder(id: number, updates: Partial<ChatBotOrder>): Promise<ChatBotOrder | undefined>;
+
+  // Non-AI Chatbot management
+  getNonAiChatbot(id: number): Promise<NonAiChatbot | undefined>;
+  getNonAiChatbotsByUserId(userId: number): Promise<NonAiChatbot[]>;
+  getNonAiChatbotByToken(token: string): Promise<NonAiChatbot | undefined>;
+  createNonAiChatbot(chatbot: InsertNonAiChatbot): Promise<NonAiChatbot>;
+  updateNonAiChatbot(id: number, updates: Partial<NonAiChatbot>): Promise<NonAiChatbot | undefined>;
+  deleteNonAiChatbot(id: number): Promise<boolean>;
+
+  // Bot Flow management
+  getBotFlow(id: number): Promise<BotFlow | undefined>;
+  getBotFlowsByChatbotId(chatbotId: number): Promise<BotFlow[]>;
+  getBotFlowByCommand(chatbotId: number, command: string): Promise<BotFlow | undefined>;
+  createBotFlow(flow: InsertBotFlow): Promise<BotFlow>;
+  updateBotFlow(id: number, updates: Partial<BotFlow>): Promise<BotFlow | undefined>;
+  deleteBotFlow(id: number): Promise<boolean>;
   
   sessionStore: any;
 }
@@ -408,146 +395,102 @@ export class DatabaseStorage implements IStorage {
     return order || undefined;
   }
 
-  // ChatBot Builder methods
-  async getChatBot(id: number): Promise<ChatBot | undefined> {
-    const [chatBot] = await db.select().from(chatBots).where(eq(chatBots.id, id));
-    return chatBot || undefined;
+  // Non-AI Chatbot methods
+  async getNonAiChatbot(id: number): Promise<NonAiChatbot | undefined> {
+    const [chatbot] = await db
+      .select()
+      .from(nonAiChatbots)
+      .where(eq(nonAiChatbots.id, id));
+    return chatbot || undefined;
   }
 
-  async getChatBotsByUserId(userId: number): Promise<ChatBot[]> {
-    return await db.select().from(chatBots).where(eq(chatBots.userId, userId));
+  async getNonAiChatbotsByUserId(userId: number): Promise<NonAiChatbot[]> {
+    return await db
+      .select()
+      .from(nonAiChatbots)
+      .where(eq(nonAiChatbots.userId, userId))
+      .orderBy(nonAiChatbots.createdAt);
   }
 
-  async getChatBotByToken(token: string): Promise<ChatBot | undefined> {
-    const [chatBot] = await db.select().from(chatBots).where(eq(chatBots.token, token));
-    return chatBot || undefined;
+  async getNonAiChatbotByToken(token: string): Promise<NonAiChatbot | undefined> {
+    const [chatbot] = await db
+      .select()
+      .from(nonAiChatbots)
+      .where(eq(nonAiChatbots.botToken, token));
+    return chatbot || undefined;
   }
 
-  async createChatBot(chatBotData: InsertChatBot & { userId: number; botName: string; botUsername: string }): Promise<ChatBot> {
-    const [chatBot] = await db
-      .insert(chatBots)
-      .values({
-        userId: chatBotData.userId,
-        token: chatBotData.token,
-        botName: chatBotData.botName,
-        botUsername: chatBotData.botUsername,
-        welcomeMessage: chatBotData.welcomeMessage || "Selamat datang! Pilih menu di bawah ini:",
-        isActive: true
-      })
+  async createNonAiChatbot(insertChatbot: InsertNonAiChatbot): Promise<NonAiChatbot> {
+    const [chatbot] = await db
+      .insert(nonAiChatbots)
+      .values(insertChatbot)
       .returning();
-    return chatBot;
+    return chatbot;
   }
 
-  async updateChatBot(id: number, updates: Partial<ChatBot>): Promise<ChatBot | undefined> {
-    const [chatBot] = await db
-      .update(chatBots)
-      .set(updates)
-      .where(eq(chatBots.id, id))
+  async updateNonAiChatbot(id: number, updates: Partial<NonAiChatbot>): Promise<NonAiChatbot | undefined> {
+    const [updated] = await db
+      .update(nonAiChatbots)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(nonAiChatbots.id, id))
       .returning();
-    return chatBot || undefined;
+    return updated || undefined;
   }
 
-  async deleteChatBot(id: number): Promise<boolean> {
-    const result = await db.delete(chatBots).where(eq(chatBots.id, id));
-    return result.rowCount > 0;
+  async deleteNonAiChatbot(id: number): Promise<boolean> {
+    const result = await db
+      .delete(nonAiChatbots)
+      .where(eq(nonAiChatbots.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
   }
 
-  // Menu Items methods
-  async getMenuItem(id: number): Promise<MenuItem | undefined> {
-    const [menuItem] = await db.select().from(menuItems).where(eq(menuItems.id, id));
-    return menuItem || undefined;
+  // Bot Flow methods
+  async getBotFlow(id: number): Promise<BotFlow | undefined> {
+    const [flow] = await db
+      .select()
+      .from(botFlows)
+      .where(eq(botFlows.id, id));
+    return flow || undefined;
   }
 
-  async getMenuItemsByChatBotId(chatBotId: number): Promise<MenuItem[]> {
-    return await db.select().from(menuItems).where(eq(menuItems.chatBotId, chatBotId));
+  async getBotFlowsByChatbotId(chatbotId: number): Promise<BotFlow[]> {
+    return await db
+      .select()
+      .from(botFlows)
+      .where(eq(botFlows.chatbotId, chatbotId))
+      .orderBy(botFlows.createdAt);
   }
 
-  async createMenuItem(insertMenuItem: InsertMenuItem): Promise<MenuItem> {
-    const [menuItem] = await db
-      .insert(menuItems)
-      .values(insertMenuItem)
+  async getBotFlowByCommand(chatbotId: number, command: string): Promise<BotFlow | undefined> {
+    const [flow] = await db
+      .select()
+      .from(botFlows)
+      .where(and(eq(botFlows.chatbotId, chatbotId), eq(botFlows.command, command)));
+    return flow || undefined;
+  }
+
+  async createBotFlow(insertFlow: InsertBotFlow): Promise<BotFlow> {
+    const [flow] = await db
+      .insert(botFlows)
+      .values(insertFlow)
       .returning();
-    return menuItem;
+    return flow;
   }
 
-  async updateMenuItem(id: number, updates: Partial<MenuItem>): Promise<MenuItem | undefined> {
-    const [menuItem] = await db
-      .update(menuItems)
-      .set(updates)
-      .where(eq(menuItems.id, id))
+  async updateBotFlow(id: number, updates: Partial<BotFlow>): Promise<BotFlow | undefined> {
+    const [updated] = await db
+      .update(botFlows)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(botFlows.id, id))
       .returning();
-    return menuItem || undefined;
+    return updated || undefined;
   }
 
-  async deleteMenuItem(id: number): Promise<boolean> {
-    const result = await db.delete(menuItems).where(eq(menuItems.id, id));
-    return result.rowCount > 0;
-  }
-
-  // Flow Rules methods
-  async getFlowRule(id: number): Promise<FlowRule | undefined> {
-    const [flowRule] = await db.select().from(flowRules).where(eq(flowRules.id, id));
-    return flowRule || undefined;
-  }
-
-  async getFlowRulesByChatBotId(chatBotId: number): Promise<FlowRule[]> {
-    return await db.select().from(flowRules).where(eq(flowRules.chatBotId, chatBotId));
-  }
-
-  async createFlowRule(insertFlowRule: InsertFlowRule): Promise<FlowRule> {
-    const [flowRule] = await db
-      .insert(flowRules)
-      .values(insertFlowRule)
-      .returning();
-    return flowRule;
-  }
-
-  async updateFlowRule(id: number, updates: Partial<FlowRule>): Promise<FlowRule | undefined> {
-    const [flowRule] = await db
-      .update(flowRules)
-      .set(updates)
-      .where(eq(flowRules.id, id))
-      .returning();
-    return flowRule || undefined;
-  }
-
-  async deleteFlowRule(id: number): Promise<boolean> {
-    const result = await db.delete(flowRules).where(eq(flowRules.id, id));
-    return result.rowCount > 0;
-  }
-
-  // ChatBot Orders methods
-  async getChatBotOrder(id: number): Promise<ChatBotOrder | undefined> {
-    const [order] = await db.select().from(chatBotOrders).where(eq(chatBotOrders.id, id));
-    return order || undefined;
-  }
-
-  async getChatBotOrdersByUserId(userId: number): Promise<ChatBotOrder[]> {
-    return await db.select().from(chatBotOrders)
-      .innerJoin(chatBots, eq(chatBotOrders.chatBotId, chatBots.id))
-      .where(eq(chatBots.userId, userId));
-  }
-
-  async getChatBotOrderByMidtransOrderId(orderId: string): Promise<ChatBotOrder | undefined> {
-    const [order] = await db.select().from(chatBotOrders).where(eq(chatBotOrders.midtransOrderId, orderId));
-    return order || undefined;
-  }
-
-  async createChatBotOrder(insertOrder: InsertChatBotOrder): Promise<ChatBotOrder> {
-    const [order] = await db
-      .insert(chatBotOrders)
-      .values(insertOrder)
-      .returning();
-    return order;
-  }
-
-  async updateChatBotOrder(id: number, updates: Partial<ChatBotOrder>): Promise<ChatBotOrder | undefined> {
-    const [order] = await db
-      .update(chatBotOrders)
-      .set(updates)
-      .where(eq(chatBotOrders.id, id))
-      .returning();
-    return order || undefined;
+  async deleteBotFlow(id: number): Promise<boolean> {
+    const result = await db
+      .delete(botFlows)
+      .where(eq(botFlows.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
   }
 }
 
