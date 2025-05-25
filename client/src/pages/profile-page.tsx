@@ -76,23 +76,23 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Username</span>
-                <span className="font-medium">{user.username}</span>
+                <span className="text-muted-foreground">Username</span>
+                <span className="font-medium text-foreground">{user.username}</span>
               </div>
               <Separator />
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Email</span>
-                <span className="font-medium">{user.email}</span>
+                <span className="text-muted-foreground">Email</span>
+                <span className="font-medium text-foreground">{user.email}</span>
               </div>
               <Separator />
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Role</span>
-                <Badge variant="outline">{user.role}</Badge>
+                <span className="text-muted-foreground">Role</span>
+                <Badge variant="outline" className="text-foreground border-border">{user.role}</Badge>
               </div>
               <Separator />
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Member Since</span>
-                <span className="font-medium">
+                <span className="text-muted-foreground">Member Since</span>
+                <span className="font-medium text-foreground">
                   {new Date(user.createdAt).toLocaleDateString('id-ID', {
                     year: 'numeric',
                     month: 'long',
@@ -113,31 +113,31 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Current Plan</span>
+                <span className="text-muted-foreground">Current Plan</span>
                 <Badge 
                   variant={isProUser || isBusinessUser ? "default" : "secondary"}
-                  className={isProUser || isBusinessUser ? "bg-gradient-to-r from-blue-500 to-purple-500" : ""}
+                  className={isProUser || isBusinessUser ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground" : "text-foreground border-border"}
                 >
                   {userLevel}
                 </Badge>
               </div>
               <Separator />
               <div className="flex items-center justify-between">
-                <span className="text-gray-600 flex items-center">
+                <span className="text-muted-foreground flex items-center">
                   <Coins className="h-4 w-4 mr-1" />
                   Available Credits
                 </span>
-                <span className="font-bold text-lg text-green-600">{user.credits}</span>
+                <span className="font-bold text-lg text-primary">{user.credits}</span>
               </div>
               
               {userLevel === "Free" && (
                 <>
                   <Separator />
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-700 mb-2">
+                  <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 rounded-lg border border-border">
+                    <p className="text-sm text-foreground mb-2">
                       Upgrade to Pro or Business untuk mendapatkan lebih banyak kredit!
                     </p>
-                    <div className="space-y-1 text-xs text-gray-600">
+                    <div className="space-y-1 text-xs text-muted-foreground">
                       <p>• Pro: 10,000 kredit (Rp 299,000)</p>
                       <p>• Business: 20,000 kredit (Rp 550,000)</p>
                     </div>

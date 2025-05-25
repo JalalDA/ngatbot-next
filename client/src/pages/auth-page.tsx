@@ -39,10 +39,13 @@ export default function AuthPage() {
     defaultValues: { username: "", email: "", fullName: "", password: "", confirmPassword: "" },
   });
 
-  // Redirect if already logged in
+  // Use effect to redirect if already logged in
   if (user) {
-    setLocation("/dashboard");
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-foreground">Redirecting to dashboard...</div>
+      </div>
+    );
   }
 
   const onLogin = async (data: LoginData) => {
