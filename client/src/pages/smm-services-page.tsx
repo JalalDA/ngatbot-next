@@ -534,40 +534,41 @@ export default function SmmServicesPage() {
 
       {/* Import Services Modal */}
       {showImportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-semibold text-gray-800">Import Services from Provider</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg p-3 sm:p-6 w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4 sm:mb-6">
+              <h3 className="text-lg sm:text-2xl font-semibold text-gray-800">Import Services</h3>
               <button
                 onClick={() => {
                   setShowImportModal(false);
                   setImportingProvider(null);
                   setSelectedServices(new Set());
+                  setProviderServices([]);
                 }}
-                className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100"
+                className="text-gray-500 hover:text-gray-700 p-1 sm:p-2 rounded-full hover:bg-gray-100"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
 
             {!importingProvider ? (
               // Step 1: Provider Selection
               <div>
-                <h4 className="text-lg font-medium mb-4 text-gray-700">Step 1: Select Provider</h4>
-                <div className="grid gap-4">
+                <h4 className="text-base sm:text-lg font-medium mb-3 sm:mb-4 text-gray-700">Step 1: Select Provider</h4>
+                <div className="grid gap-3 sm:gap-4">
                   {Array.isArray(smmProviders) && smmProviders.length > 0 ? (
                     smmProviders.map((provider: any) => (
                       <div
                         key={provider.id}
                         onClick={() => setImportingProvider(provider)}
-                        className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-all duration-200"
+                        className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-all duration-200"
                       >
                         <div className="flex items-center justify-between">
-                          <div>
-                            <h5 className="font-medium text-gray-800">{provider.name}</h5>
-                            <p className="text-sm text-gray-600">{provider.apiEndpoint}</p>
-                            <div className="flex items-center space-x-4 mt-2">
-                              <span className={`px-2 py-1 text-xs rounded-full ${
+                          <div className="flex-1 min-w-0">
+                            <h5 className="font-medium text-gray-800 text-sm sm:text-base truncate">{provider.name}</h5>
+                            <p className="text-xs sm:text-sm text-gray-600 truncate">{provider.apiEndpoint}</p>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:space-x-4 mt-2">
+                              <span className={`px-2 py-1 text-xs rounded-full inline-block w-fit ${
                                 provider.isActive 
                                   ? 'bg-green-100 text-green-800' 
                                   : 'bg-red-100 text-red-800'
@@ -575,14 +576,14 @@ export default function SmmServicesPage() {
                                 {provider.isActive ? 'Active' : 'Inactive'}
                               </span>
                               {provider.balance && (
-                                <span className="text-sm text-gray-600">
+                                <span className="text-xs sm:text-sm text-gray-600">
                                   Balance: ${provider.balance} {provider.currency || 'USD'}
                                 </span>
                               )}
                             </div>
                           </div>
-                          <div className="text-blue-600">
-                            <Plus className="w-6 h-6" />
+                          <div className="text-blue-600 flex-shrink-0 ml-2">
+                            <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
                           </div>
                         </div>
                       </div>
@@ -598,12 +599,12 @@ export default function SmmServicesPage() {
             ) : (
               // Step 2: Service Selection
               <div>
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
                   <div>
-                    <h4 className="text-lg font-medium text-gray-700">
+                    <h4 className="text-base sm:text-lg font-medium text-gray-700">
                       Step 2: Select Services from {importingProvider.name}
                     </h4>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1">
                       Choose which services you want to import to your panel
                     </p>
                   </div>
@@ -612,33 +613,37 @@ export default function SmmServicesPage() {
                     onClick={() => {
                       setImportingProvider(null);
                       setSelectedServices(new Set());
+                      setProviderServices([]);
                     }}
-                    className="text-gray-600"
+                    className="text-gray-600 w-fit"
+                    size="sm"
                   >
-                    ← Back to Providers
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Back to Providers</span>
+                    <span className="sm:hidden">Back</span>
                   </Button>
                 </div>
 
-                <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center justify-between">
+                <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                        <Server className="w-5 h-5 text-white" />
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Server className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       </div>
-                      <div>
-                        <h5 className="font-medium text-blue-900">{importingProvider.name}</h5>
-                        <p className="text-sm text-blue-700">{importingProvider.apiEndpoint}</p>
+                      <div className="min-w-0 flex-1">
+                        <h5 className="font-medium text-blue-900 text-sm sm:text-base truncate">{importingProvider.name}</h5>
+                        <p className="text-xs sm:text-sm text-blue-700 truncate">{importingProvider.apiEndpoint}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-blue-700">Services to import:</p>
-                      <p className="text-xl font-bold text-blue-900">{selectedServices.size}</p>
+                    <div className="text-center sm:text-right">
+                      <p className="text-xs sm:text-sm text-blue-700">Services to import:</p>
+                      <p className="text-lg sm:text-xl font-bold text-blue-900">{selectedServices.size}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
+                <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:space-x-4">
                     <Button
                       size="sm"
                       variant="outline"
@@ -679,16 +684,18 @@ export default function SmmServicesPage() {
                         }
                       }}
                       disabled={loadingProviderServices}
+                      className="w-full sm:w-auto"
                     >
                       {loadingProviderServices ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       ) : (
                         <RefreshCw className="w-4 h-4 mr-2" />
                       )}
-                      {loadingProviderServices ? "Loading..." : "Load Services from Provider"}
+                      <span className="hidden sm:inline">{loadingProviderServices ? "Loading..." : "Load Services from Provider"}</span>
+                      <span className="sm:hidden">{loadingProviderServices ? "Loading..." : "Load Services"}</span>
                     </Button>
                     
-                    <div className="text-sm text-gray-600">
+                    <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
                       Available Services: <span className="font-medium">{providerServices.length}</span>
                     </div>
                   </div>
@@ -717,6 +724,7 @@ export default function SmmServicesPage() {
                             setShowImportModal(false);
                             setImportingProvider(null);
                             setSelectedServices(new Set());
+                            setProviderServices([]);
                           } else {
                             throw new Error(result.message || "Failed to import services");
                           }
@@ -728,17 +736,20 @@ export default function SmmServicesPage() {
                           });
                         }
                       }}
-                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 w-full sm:w-auto"
+                      size="sm"
                     >
                       <Download className="w-4 h-4 mr-2" />
-                      Import Selected ({selectedServices.size})
+                      <span className="hidden sm:inline">Import Selected ({selectedServices.size})</span>
+                      <span className="sm:hidden">Import ({selectedServices.size})</span>
                     </Button>
                   )}
                 </div>
 
                 {/* Services Table */}
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                  {/* Desktop Header */}
+                  <div className="hidden sm:block bg-gray-50 px-4 py-3 border-b border-gray-200">
                     <div className="grid grid-cols-12 gap-4 items-center">
                       <div className="col-span-1">
                         <label className="flex items-center space-x-2 cursor-pointer">
@@ -777,6 +788,26 @@ export default function SmmServicesPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Mobile Header */}
+                  <div className="sm:hidden bg-gray-50 px-3 py-2 border-b border-gray-200">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        checked={providerServices.length > 0 && selectedServices.size === providerServices.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            const allServiceIds = new Set(providerServices.map(service => service.service || service.id));
+                            setSelectedServices(allServiceIds);
+                          } else {
+                            setSelectedServices(new Set());
+                          }
+                        }}
+                      />
+                      <span className="text-sm font-medium text-gray-700">Select All ({providerServices.length})</span>
+                    </label>
+                  </div>
                   
                   <div className="max-h-96 overflow-y-auto">
                     {providerServices.length > 0 ? (
@@ -787,15 +818,61 @@ export default function SmmServicesPage() {
                         return (
                           <div
                             key={serviceId}
-                            className={`px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                            className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
                               isSelected ? 'bg-blue-50 border-blue-200' : ''
                             }`}
                           >
-                            <div className="grid grid-cols-12 gap-4 items-center">
-                              <div className="col-span-1">
+                            {/* Desktop Layout */}
+                            <div className="hidden sm:block px-4 py-3">
+                              <div className="grid grid-cols-12 gap-4 items-center">
+                                <div className="col-span-1">
+                                  <input
+                                    type="checkbox"
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    checked={isSelected}
+                                    onChange={(e) => {
+                                      const newSelected = new Set(selectedServices);
+                                      if (e.target.checked) {
+                                        newSelected.add(serviceId);
+                                      } else {
+                                        newSelected.delete(serviceId);
+                                      }
+                                      setSelectedServices(newSelected);
+                                    }}
+                                  />
+                                </div>
+                                <div className="col-span-2">
+                                  <span className="text-sm font-mono text-gray-600">{serviceId}</span>
+                                </div>
+                                <div className="col-span-4">
+                                  <span className="text-sm font-medium text-gray-800">{service.name}</span>
+                                  {service.type && (
+                                    <div className="text-xs text-gray-500 mt-1">Type: {service.type}</div>
+                                  )}
+                                </div>
+                                <div className="col-span-2">
+                                  <span className="text-sm text-gray-600">{service.category || 'General'}</span>
+                                </div>
+                                <div className="col-span-1">
+                                  <span className="text-sm text-green-600 font-medium">
+                                    ${parseFloat(service.rate || '0').toFixed(4)}
+                                  </span>
+                                </div>
+                                <div className="col-span-2">
+                                  <div className="text-xs text-gray-600">
+                                    <div>Min: {service.min || 'N/A'}</div>
+                                    <div>Max: {service.max || 'N/A'}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Mobile Layout */}
+                            <div className="sm:hidden px-3 py-3">
+                              <div className="flex items-start space-x-3">
                                 <input
                                   type="checkbox"
-                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-1"
                                   checked={isSelected}
                                   onChange={(e) => {
                                     const newSelected = new Set(selectedServices);
@@ -807,28 +884,21 @@ export default function SmmServicesPage() {
                                     setSelectedServices(newSelected);
                                   }}
                                 />
-                              </div>
-                              <div className="col-span-2">
-                                <span className="text-sm font-mono text-gray-600">{serviceId}</span>
-                              </div>
-                              <div className="col-span-4">
-                                <span className="text-sm font-medium text-gray-800">{service.name}</span>
-                                {service.type && (
-                                  <div className="text-xs text-gray-500 mt-1">Type: {service.type}</div>
-                                )}
-                              </div>
-                              <div className="col-span-2">
-                                <span className="text-sm text-gray-600">{service.category || 'General'}</span>
-                              </div>
-                              <div className="col-span-1">
-                                <span className="text-sm text-green-600 font-medium">
-                                  ${parseFloat(service.rate || '0').toFixed(4)}
-                                </span>
-                              </div>
-                              <div className="col-span-2">
-                                <div className="text-xs text-gray-600">
-                                  <div>Min: {service.min || 'N/A'}</div>
-                                  <div>Max: {service.max || 'N/A'}</div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <h4 className="text-sm font-medium text-gray-800 truncate">{service.name}</h4>
+                                    <span className="text-xs font-mono text-gray-500 ml-2">#{serviceId}</span>
+                                  </div>
+                                  <div className="text-xs text-gray-600 space-y-1">
+                                    <div>Category: {service.category || 'General'}</div>
+                                    <div className="flex items-center justify-between">
+                                      <span>Rate: <span className="text-green-600 font-medium">${parseFloat(service.rate || '0').toFixed(4)}</span></span>
+                                      <span>Min: {service.min || 'N/A'} | Max: {service.max || 'N/A'}</span>
+                                    </div>
+                                    {service.type && (
+                                      <div>Type: {service.type}</div>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
