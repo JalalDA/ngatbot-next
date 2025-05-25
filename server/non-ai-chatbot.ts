@@ -148,32 +148,10 @@ export class NonAiChatbotService {
   }
 
   /**
-   * Create keyboard markup for menu type flows with smart layout
+   * Create keyboard markup for menu type flows
    */
   static createKeyboardMarkup(buttons: string[]): any {
-    let keyboard: any[] = [];
-    
-    // For exactly 4 buttons, create 2x2 layout
-    if (buttons.length === 4) {
-      keyboard = [
-        [{ text: buttons[0] }, { text: buttons[1] }],
-        [{ text: buttons[2] }, { text: buttons[3] }]
-      ];
-    }
-    // For 2, 6, 8 buttons, create pairs
-    else if (buttons.length % 2 === 0 && buttons.length <= 8) {
-      for (let i = 0; i < buttons.length; i += 2) {
-        keyboard.push([
-          { text: buttons[i] },
-          ...(buttons[i + 1] ? [{ text: buttons[i + 1] }] : [])
-        ]);
-      }
-    }
-    // For other counts, use single column layout
-    else {
-      keyboard = buttons.map(button => [{ text: button }]);
-    }
-    
+    const keyboard = buttons.map(button => [{ text: button }]);
     return {
       keyboard: keyboard,
       resize_keyboard: true,
@@ -182,38 +160,10 @@ export class NonAiChatbotService {
   }
 
   /**
-   * Create inline keyboard markup for menu type flows with smart layout
+   * Create inline keyboard markup for menu type flows
    */
   static createInlineKeyboardMarkup(buttons: string[]): any {
-    let keyboard: any[] = [];
-    
-    // For exactly 4 buttons, create 2x2 layout
-    if (buttons.length === 4) {
-      keyboard = [
-        [
-          { text: buttons[0], callback_data: buttons[0] },
-          { text: buttons[1], callback_data: buttons[1] }
-        ],
-        [
-          { text: buttons[2], callback_data: buttons[2] },
-          { text: buttons[3], callback_data: buttons[3] }
-        ]
-      ];
-    }
-    // For 2, 6, 8 buttons, create pairs
-    else if (buttons.length % 2 === 0 && buttons.length <= 8) {
-      for (let i = 0; i < buttons.length; i += 2) {
-        keyboard.push([
-          { text: buttons[i], callback_data: buttons[i] },
-          ...(buttons[i + 1] ? [{ text: buttons[i + 1], callback_data: buttons[i + 1] }] : [])
-        ]);
-      }
-    }
-    // For other counts, use single column layout
-    else {
-      keyboard = buttons.map(button => [{ text: button, callback_data: button }]);
-    }
-    
+    const keyboard = buttons.map(button => [{ text: button, callback_data: button }]);
     return {
       inline_keyboard: keyboard
     };
