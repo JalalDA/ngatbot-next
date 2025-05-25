@@ -1121,6 +1121,326 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // ===============================
+  // NON-AI CHATBOT BUILDER ROUTES
+  // ===============================
+
+  // Get all non-AI chatbots for current user
+  app.get("/api/nonai-chatbots", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const chatbots = await storage.getNonAiChatbotsByUserId(user.id);
+      res.json(chatbots);
+    } catch (error) {
+      console.error("Get non-AI chatbots error:", error);
+      res.status(500).json({ message: "Failed to fetch non-AI chatbots" });
+    }
+  });
+
+  // Create new non-AI chatbot
+  app.post("/api/nonai-chatbots", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { botToken } = req.body;
+
+      if (!botToken) {
+        return res.status(400).json({ message: "Bot token is required" });
+      }
+
+      // Validate bot token with Telegram API
+      const { NonAiChatbotService } = await import("./non-ai-chatbot");
+      const validation = await NonAiChatbotService.validateBotToken(botToken);
+      
+      if (!validation.valid) {
+        return res.status(400).json({ message: validation.error || "Invalid bot token" });
+      }
+
+      // Check if bot token already exists
+      const existingBot = await storage.getNonAiChatbotByToken(botToken);
+      if (existingBot) {
+        return res.status(400).json({ message: "Bot token already exists" });
+      }
+
+      // Generate webhook URL
+      const webhookUrl = NonAiChatbotService.generateWebhookUrl(0); // Will be updated after creation
+
+      // Create chatbot
+      const chatbot = await storage.createNonAiChatbot({
+        userId: user.id,
+        botToken,
+        botUsername: validation.botInfo!.username,
+        botName: validation.botInfo!.first_name,
+        webhookUrl: webhookUrl.replace('/0', `/${0}`), // Placeholder
+        isActive: true
+      });
+
+      // Update webhook URL with actual bot ID
+      const actualWebhookUrl = NonAiChatbotService.generateWebhookUrl(chatbot.id);
+      await storage.updateNonAiChatbot(chatbot.id, { webhookUrl: actualWebhookUrl });
+
+      // Set webhook with Telegram
+      const webhookResult = await NonAiChatbotService.setWebhook(botToken, actualWebhookUrl);
+      if (!webhookResult.success) {
+        console.warn("Failed to set webhook:", webhookResult.error);
+      }
+
+      res.status(201).json({ ...chatbot, webhookUrl: actualWebhookUrl });
+    } catch (error) {
+      console.error("Create non-AI chatbot error:", error);
+      res.status(500).json({ message: "Failed to create non-AI chatbot" });
+    }
+  });
+
+  // Get specific non-AI chatbot
+  app.get("/api/nonai-chatbots/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const chatbotId = parseInt(req.params.id);
+      
+      const chatbot = await storage.getNonAiChatbot(chatbotId);
+      if (!chatbot || chatbot.userId !== user.id) {
+        return res.status(404).json({ message: "Chatbot not found" });
+      }
+
+      res.json(chatbot);
+    } catch (error) {
+      console.error("Get non-AI chatbot error:", error);
+      res.status(500).json({ message: "Failed to fetch non-AI chatbot" });
+    }
+  });
+
+  // Update non-AI chatbot
+  app.put("/api/nonai-chatbots/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const chatbotId = parseInt(req.params.id);
+      const { botName, isActive } = req.body;
+
+      const chatbot = await storage.getNonAiChatbot(chatbotId);
+      if (!chatbot || chatbot.userId !== user.id) {
+        return res.status(404).json({ message: "Chatbot not found" });
+      }
+
+      const updatedChatbot = await storage.updateNonAiChatbot(chatbotId, {
+        botName,
+        isActive
+      });
+
+      res.json(updatedChatbot);
+    } catch (error) {
+      console.error("Update non-AI chatbot error:", error);
+      res.status(500).json({ message: "Failed to update non-AI chatbot" });
+    }
+  });
+
+  // Delete non-AI chatbot
+  app.delete("/api/nonai-chatbots/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const chatbotId = parseInt(req.params.id);
+
+      const chatbot = await storage.getNonAiChatbot(chatbotId);
+      if (!chatbot || chatbot.userId !== user.id) {
+        return res.status(404).json({ message: "Chatbot not found" });
+      }
+
+      // Remove webhook from Telegram
+      const { NonAiChatbotService } = await import("./non-ai-chatbot");
+      await NonAiChatbotService.removeWebhook(chatbot.botToken);
+
+      // Delete chatbot (flows will be cascade deleted)
+      await storage.deleteNonAiChatbot(chatbotId);
+
+      res.json({ message: "Chatbot deleted successfully" });
+    } catch (error) {
+      console.error("Delete non-AI chatbot error:", error);
+      res.status(500).json({ message: "Failed to delete non-AI chatbot" });
+    }
+  });
+
+  // Get bot flows for specific chatbot
+  app.get("/api/nonai-chatbots/:id/flows", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const chatbotId = parseInt(req.params.id);
+
+      const chatbot = await storage.getNonAiChatbot(chatbotId);
+      if (!chatbot || chatbot.userId !== user.id) {
+        return res.status(404).json({ message: "Chatbot not found" });
+      }
+
+      const flows = await storage.getBotFlowsByChatbotId(chatbotId);
+      res.json(flows);
+    } catch (error) {
+      console.error("Get bot flows error:", error);
+      res.status(500).json({ message: "Failed to fetch bot flows" });
+    }
+  });
+
+  // Create new bot flow
+  app.post("/api/nonai-chatbots/:id/flows", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const chatbotId = parseInt(req.params.id);
+      const { command, type, text, buttons, parentCommand } = req.body;
+
+      const chatbot = await storage.getNonAiChatbot(chatbotId);
+      if (!chatbot || chatbot.userId !== user.id) {
+        return res.status(404).json({ message: "Chatbot not found" });
+      }
+
+      // Validate required fields
+      if (!command || !type || !text) {
+        return res.status(400).json({ message: "Command, type, and text are required" });
+      }
+
+      if (type !== "menu" && type !== "text") {
+        return res.status(400).json({ message: "Type must be 'menu' or 'text'" });
+      }
+
+      if (type === "menu" && (!buttons || !Array.isArray(buttons) || buttons.length === 0)) {
+        return res.status(400).json({ message: "Buttons are required for menu type" });
+      }
+
+      // Check if command already exists for this chatbot
+      const existingFlow = await storage.getBotFlowByCommand(chatbotId, command);
+      if (existingFlow) {
+        return res.status(400).json({ message: "Command already exists for this chatbot" });
+      }
+
+      const flow = await storage.createBotFlow({
+        chatbotId,
+        command,
+        type,
+        text,
+        buttons: type === "menu" ? buttons : null,
+        parentCommand
+      });
+
+      res.status(201).json(flow);
+    } catch (error) {
+      console.error("Create bot flow error:", error);
+      res.status(500).json({ message: "Failed to create bot flow" });
+    }
+  });
+
+  // Update bot flow
+  app.put("/api/nonai-chatbots/:chatbotId/flows/:flowId", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const chatbotId = parseInt(req.params.chatbotId);
+      const flowId = parseInt(req.params.flowId);
+      const { command, type, text, buttons, parentCommand } = req.body;
+
+      const chatbot = await storage.getNonAiChatbot(chatbotId);
+      if (!chatbot || chatbot.userId !== user.id) {
+        return res.status(404).json({ message: "Chatbot not found" });
+      }
+
+      const flow = await storage.getBotFlow(flowId);
+      if (!flow || flow.chatbotId !== chatbotId) {
+        return res.status(404).json({ message: "Bot flow not found" });
+      }
+
+      const updatedFlow = await storage.updateBotFlow(flowId, {
+        command,
+        type,
+        text,
+        buttons: type === "menu" ? buttons : null,
+        parentCommand
+      });
+
+      res.json(updatedFlow);
+    } catch (error) {
+      console.error("Update bot flow error:", error);
+      res.status(500).json({ message: "Failed to update bot flow" });
+    }
+  });
+
+  // Delete bot flow
+  app.delete("/api/nonai-chatbots/:chatbotId/flows/:flowId", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const chatbotId = parseInt(req.params.chatbotId);
+      const flowId = parseInt(req.params.flowId);
+
+      const chatbot = await storage.getNonAiChatbot(chatbotId);
+      if (!chatbot || chatbot.userId !== user.id) {
+        return res.status(404).json({ message: "Chatbot not found" });
+      }
+
+      const flow = await storage.getBotFlow(flowId);
+      if (!flow || flow.chatbotId !== chatbotId) {
+        return res.status(404).json({ message: "Bot flow not found" });
+      }
+
+      await storage.deleteBotFlow(flowId);
+      res.json({ message: "Bot flow deleted successfully" });
+    } catch (error) {
+      console.error("Delete bot flow error:", error);
+      res.status(500).json({ message: "Failed to delete bot flow" });
+    }
+  });
+
+  // Webhook handler for non-AI chatbots
+  app.post("/api/webhook/nonai/:chatbotId", async (req, res) => {
+    try {
+      const chatbotId = parseInt(req.params.chatbotId);
+      const update = req.body;
+
+      // Get chatbot
+      const chatbot = await storage.getNonAiChatbot(chatbotId);
+      if (!chatbot || !chatbot.isActive) {
+        return res.status(404).json({ message: "Chatbot not found or inactive" });
+      }
+
+      // Process webhook update
+      const { NonAiChatbotService, WebhookProcessor } = await import("./non-ai-chatbot");
+      
+      const { chatId, text, messageType } = WebhookProcessor.extractUserInput(update);
+      
+      // Find matching flow
+      const flow = await storage.getBotFlowByCommand(chatbotId, text);
+      
+      if (flow) {
+        // Send response based on flow type
+        if (flow.type === "menu") {
+          const replyMarkup = NonAiChatbotService.createKeyboardMarkup(flow.buttons || []);
+          await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text, replyMarkup);
+        } else {
+          await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text);
+        }
+      } else {
+        // Default response or /start command
+        if (text === "/start") {
+          const startFlow = await storage.getBotFlowByCommand(chatbotId, "/start");
+          if (startFlow) {
+            if (startFlow.type === "menu") {
+              const replyMarkup = NonAiChatbotService.createKeyboardMarkup(startFlow.buttons || []);
+              await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, startFlow.text, replyMarkup);
+            } else {
+              await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, startFlow.text);
+            }
+          } else {
+            await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, "Bot is ready! Please configure your flows.");
+          }
+        } else {
+          await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, "Command not found. Type /start to begin.");
+        }
+      }
+
+      // Answer callback query if it's from inline keyboard
+      if (update.callback_query) {
+        await WebhookProcessor.answerCallbackQuery(chatbot.botToken, update.callback_query.id);
+      }
+
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Webhook processing error:", error);
+      res.status(500).json({ message: "Webhook processing failed" });
+    }
+  });
+
   // Initialize bots on server start
   setTimeout(async () => {
     try {
