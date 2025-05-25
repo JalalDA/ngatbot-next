@@ -1624,7 +1624,7 @@ export function registerRoutes(app: Express): Server {
         if (targetFlow) {
           console.log("Found target flow for button:", targetFlow.command);
           if (targetFlow.type === "menu") {
-            const replyMarkup = NonAiChatbotService.createKeyboardMarkup(targetFlow.buttons || []);
+            const replyMarkup = NonAiChatbotService.createInlineKeyboardMarkup(targetFlow.buttons || []);
             await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, targetFlow.text, replyMarkup);
           } else {
             await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, targetFlow.text);
@@ -1635,7 +1635,7 @@ export function registerRoutes(app: Express): Server {
             const startFlow = await storage.getBotFlowByCommand(chatbotId, "/start");
             if (startFlow) {
               if (startFlow.type === "menu") {
-                const replyMarkup = NonAiChatbotService.createKeyboardMarkup(startFlow.buttons || []);
+                const replyMarkup = NonAiChatbotService.createInlineKeyboardMarkup(startFlow.buttons || []);
                 await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, startFlow.text, replyMarkup);
               } else {
                 await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, startFlow.text);
