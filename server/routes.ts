@@ -993,6 +993,74 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Delete individual SMM service
+  app.delete("/api/smm/services/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const serviceId = parseInt(req.params.id);
+
+      // Check if service belongs to user
+      const service = await storage.getSmmService(serviceId);
+      if (!service || service.userId !== user.id) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      const success = await storage.deleteSmmService(serviceId);
+      if (success) {
+        res.json({ message: "Service deleted successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to delete service" });
+      }
+    } catch (error) {
+      console.error("Delete SMM service error:", error);
+      res.status(500).json({ message: "Failed to delete SMM service" });
+    }
+  });
+
+  // Bulk delete SMM services
+  app.post("/api/smm/services/bulk-delete", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { serviceIds } = req.body;
+
+      if (!Array.isArray(serviceIds) || serviceIds.length === 0) {
+        return res.status(400).json({ message: "Invalid service IDs provided" });
+      }
+
+      let deletedCount = 0;
+      const errors: string[] = [];
+
+      for (const serviceId of serviceIds) {
+        try {
+          // Check if service belongs to user
+          const service = await storage.getSmmService(serviceId);
+          if (service && service.userId === user.id) {
+            const success = await storage.deleteSmmService(serviceId);
+            if (success) {
+              deletedCount++;
+            } else {
+              errors.push(`Failed to delete service ID ${serviceId}`);
+            }
+          } else {
+            errors.push(`Service ID ${serviceId} not found or access denied`);
+          }
+        } catch (error) {
+          errors.push(`Error deleting service ID ${serviceId}: ${(error as Error).message}`);
+        }
+      }
+
+      res.json({
+        message: `Successfully deleted ${deletedCount} services`,
+        deletedCount,
+        totalRequested: serviceIds.length,
+        errors: errors.length > 0 ? errors : undefined
+      });
+    } catch (error) {
+      console.error("Bulk delete SMM services error:", error);
+      res.status(500).json({ message: "Failed to bulk delete SMM services" });
+    }
+  });
+
   // Get SMM orders for current user
   app.get("/api/smm/orders", requireAuth, async (req, res) => {
     try {

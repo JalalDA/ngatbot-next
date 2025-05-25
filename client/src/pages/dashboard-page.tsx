@@ -46,6 +46,7 @@ export default function DashboardPage() {
   const [showEditServiceModal, setShowEditServiceModal] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
   const [showAllServicesModal, setShowAllServicesModal] = useState(false);
+  const [selectedServicesForDelete, setSelectedServicesForDelete] = useState<Set<number>>(new Set());
   const [serviceEditForm, setServiceEditForm] = useState({
     name: "",
     description: "",
@@ -284,6 +285,90 @@ export default function DashboardPage() {
       });
     },
   });
+
+  // Delete SMM Service mutation
+  const deleteSmmServiceMutation = useMutation({
+    mutationFn: async (serviceId: number) => {
+      const res = await apiRequest("DELETE", `/api/smm/services/${serviceId}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/smm/services"] });
+      toast({
+        title: "Service Deleted",
+        description: "SMM service has been deleted successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Failed to delete service.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Bulk delete SMM Services mutation
+  const bulkDeleteSmmServicesMutation = useMutation({
+    mutationFn: async (serviceIds: number[]) => {
+      const res = await apiRequest("POST", "/api/smm/services/bulk-delete", { serviceIds });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/smm/services"] });
+      setSelectedServicesForDelete(new Set());
+      toast({
+        title: "Services Deleted",
+        description: "Selected SMM services have been deleted successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Bulk Delete Failed",
+        description: error.message || "Failed to delete services.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteService = (serviceId: number) => {
+    if (confirm("Are you sure you want to delete this service?")) {
+      deleteSmmServiceMutation.mutate(serviceId);
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedServicesForDelete.size === 0) {
+      toast({
+        title: "No Services Selected",
+        description: "Please select services to delete.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (confirm(`Are you sure you want to delete ${selectedServicesForDelete.size} selected services?`)) {
+      bulkDeleteSmmServicesMutation.mutate(Array.from(selectedServicesForDelete));
+    }
+  };
+
+  const handleServiceCheckbox = (serviceId: number, checked: boolean) => {
+    const newSelected = new Set(selectedServicesForDelete);
+    if (checked) {
+      newSelected.add(serviceId);
+    } else {
+      newSelected.delete(serviceId);
+    }
+    setSelectedServicesForDelete(newSelected);
+  };
+
+  const handleSelectAllServices = (checked: boolean) => {
+    if (checked && smmServices) {
+      setSelectedServicesForDelete(new Set(smmServices.map((s: any) => s.id)));
+    } else {
+      setSelectedServicesForDelete(new Set());
+    }
+  };
 
   const handleEditService = (service: any) => {
     setEditingService(service);
@@ -524,11 +609,45 @@ export default function DashboardPage() {
                 {/* Services Preview */}
                 {smmServices.length > 0 && (
                   <div className="mt-6">
-                    <h4 className="font-medium text-slate-900 mb-3">Available Services</h4>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-slate-900">Available Services</h4>
+                      {selectedServicesForDelete.size > 0 && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={handleBulkDelete}
+                          disabled={bulkDeleteSmmServicesMutation.isPending}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete Selected ({selectedServicesForDelete.size})
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {/* Select All Checkbox */}
+                    <div className="flex items-center space-x-2 mb-2 p-2 bg-slate-100 rounded">
+                      <input
+                        type="checkbox"
+                        id="select-all-services"
+                        checked={smmServices.length > 0 && selectedServicesForDelete.size === smmServices.length}
+                        onChange={(e) => handleSelectAllServices(e.target.checked)}
+                        className="rounded border-slate-300"
+                      />
+                      <label htmlFor="select-all-services" className="text-sm font-medium text-slate-700">
+                        Select All Services
+                      </label>
+                    </div>
+
                     <div className="max-h-60 overflow-y-auto space-y-2">
                       {smmServices.slice(0, 5).map((service: any) => (
                         <div key={service.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                           <div className="flex items-center space-x-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedServicesForDelete.has(service.id)}
+                              onChange={(e) => handleServiceCheckbox(service.id, e.target.checked)}
+                              className="rounded border-slate-300"
+                            />
                             <Badge variant="outline" className="font-mono">
                               ID {service.mid}
                             </Badge>
@@ -545,6 +664,15 @@ export default function DashboardPage() {
                               className="h-8 w-8 p-0"
                             >
                               <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteService(service.id)}
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              disabled={deleteSmmServiceMutation.isPending}
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
@@ -1135,7 +1263,20 @@ export default function DashboardPage() {
       <Dialog open={showAllServicesModal} onOpenChange={setShowAllServicesModal}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>All SMM Panel Services ({smmServices?.length || 0} total)</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>All SMM Panel Services ({smmServices?.length || 0} total)</DialogTitle>
+              {selectedServicesForDelete.size > 0 && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={handleBulkDelete}
+                  disabled={bulkDeleteSmmServicesMutation.isPending}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete Selected ({selectedServicesForDelete.size})
+                </Button>
+              )}
+            </div>
           </DialogHeader>
           
           <div className="space-y-4">
@@ -1150,6 +1291,20 @@ export default function DashboardPage() {
               />
             </div>
 
+            {/* Select All Checkbox */}
+            <div className="flex items-center space-x-2 p-3 bg-slate-100 rounded-lg">
+              <input
+                type="checkbox"
+                id="select-all-services-modal"
+                checked={smmServices?.length > 0 && selectedServicesForDelete.size === smmServices?.length}
+                onChange={(e) => handleSelectAllServices(e.target.checked)}
+                className="rounded border-slate-300"
+              />
+              <label htmlFor="select-all-services-modal" className="text-sm font-medium text-slate-700">
+                Select All Services ({smmServices?.length || 0} items)
+              </label>
+            </div>
+
             {/* Services List */}
             <div className="grid gap-3 max-h-96 overflow-y-auto">
               {smmServices
@@ -1161,6 +1316,12 @@ export default function DashboardPage() {
                 .map((service: any) => (
                   <div key={service.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border hover:bg-slate-100 transition-colors">
                     <div className="flex items-center space-x-3 flex-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedServicesForDelete.has(service.id)}
+                        onChange={(e) => handleServiceCheckbox(service.id, e.target.checked)}
+                        className="rounded border-slate-300 shrink-0"
+                      />
                       <Badge variant="outline" className="font-mono shrink-0">
                         ID {service.mid}
                       </Badge>
@@ -1193,6 +1354,15 @@ export default function DashboardPage() {
                         className="h-8 w-8 p-0"
                       >
                         <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteService(service.id)}
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        disabled={deleteSmmServiceMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
