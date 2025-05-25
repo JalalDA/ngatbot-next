@@ -245,6 +245,9 @@ export const insertSmmOrderSchema = createInsertSchema(smmOrders).pick({
 export const insertChatBotSchema = createInsertSchema(chatBots).pick({
   token: true,
   welcomeMessage: true,
+}).extend({
+  token: z.string().min(1, "Bot token is required"),
+  welcomeMessage: z.string().optional(),
 });
 
 export const insertMenuItemSchema = createInsertSchema(menuItems).pick({

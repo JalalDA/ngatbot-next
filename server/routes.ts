@@ -1121,6 +1121,103 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // ===============================
+  // CHATBOT BUILDER ROUTES
+  // ===============================
+
+  // Get all chatbots for current user
+  app.get("/api/chatbots", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const chatBots = await storage.getChatBotsByUserId(user.id);
+      res.json(chatBots);
+    } catch (error) {
+      console.error("Get chatbots error:", error);
+      res.status(500).json({ message: "Failed to fetch chatbots" });
+    }
+  });
+
+  // Create new chatbot
+  app.post("/api/chatbots", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { token, welcomeMessage } = req.body;
+
+      // Basic validation
+      if (!token || typeof token !== 'string' || token.trim().length === 0) {
+        return res.status(400).json({ message: "Bot token is required" });
+      }
+
+      // Validate bot token with Telegram API
+      const validation = await telegramBotManager.validateBotToken(token.trim());
+      if (!validation.valid) {
+        return res.status(400).json({ message: "Invalid bot token" });
+      }
+
+      // Check if bot token already exists
+      const existingBot = await storage.getChatBotByToken(token.trim());
+      if (existingBot) {
+        return res.status(400).json({ message: "Bot token already in use" });
+      }
+
+      // Create chatbot
+      const chatBot = await storage.createChatBot({
+        userId: user.id,
+        token: token.trim(),
+        botName: validation.botInfo.first_name,
+        botUsername: validation.botInfo.username,
+        welcomeMessage: welcomeMessage || "Selamat datang! Pilih menu di bawah ini:",
+        isActive: true,
+      });
+
+      res.status(201).json(chatBot);
+    } catch (error) {
+      console.error("Create chatbot error:", error);
+      res.status(500).json({ message: "Failed to create chatbot" });
+    }
+  });
+
+  // Update chatbot
+  app.put("/api/chatbots/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const chatBotId = parseInt(req.params.id);
+      const updates = req.body;
+
+      // Check if chatbot belongs to user
+      const chatBot = await storage.getChatBot(chatBotId);
+      if (!chatBot || chatBot.userId !== user.id) {
+        return res.status(404).json({ message: "ChatBot not found" });
+      }
+
+      const updatedChatBot = await storage.updateChatBot(chatBotId, updates);
+      res.json(updatedChatBot);
+    } catch (error) {
+      console.error("Update chatbot error:", error);
+      res.status(500).json({ message: "Failed to update chatbot" });
+    }
+  });
+
+  // Delete chatbot
+  app.delete("/api/chatbots/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const chatBotId = parseInt(req.params.id);
+
+      // Check if chatbot belongs to user
+      const chatBot = await storage.getChatBot(chatBotId);
+      if (!chatBot || chatBot.userId !== user.id) {
+        return res.status(404).json({ message: "ChatBot not found" });
+      }
+
+      await storage.deleteChatBot(chatBotId);
+      res.json({ message: "ChatBot deleted successfully" });
+    } catch (error) {
+      console.error("Delete chatbot error:", error);
+      res.status(500).json({ message: "Failed to delete chatbot" });
+    }
+  });
+
   // Initialize bots on server start
   setTimeout(async () => {
     try {
