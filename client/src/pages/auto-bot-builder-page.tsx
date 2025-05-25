@@ -215,35 +215,7 @@ export default function AutoBotBuilderPage() {
     setKeyboardButtons(bot.keyboardConfig || []);
   };
 
-  const validateKeyboardButtons = () => {
-    for (let i = 0; i < keyboardButtons.length; i++) {
-      const button = keyboardButtons[i];
-      if (!button.text.trim()) {
-        toast({ 
-          title: "Error", 
-          description: `Button ${i + 1}: Text tombol harus diisi`, 
-          variant: "destructive" 
-        });
-        return false;
-      }
-      if (!button.callbackData.trim()) {
-        toast({ 
-          title: "Error", 
-          description: `Button ${i + 1}: Callback data harus diisi`, 
-          variant: "destructive" 
-        });
-        return false;
-      }
-    }
-    return true;
-  };
-
   const handleSubmit = async () => {
-    // Validate keyboard buttons
-    if (!validateKeyboardButtons()) {
-      return;
-    }
-
     if (editingBot) {
       updateBotMutation.mutate({
         id: editingBot.id,
