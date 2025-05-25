@@ -470,11 +470,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createBotFlow(insertFlow: InsertBotFlow): Promise<BotFlow> {
-    const [flow] = await db
-      .insert(botFlows)
-      .values(insertFlow)
-      .returning();
-    return flow;
+    try {
+      console.log("Storage: createBotFlow called with:", insertFlow);
+      const [flow] = await db
+        .insert(botFlows)
+        .values(insertFlow)
+        .returning();
+      console.log("Storage: createBotFlow result:", flow);
+      return flow;
+    } catch (error) {
+      console.error("Storage: createBotFlow error:", error);
+      throw error;
+    }
   }
 
   async updateBotFlow(id: number, updates: Partial<BotFlow>): Promise<BotFlow | undefined> {
