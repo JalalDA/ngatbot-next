@@ -1321,7 +1321,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const user = req.user!;
       const chatbotId = parseInt(req.params.id);
-      const { command, type, text, buttons, parentCommand } = req.body;
+      const { command, type, text, buttons, inlineButtons, parentCommand } = req.body;
 
       const chatbot = await storage.getNonAiChatbot(chatbotId);
       if (!chatbot || chatbot.userId !== user.id) {
@@ -1359,6 +1359,7 @@ export function registerRoutes(app: Express): Server {
         type,
         text,
         buttons: type === "menu" ? buttons : null,
+        inlineButtons: type === "menu" ? inlineButtons : null,
         parentCommand
       });
 

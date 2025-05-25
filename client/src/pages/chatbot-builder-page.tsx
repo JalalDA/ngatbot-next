@@ -313,12 +313,49 @@ export default function ChatbotBuilderPage() {
       return;
     }
 
+    // Additional validation for menu type
+    if (flowForm.type === "menu") {
+      if (flowForm.useInlineKeyboard) {
+        // Check if inline buttons have valid data
+        const hasValidInlineButtons = flowForm.inlineButtons.some(row => 
+          row.some(button => button.text.trim() !== "")
+        );
+        if (!hasValidInlineButtons) {
+          toast({
+            title: "Error",
+            description: "Please add at least one inline button with text",
+            variant: "destructive",
+          });
+          return;
+        }
+      } else {
+        // Check if regular buttons have valid data
+        const hasValidButtons = flowForm.buttons.some(button => button.trim() !== "");
+        if (!hasValidButtons) {
+          toast({
+            title: "Error",
+            description: "Please add at least one button",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    }
+
+    // Filter out empty inline buttons and prepare data
+    let processedInlineButtons = undefined;
+    if (flowForm.type === "menu" && flowForm.useInlineKeyboard) {
+      processedInlineButtons = flowForm.inlineButtons
+        .map(row => row.filter(button => button.text.trim() !== ""))
+        .filter(row => row.length > 0);
+    }
+
     const flowData = {
       command: flowForm.command,
       type: flowForm.type,
       text: flowForm.text,
       buttons: flowForm.type === "menu" && !flowForm.useInlineKeyboard ? flowForm.buttons.filter(b => b.trim()) : undefined,
-      inlineButtons: flowForm.type === "menu" && flowForm.useInlineKeyboard ? flowForm.inlineButtons : undefined,
+      inlineButtons: processedInlineButtons,
       parentCommand: flowForm.parentCommand || undefined
     };
 
