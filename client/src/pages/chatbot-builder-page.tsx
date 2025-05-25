@@ -54,7 +54,7 @@ export default function ChatbotBuilderPage() {
   const [newBotToken, setNewBotToken] = useState("");
   const [flowForm, setFlowForm] = useState({
     command: "",
-    type: "text" as "menu" | "text",
+    type: "text" as "menu" | "text" | "inline",
     text: "",
     buttons: [""],
     parentCommand: ""
@@ -905,13 +905,14 @@ export default function ChatbotBuilderPage() {
                           </div>
                           <div>
                             <Label htmlFor="type" className="text-foreground">Type</Label>
-                            <Select value={flowForm.type} onValueChange={(value: "menu" | "text") => setFlowForm(prev => ({ ...prev, type: value }))}>
+                            <Select value={flowForm.type} onValueChange={(value: "menu" | "text" | "inline") => setFlowForm(prev => ({ ...prev, type: value as "menu" | "text" | "inline" }))}>
                               <SelectTrigger className="bg-background border-border text-foreground">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent className="bg-background border-border">
                                 <SelectItem value="text">Text Response</SelectItem>
                                 <SelectItem value="menu">Menu with Buttons</SelectItem>
+                                <SelectItem value="inline">⚡ Inline Keyboard</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
