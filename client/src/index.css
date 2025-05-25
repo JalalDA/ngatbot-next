@@ -4,34 +4,34 @@
 
 @layer base {
   :root {
-    /* Dark Mode Colors - Modern Dark Theme */
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
+    /* Modern Dark Theme - High Contrast */
+    --background: 240 10% 8%;
+    --foreground: 0 0% 95%;
 
-    --card: 224 71% 4%;
-    --card-foreground: 213 31% 91%;
+    --card: 240 10% 10%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 224 71% 4%;
-    --popover-foreground: 213 31% 91%;
+    --popover: 240 10% 10%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 222.2 47.4% 11.2%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 240 6% 16%;
+    --secondary-foreground: 0 0% 90%;
 
-    --muted: 223 47% 11%;
-    --muted-foreground: 215.4 16.3% 56.9%;
+    --muted: 240 6% 14%;
+    --muted-foreground: 240 5% 64%;
 
-    --accent: 216 34% 17%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 240 6% 16%;
+    --accent-foreground: 0 0% 90%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
-    --ring: 216 34% 17%;
+    --border: 240 6% 20%;
+    --input: 240 6% 16%;
+    --ring: 217 91% 60%;
 
     --radius: 0.75rem;
   }
@@ -194,12 +194,35 @@
 .interactive-card {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
 }
 
 .interactive-card:hover {
   transform: translateY(-4px) scale(1.02);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
   border-color: hsl(var(--primary) / 0.5);
+  background: hsl(var(--card) / 0.8);
+}
+
+/* Table Styling */
+.dark-table {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+}
+
+.dark-table th {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.dark-table td {
+  border-bottom: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.dark-table tr:hover {
+  background: hsl(var(--accent) / 0.5);
 }
 
 /* Navigation Hover Effects */

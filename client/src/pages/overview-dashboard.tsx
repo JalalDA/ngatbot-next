@@ -60,38 +60,38 @@ export default function OverviewDashboard() {
   const accountStatus = getAccountStatus();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Dashboard Overview</h1>
-          <p className="text-slate-600">Selamat datang kembali! Kelola bot Telegram dan layanan SMM Anda dengan mudah.</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard Overview</h1>
+          <p className="text-muted-foreground">Selamat datang kembali! Kelola bot Telegram dan layanan SMM Anda dengan mudah.</p>
         </div>
 
         {/* Account Status Card */}
-        <Card className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <Card className="mb-8 interactive-card bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className={`w-12 h-12 ${accountStatus.color} rounded-full flex items-center justify-center`}>
+                <div className={`w-12 h-12 ${accountStatus.color} rounded-full flex items-center justify-center animate-glow-pulse`}>
                   <accountStatus.icon className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900">{user?.fullName || user?.username}</h2>
-                  <Badge variant="secondary" className="mt-1">
+                  <h2 className="text-xl font-semibold text-foreground">{user?.fullName || user?.username}</h2>
+                  <Badge variant="secondary" className="mt-1 bg-secondary text-secondary-foreground">
                     {accountStatus.text}
                   </Badge>
                 </div>
               </div>
               <div className="text-right">
                 <div className="flex items-center space-x-2 mb-2">
-                  <Coins className="w-5 h-5 text-amber-600" />
-                  <span className="text-2xl font-bold text-slate-900">{currentCredits.toLocaleString()}</span>
-                  <span className="text-slate-600">credits</span>
+                  <Coins className="w-5 h-5 text-amber-400 animate-glow-pulse" />
+                  <span className="text-2xl font-bold text-foreground">{currentCredits.toLocaleString()}</span>
+                  <span className="text-muted-foreground">credits</span>
                 </div>
                 <Button 
                   onClick={() => setShowUpgradeModal(true)}
-                  className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
+                  className="interactive-button bg-primary hover:bg-primary/80 text-primary-foreground"
                 >
                   <Crown className="w-4 h-4 mr-2" />
                   Upgrade Account
@@ -104,14 +104,14 @@ export default function OverviewDashboard() {
         {/* Statistics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Active Bots */}
-          <Card className="hover:shadow-lg transition-shadow duration-300">
+          <Card className="interactive-card hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Active Bots</CardTitle>
-              <Bot className="h-5 w-5 text-blue-600" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Active Bots</CardTitle>
+              <Bot className="h-5 w-5 text-primary animate-float" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{activeBots}</div>
-              <p className="text-xs text-slate-500">dari {totalBots} total bot</p>
+              <div className="text-2xl font-bold text-foreground">{activeBots}</div>
+              <p className="text-xs text-muted-foreground">dari {totalBots} total bot</p>
               <div className="mt-2">
                 <Progress value={totalBots > 0 ? (activeBots / totalBots) * 100 : 0} className="h-2" />
               </div>
@@ -119,30 +119,30 @@ export default function OverviewDashboard() {
           </Card>
 
           {/* SMM Services */}
-          <Card className="hover:shadow-lg transition-shadow duration-300">
+          <Card className="interactive-card hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">SMM Services</CardTitle>
-              <ShoppingCart className="h-5 w-5 text-green-600" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">SMM Services</CardTitle>
+              <ShoppingCart className="h-5 w-5 text-green-400 animate-float" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{totalSmmServices}</div>
-              <p className="text-xs text-slate-500">layanan tersedia</p>
-              <div className="mt-2 flex items-center text-xs text-green-600">
-                <TrendingUp className="w-3 h-3 mr-1" />
+              <div className="text-2xl font-bold text-foreground">{totalSmmServices}</div>
+              <p className="text-xs text-muted-foreground">layanan tersedia</p>
+              <div className="mt-2 flex items-center text-xs text-green-400">
+                <TrendingUp className="w-3 h-3 mr-1 animate-glow-pulse" />
                 <span>Ready to use</span>
               </div>
             </CardContent>
           </Card>
 
           {/* Credit Usage */}
-          <Card className="hover:shadow-lg transition-shadow duration-300">
+          <Card className="interactive-card hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Credit Usage</CardTitle>
-              <Zap className="h-5 w-5 text-amber-600" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Credit Usage</CardTitle>
+              <Zap className="h-5 w-5 text-amber-400 animate-float" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{creditUsagePercentage.toFixed(1)}%</div>
-              <p className="text-xs text-slate-500">{usedCredits.toLocaleString()} / {maxCredits.toLocaleString()} used</p>
+              <div className="text-2xl font-bold text-foreground">{creditUsagePercentage.toFixed(1)}%</div>
+              <p className="text-xs text-muted-foreground">{usedCredits.toLocaleString()} / 1000 used</p>
               <div className="mt-2">
                 <Progress value={creditUsagePercentage} className="h-2" />
               </div>
@@ -150,16 +150,16 @@ export default function OverviewDashboard() {
           </Card>
 
           {/* Active Providers */}
-          <Card className="hover:shadow-lg transition-shadow duration-300">
+          <Card className="interactive-card hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">SMM Providers</CardTitle>
-              <Activity className="h-5 w-5 text-purple-600" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">SMM Providers</CardTitle>
+              <Activity className="h-5 w-5 text-purple-400 animate-float" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{activeProviders}</div>
-              <p className="text-xs text-slate-500">provider aktif</p>
-              <div className="mt-2 flex items-center text-xs text-purple-600">
-                <Activity className="w-3 h-3 mr-1" />
+              <div className="text-2xl font-bold text-foreground">{activeProviders}</div>
+              <p className="text-xs text-muted-foreground">provider aktif</p>
+              <div className="mt-2 flex items-center text-xs text-purple-400">
+                <Activity className="w-3 h-3 mr-1 animate-glow-pulse" />
                 <span>Connected</span>
               </div>
             </CardContent>
