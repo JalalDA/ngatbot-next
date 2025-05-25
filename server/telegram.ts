@@ -85,7 +85,7 @@ class TelegramBotManager {
 
       // Get knowledge base for the bot
       const knowledgeItems = await storage.getKnowledgeByBotId(botId);
-      const knowledgeBase = knowledgeItems.map(item => {
+      const baseKnowledge = knowledgeItems.map(item => {
         switch (item.type) {
           case 'text':
             return item.content;
@@ -99,6 +99,20 @@ class TelegramBotManager {
             return item.content;
         }
       }).join('\n\n');
+
+      // Get SMM Panel services for the bot owner
+      const smmServices = await storage.getSmmServicesByUserId(bot.userId);
+      const smmKnowledge = smmServices
+        .filter(service => service.isActive)
+        .map(service => 
+          `ID ${service.mid}: ${service.name} - Min: ${service.min}, Max: ${service.max}, Rate: Rp ${service.rate}/1000${service.description ? ` - ${service.description}` : ''}`
+        ).join('\n');
+
+      // Combine all knowledge
+      const knowledgeBase = [
+        baseKnowledge,
+        smmKnowledge ? `\n\nSMM Panel Services Available:\n${smmKnowledge}` : ''
+      ].filter(Boolean).join('\n\n');
 
       // Generate AI response
       const aiResponse = await generateBotResponse(msg.text, knowledgeBase);

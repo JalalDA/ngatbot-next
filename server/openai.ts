@@ -12,12 +12,19 @@ function getOpenAIClient() {
 export async function generateBotResponse(userMessage: string, knowledgeBase: string): Promise<string> {
   try {
     const openai = getOpenAIClient();
-    const prompt = `You are a helpful AI assistant for a Telegram bot. Use the following knowledge base to answer user questions accurately and helpfully. If the question is not covered by the knowledge base, provide a general helpful response.
+    const prompt = `You are a helpful AI assistant for a Telegram bot with access to SMM Panel services and other knowledge. Use the following knowledge base to answer user questions accurately and helpfully.
 
 Knowledge Base:
 ${knowledgeBase}
 
 User Message: ${userMessage}
+
+Instructions:
+- If users ask about social media services, followers, likes, views, or SMM services, provide specific details including service IDs, pricing, and order limits from the SMM Panel Services section
+- Always mention service IDs (e.g., "ID 1: Instagram Followers") so users can easily identify services
+- Provide accurate pricing information in Indonesian Rupiah (Rp)
+- If asked about available services, list them clearly with specifications
+- Be helpful and provide complete information based on the knowledge base
 
 Please provide a helpful and relevant response:`;
 
@@ -26,7 +33,7 @@ Please provide a helpful and relevant response:`;
       messages: [
         {
           role: "system",
-          content: "You are a helpful AI assistant integrated into a Telegram bot. Provide clear, concise, and helpful responses based on the provided knowledge base."
+          content: "You are a helpful AI assistant integrated into a Telegram bot. You have access to information about SMM Panel services and other knowledge. When users ask about social media services, followers, likes, views, or similar SMM services, provide detailed information including service IDs, pricing, minimum/maximum orders, and descriptions. Always be helpful and provide accurate information based on the provided knowledge base."
         },
         {
           role: "user",
