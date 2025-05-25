@@ -23,6 +23,11 @@ function requireAdmin(req: any, res: any, next: any) {
 }
 
 export function registerRoutes(app: Express): Server {
+  // Add logging middleware for all API requests
+  app.use('/api', (req, res, next) => {
+    console.log(`${req.method} ${req.url} - ${new Date().toISOString()}`);
+    next();
+  });
   // Setup authentication routes
   setupAuth(app);
 
@@ -1528,6 +1533,10 @@ export function registerRoutes(app: Express): Server {
 
   // Update bot flow
   app.put("/api/nonai-chatbots/:chatbotId/flows/:flowId", requireAuth, async (req, res) => {
+    console.log("=== UPDATE FLOW ROUTE HIT ===");
+    console.log("Method:", req.method);
+    console.log("URL:", req.url);
+    console.log("Params:", req.params);
     try {
       console.log("=== UPDATE FLOW REQUEST ===");
       console.log("Full request body:", req.body);
