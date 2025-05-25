@@ -11,9 +11,9 @@ import AuthPage from "@/pages/auth-page";
 import OverviewDashboard from "@/pages/overview-dashboard";
 import MyBotsPage from "@/pages/my-bots-page";
 import SmmServicesPage from "@/pages/smm-services-page";
+import ChatBotBuilderPage from "@/pages/chatbot-builder-page";
 import ProfilePage from "@/pages/profile-page";
 import AdminPage from "@/pages/admin-page";
-import ChatbotBuilderPage from "@/pages/chatbot-builder-page";
 import NotFound from "@/pages/not-found";
 
 function RootRedirect() {
@@ -63,20 +63,20 @@ function Router() {
         )} 
       />
       <ProtectedRoute 
+        path="/chatbot-builder" 
+        component={() => (
+          <>
+            <Navigation />
+            <ChatBotBuilderPage />
+          </>
+        )} 
+      />
+      <ProtectedRoute 
         path="/profile" 
         component={() => (
           <>
             <Navigation />
             <ProfilePage />
-          </>
-        )} 
-      />
-      <ProtectedRoute 
-        path="/chatbotbuilder" 
-        component={() => (
-          <>
-            <Navigation />
-            <ChatbotBuilderPage />
           </>
         )} 
       />

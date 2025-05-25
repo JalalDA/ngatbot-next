@@ -1,578 +1,470 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Plus, Bot, Settings, Trash2, Edit, Play, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Bot, Settings, Play, Trash2, Edit, MessageSquare, Menu } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
-interface NonAiChatbot {
+interface ChatBot {
   id: number;
-  userId: number;
-  botToken: string;
-  botUsername: string;
+  token: string;
   botName: string;
-  webhookUrl: string;
+  botUsername: string;
+  welcomeMessage: string;
   isActive: boolean;
   createdAt: string;
-  updatedAt: string;
 }
 
-interface BotFlow {
+interface MenuItem {
   id: number;
-  chatbotId: number;
-  command: string;
-  type: "menu" | "text";
-  text: string;
-  buttons: string[] | null;
-  parentCommand: string | null;
-  createdAt: string;
-  updatedAt: string;
+  chatBotId: number;
+  parentId?: number;
+  title: string;
+  description?: string;
+  buttonText: string;
+  responseType: 'text' | 'image' | 'payment' | 'form' | 'submenu';
+  responseContent?: string;
+  price?: string;
+  order: number;
+  isActive: boolean;
 }
 
-export default function ChatbotBuilderPage() {
-  const [selectedChatbot, setSelectedChatbot] = useState<NonAiChatbot | null>(null);
-  const [showCreateBot, setShowCreateBot] = useState(false);
-  const [showCreateFlow, setShowCreateFlow] = useState(false);
-  const [newBotToken, setNewBotToken] = useState("");
-  const [flowForm, setFlowForm] = useState({
-    command: "",
-    type: "text" as "menu" | "text",
-    text: "",
-    buttons: [""],
-    parentCommand: ""
-  });
-
+export default function ChatBotBuilderPage() {
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [selectedBot, setSelectedBot] = useState<ChatBot | null>(null);
+  const [isMenuDialogOpen, setIsMenuDialogOpen] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   // Fetch chatbots
-  const { data: chatbots = [], isLoading: loadingChatbots } = useQuery({
-    queryKey: ["/api/nonai-chatbots"],
-    queryFn: async () => {
-      const res = await fetch("/api/nonai-chatbots");
-      if (!res.ok) throw new Error("Failed to fetch chatbots");
-      return res.json();
-    },
+  const { data: chatBots = [], isLoading } = useQuery<ChatBot[]>({
+    queryKey: ["/api/chatbots"],
   });
 
-  // Fetch flows for selected chatbot
-  const { data: flows = [], isLoading: loadingFlows } = useQuery({
-    queryKey: ["/api/nonai-chatbots", selectedChatbot?.id, "flows"],
-    queryFn: async () => {
-      if (!selectedChatbot) return [];
-      const res = await fetch(`/api/nonai-chatbots/${selectedChatbot.id}/flows`);
-      if (!res.ok) throw new Error("Failed to fetch flows");
-      return res.json();
-    },
-    enabled: !!selectedChatbot,
-  });
-
-  // Create bot mutation
-  const createBotMutation = useMutation({
-    mutationFn: async (botToken: string) => {
-      const res = await apiRequest("POST", "/api/nonai-chatbots", { botToken });
-      return await res.json();
-    },
-    onSuccess: (newBot) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/nonai-chatbots"] });
-      setShowCreateBot(false);
-      setNewBotToken("");
-      setSelectedChatbot(newBot);
-      toast({
-        title: "Success! 🎉",
-        description: `Bot @${newBot.botUsername} created successfully!`,
+  // Create chatbot mutation
+  const createChatBotMutation = useMutation({
+    mutationFn: async (data: { token: string; welcomeMessage: string }) => {
+      console.log("Sending ChatBot data:", data);
+      
+      // Bypass apiRequest and use direct fetch to avoid error handling interference
+      const res = await fetch("/api/chatbots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
       });
-    },
-    onError: (error: any) => {
-      console.error("Create bot error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create bot",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Delete bot mutation
-  const deleteBotMutation = useMutation({
-    mutationFn: async (botId: number) => {
-      const res = await apiRequest("DELETE", `/api/nonai-chatbots/${botId}`);
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/nonai-chatbots"] });
-      if (selectedChatbot) {
-        setSelectedChatbot(null);
+      
+      console.log("Response status:", res.status);
+      console.log("Response headers:", Object.fromEntries(res.headers.entries()));
+      
+      const responseText = await res.text();
+      console.log("Response text:", responseText);
+      
+      if (!res.ok) {
+        let errorMessage = "Failed to create ChatBot";
+        
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorMessage;
+        } catch {
+          errorMessage = responseText || errorMessage;
+        }
+        
+        throw new Error(errorMessage);
       }
-      toast({
-        title: "Success",
-        description: "Bot deleted successfully!",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete bot",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Create flow mutation
-  const createFlowMutation = useMutation({
-    mutationFn: async (flowData: any) => {
-      const res = await apiRequest("POST", `/api/nonai-chatbots/${selectedChatbot?.id}/flows`, flowData);
-      return await res.json();
+      
+      try {
+        return JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError);
+        console.error("Response was:", responseText);
+        throw new Error("Invalid JSON response from server");
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/nonai-chatbots", selectedChatbot?.id, "flows"] });
-      setShowCreateFlow(false);
-      setFlowForm({
-        command: "",
-        type: "text",
-        text: "",
-        buttons: [""],
-        parentCommand: ""
-      });
+      queryClient.invalidateQueries({ queryKey: ["/api/chatbots"] });
+      setIsCreateDialogOpen(false);
       toast({
         title: "Success",
-        description: "Flow created successfully!",
+        description: "ChatBot created successfully!",
       });
     },
     onError: (error: any) => {
+      console.error("ChatBot creation error:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create flow",
+        description: error.message || "Failed to create chatbot",
         variant: "destructive",
       });
     },
   });
 
-  // Delete flow mutation
-  const deleteFlowMutation = useMutation({
-    mutationFn: async (flowId: number) => {
-      const res = await apiRequest("DELETE", `/api/nonai-chatbots/${selectedChatbot?.id}/flows/${flowId}`);
-      return await res.json();
+  // Delete chatbot mutation
+  const deleteChatBotMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/chatbots/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/nonai-chatbots", selectedChatbot?.id, "flows"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/chatbots"] });
       toast({
         title: "Success",
-        description: "Flow deleted successfully!",
+        description: "ChatBot deleted successfully!",
       });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete flow",
+        description: error.message || "Failed to delete chatbot",
         variant: "destructive",
       });
     },
   });
 
-  const createExampleFlowsMutation = useMutation({
-    mutationFn: async (chatbotId: number) => {
-      const res = await apiRequest("POST", `/api/nonai-chatbots/${chatbotId}/create-example`);
-      return await res.json();
+  // Toggle active status mutation
+  const toggleActiveMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
+      const res = await apiRequest("PUT", `/api/chatbots/${id}`, { isActive });
+      return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/nonai-chatbots", selectedChatbot?.id, "flows"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/chatbots"] });
       toast({
-        title: "Success! 🎉",
-        description: "Contoh menu bertingkat berhasil dibuat! Bot Anda siap digunakan.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create example flows",
-        variant: "destructive",
+        title: "Success",
+        description: "ChatBot status updated!",
       });
     },
   });
 
-  const handleCreateBot = () => {
-    if (!newBotToken.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a bot token",
-        variant: "destructive",
-      });
-      return;
-    }
-    createBotMutation.mutate(newBotToken.trim());
-  };
+  const handleCreateBot = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const token = formData.get("token") as string;
+    const welcomeMessage = formData.get("welcomeMessage") as string;
 
-  const handleCreateFlow = () => {
-    if (!flowForm.command || !flowForm.text) {
+    // Validasi sederhana di frontend
+    if (!token || token.trim().length === 0) {
       toast({
         title: "Error",
-        description: "Command and text are required",
+        description: "Bot token is required",
         variant: "destructive",
       });
       return;
     }
 
-    const flowData = {
-      command: flowForm.command,
-      type: flowForm.type,
-      text: flowForm.text,
-      buttons: flowForm.type === "menu" ? flowForm.buttons.filter(b => b.trim()) : undefined,
-      parentCommand: flowForm.parentCommand || undefined
-    };
-
-    createFlowMutation.mutate(flowData);
+    createChatBotMutation.mutate({ 
+      token: token.trim(), 
+      welcomeMessage: welcomeMessage || "Selamat datang! Pilih menu di bawah ini:" 
+    });
   };
 
-  const addButton = () => {
-    setFlowForm(prev => ({
-      ...prev,
-      buttons: [...prev.buttons, ""]
-    }));
+  const handleDeleteBot = (id: number) => {
+    if (confirm("Are you sure you want to delete this ChatBot?")) {
+      deleteChatBotMutation.mutate(id);
+    }
   };
 
-  const removeButton = (index: number) => {
-    setFlowForm(prev => ({
-      ...prev,
-      buttons: prev.buttons.filter((_, i) => i !== index)
-    }));
+  const handleToggleActive = (bot: ChatBot) => {
+    toggleActiveMutation.mutate({ 
+      id: bot.id, 
+      isActive: !bot.isActive 
+    });
   };
 
-  const updateButton = (index: number, value: string) => {
-    setFlowForm(prev => ({
-      ...prev,
-      buttons: prev.buttons.map((button, i) => i === index ? value : button)
-    }));
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto p-6">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Non-AI Chatbot Builder</h1>
-          <p className="text-muted-foreground">Create and manage menu-based Telegram bots</p>
+          <h1 className="text-3xl font-bold text-foreground">ChatBot Builder</h1>
+          <p className="text-muted-foreground mt-2">
+            Create interactive menu-based chatbots with payment integration
+          </p>
         </div>
-        
-        <Dialog open={showCreateBot} onOpenChange={setShowCreateBot}>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Create New Bot
+              <Plus className="mr-2 h-4 w-4" />
+              Create ChatBot
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-background border-border">
+          <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle className="text-foreground">Create New Non-AI Bot</DialogTitle>
-              <DialogDescription className="text-muted-foreground">
-                Enter your bot token from @BotFather
-              </DialogDescription>
+              <DialogTitle>Create New ChatBot</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <form onSubmit={handleCreateBot} className="space-y-4">
               <div>
-                <Label htmlFor="token" className="text-foreground">Bot Token</Label>
+                <Label htmlFor="token">Bot Token</Label>
                 <Input
                   id="token"
-                  placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
-                  value={newBotToken}
-                  onChange={(e) => setNewBotToken(e.target.value)}
-                  className="bg-background border-border text-foreground"
+                  name="token"
+                  placeholder="Enter your Telegram bot token"
+                  required
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Get your bot token from @BotFather on Telegram
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="welcomeMessage">Welcome Message</Label>
+                <Textarea
+                  id="welcomeMessage"
+                  name="welcomeMessage"
+                  placeholder="Selamat datang! Pilih menu di bawah ini:"
+                  rows={3}
                 />
               </div>
-              <div className="flex gap-2">
-                <Button 
-                  onClick={handleCreateBot} 
-                  disabled={createBotMutation.isPending}
-                  className="flex-1"
-                >
-                  {createBotMutation.isPending ? "Creating..." : "Create Bot"}
-                </Button>
-                <Button variant="outline" onClick={() => setShowCreateBot(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </div>
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={createChatBotMutation.isPending}
+              >
+                {createChatBotMutation.isPending ? "Creating..." : "Create ChatBot"}
+              </Button>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      <Tabs defaultValue="bots" className="w-full">
-        <TabsList className="bg-accent">
-          <TabsTrigger value="bots" className="data-[state=active]:bg-background">My Bots</TabsTrigger>
-          <TabsTrigger value="flows" className="data-[state=active]:bg-background" disabled={!selectedChatbot}>
-            Bot Flows {selectedChatbot && `(${selectedChatbot.botName})`}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="bots" className="space-y-4">
-          {loadingChatbots ? (
-            <div className="text-center py-8 text-muted-foreground">Loading chatbots...</div>
-          ) : chatbots.length === 0 ? (
-            <Card className="bg-card border-border">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Bot className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-2">No chatbots yet</h3>
-                <p className="text-muted-foreground text-center mb-4">
-                  Create your first non-AI chatbot to get started
-                </p>
-                <Button onClick={() => setShowCreateBot(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Your First Bot
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {chatbots.map((chatbot: NonAiChatbot) => (
-                <Card key={chatbot.id} className="bg-card border-border hover:shadow-md transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-foreground flex items-center gap-2">
-                        <Bot className="h-5 w-5" />
-                        {chatbot.botName}
-                      </CardTitle>
-                      <Badge variant={chatbot.isActive ? "default" : "secondary"}>
-                        {chatbot.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </div>
-                    <CardDescription className="text-muted-foreground">
-                      @{chatbot.botUsername}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedChatbot(chatbot)}
-                        className="flex-1"
-                      >
-                        <Settings className="h-4 w-4 mr-2" />
-                        Manage Flows
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => deleteBotMutation.mutate(chatbot.id)}
-                        disabled={deleteBotMutation.isPending}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+      {chatBots.length === 0 ? (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center py-8">
+              <Bot className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No ChatBots Yet</h3>
+              <p className="text-muted-foreground mb-4">
+                Create your first interactive menu-based chatbot to get started.
+              </p>
+              <Button onClick={() => setIsCreateDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Your First ChatBot
+              </Button>
             </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="flows" className="space-y-4">
-          {selectedChatbot && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {chatBots.map((bot) => (
+            <Card key={bot.id} className="bg-card border-border">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">{bot.botName}</CardTitle>
+                  <Badge variant={bot.isActive ? "default" : "secondary"}>
+                    {bot.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">@{bot.botUsername}</p>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <h2 className="text-xl font-semibold text-foreground">
-                    Bot Flows for @{selectedChatbot.botUsername}
-                  </h2>
-                  <p className="text-muted-foreground">Manage your bot's commands and responses</p>
+                  <p className="text-sm font-medium mb-1">Welcome Message:</p>
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {bot.welcomeMessage}
+                  </p>
                 </div>
                 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
+                    size="sm"
                     variant="outline"
-                    onClick={() => createExampleFlowsMutation.mutate(selectedChatbot.id)}
-                    disabled={createExampleFlowsMutation.isPending}
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0 hover:from-blue-700 hover:to-purple-700"
+                    onClick={() => {
+                      setSelectedBot(bot);
+                      setIsMenuDialogOpen(true);
+                    }}
                   >
-                    <Menu className="h-4 w-4 mr-2" />
-                    {createExampleFlowsMutation.isPending ? "Membuat..." : "🚀 Buat Contoh Menu"}
+                    <Settings className="mr-1 h-3 w-3" />
+                    Menu Builder
                   </Button>
-                  
-                  <Dialog open={showCreateFlow} onOpenChange={setShowCreateFlow}>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Flow
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-background border-border max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle className="text-foreground">Create New Bot Flow</DialogTitle>
-                        <DialogDescription className="text-muted-foreground">
-                          Add a new command and response for your bot
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="command" className="text-foreground">Command</Label>
-                            <Input
-                              id="command"
-                              placeholder="/start, Followers, Info, etc."
-                              value={flowForm.command}
-                              onChange={(e) => setFlowForm(prev => ({ ...prev, command: e.target.value }))}
-                              className="bg-background border-border text-foreground"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="type" className="text-foreground">Type</Label>
-                            <Select value={flowForm.type} onValueChange={(value: "menu" | "text") => setFlowForm(prev => ({ ...prev, type: value }))}>
-                              <SelectTrigger className="bg-background border-border text-foreground">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent className="bg-background border-border">
-                                <SelectItem value="text">Text Response</SelectItem>
-                                <SelectItem value="menu">Menu with Buttons</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleToggleActive(bot)}
+                    disabled={toggleActiveMutation.isPending}
+                  >
+                    {bot.isActive ? (
+                      <Pause className="mr-1 h-3 w-3" />
+                    ) : (
+                      <Play className="mr-1 h-3 w-3" />
+                    )}
+                    {bot.isActive ? "Pause" : "Start"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleDeleteBot(bot.id)}
+                    disabled={deleteChatBotMutation.isPending}
+                  >
+                    <Trash2 className="mr-1 h-3 w-3" />
+                    Delete
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-                        <div>
-                          <Label htmlFor="text" className="text-foreground">Response Text</Label>
-                          <Textarea
-                            id="text"
-                            placeholder="Enter the response message..."
-                            value={flowForm.text}
-                            onChange={(e) => setFlowForm(prev => ({ ...prev, text: e.target.value }))}
-                            className="bg-background border-border text-foreground"
-                            rows={3}
-                          />
-                        </div>
+      {/* Menu Builder Dialog */}
+      <Dialog open={isMenuDialogOpen} onOpenChange={setIsMenuDialogOpen}>
+        <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Menu Builder - {selectedBot?.botName}
+            </DialogTitle>
+          </DialogHeader>
+          <MenuBuilder chatBot={selectedBot} />
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
 
-                        {flowForm.type === "menu" && (
-                          <div>
-                            <Label className="text-foreground">Menu Buttons</Label>
-                            <div className="space-y-2">
-                              {flowForm.buttons.map((button, index) => (
-                                <div key={index} className="flex gap-2">
-                                  <Input
-                                    placeholder={`Button ${index + 1}`}
-                                    value={button}
-                                    onChange={(e) => updateButton(index, e.target.value)}
-                                    className="bg-background border-border text-foreground"
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => removeButton(index)}
-                                    disabled={flowForm.buttons.length <= 1}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              ))}
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={addButton}
-                                className="w-full"
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Button
-                              </Button>
-                            </div>
-                          </div>
-                        )}
+// Menu Builder Component
+function MenuBuilder({ chatBot }: { chatBot: ChatBot | null }) {
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
+  const { toast } = useToast();
 
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={handleCreateFlow}
-                            disabled={createFlowMutation.isPending}
-                            className="flex-1"
-                          >
-                            {createFlowMutation.isPending ? "Creating..." : "Create Flow"}
-                          </Button>
-                          <Button variant="outline" onClick={() => setShowCreateFlow(false)}>
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+  // Fetch menu items
+  const { data: fetchedMenuItems = [] } = useQuery<MenuItem[]>({
+    queryKey: ["/api/chatbots", chatBot?.id, "menu-items"],
+    enabled: !!chatBot?.id,
+  });
+
+  // Create menu item mutation
+  const createMenuMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", `/api/chatbots/${chatBot?.id}/menu-items`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/chatbots", chatBot?.id, "menu-items"] });
+      setIsCreateMenuOpen(false);
+      toast({
+        title: "Success",
+        description: "Menu item created successfully!",
+      });
+    },
+  });
+
+  const handleCreateMenu = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    const menuData = {
+      title: formData.get("title") as string,
+      description: formData.get("description") as string,
+      buttonText: formData.get("buttonText") as string,
+      responseType: formData.get("responseType") as string,
+      responseContent: formData.get("responseContent") as string,
+      price: formData.get("price") ? formData.get("price") as string : undefined,
+      order: fetchedMenuItems.length + 1,
+      isActive: true,
+    };
+
+    createMenuMutation.mutate(menuData);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Menu Items</h3>
+        <Button size="sm" onClick={() => setIsCreateMenuOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Menu Item
+        </Button>
+      </div>
+
+      {fetchedMenuItems.length === 0 ? (
+        <div className="text-center py-8 border-2 border-dashed border-border rounded-lg">
+          <Bot className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+          <p className="text-muted-foreground">No menu items yet. Create your first menu!</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {fetchedMenuItems.map((item) => (
+            <Card key={item.id} className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium">{item.title}</h4>
+                  <p className="text-sm text-muted-foreground">{item.buttonText}</p>
+                  <Badge variant="outline" className="mt-1">
+                    {item.responseType}
+                  </Badge>
+                  {item.price && (
+                    <Badge variant="secondary" className="ml-2">
+                      Rp {item.price}
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline">
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                  <Button size="sm" variant="destructive">
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
                 </div>
               </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
-              {loadingFlows ? (
-                <div className="text-center py-8 text-muted-foreground">Loading flows...</div>
-              ) : flows.length === 0 ? (
-                <Card className="bg-card border-border">
-                  <CardContent className="flex flex-col items-center justify-center py-12">
-                    <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold text-foreground mb-2">No flows yet</h3>
-                    <p className="text-muted-foreground text-center mb-4">
-                      Create your first bot flow to get started
-                    </p>
-                    <Button onClick={() => setShowCreateFlow(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Your First Flow
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {flows.map((flow: BotFlow) => (
-                    <Card key={flow.id} className="bg-card border-border">
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-foreground text-sm">{flow.command}</CardTitle>
-                          <Badge variant={flow.type === "menu" ? "default" : "secondary"}>
-                            {flow.type}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{flow.text}</p>
-                        {flow.buttons && (
-                          <div className="flex flex-wrap gap-1 mb-3">
-                            {flow.buttons.slice(0, 3).map((button, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {button}
-                              </Badge>
-                            ))}
-                            {flow.buttons.length > 3 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{flow.buttons.length - 3} more
-                              </Badge>
-                            )}
-                          </div>
-                        )}
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => deleteFlowMutation.mutate(flow.id)}
-                            disabled={deleteFlowMutation.isPending}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+      {/* Create Menu Item Dialog */}
+      <Dialog open={isCreateMenuOpen} onOpenChange={setIsCreateMenuOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Menu Item</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateMenu} className="space-y-4">
+            <div>
+              <Label htmlFor="title">Menu Title</Label>
+              <Input id="title" name="title" placeholder="Menu title" required />
             </div>
-          )}
-        </TabsContent>
-      </Tabs>
+            <div>
+              <Label htmlFor="buttonText">Button Text</Label>
+              <Input id="buttonText" name="buttonText" placeholder="Button text" required />
+            </div>
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea id="description" name="description" placeholder="Menu description" rows={2} />
+            </div>
+            <div>
+              <Label htmlFor="responseType">Response Type</Label>
+              <select id="responseType" name="responseType" className="w-full p-2 border rounded" required>
+                <option value="text">Text Response</option>
+                <option value="image">Image</option>
+                <option value="payment">Payment</option>
+                <option value="form">Form</option>
+                <option value="submenu">Sub Menu</option>
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="responseContent">Response Content</Label>
+              <Textarea id="responseContent" name="responseContent" placeholder="Response content" rows={3} />
+            </div>
+            <div>
+              <Label htmlFor="price">Price (Optional)</Label>
+              <Input id="price" name="price" type="number" placeholder="0" />
+            </div>
+            <Button type="submit" className="w-full" disabled={createMenuMutation.isPending}>
+              {createMenuMutation.isPending ? "Creating..." : "Create Menu Item"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

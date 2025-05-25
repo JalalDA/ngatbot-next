@@ -111,29 +111,60 @@ export const smmOrders = pgTable("smm_orders", {
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
-// Non-AI Chatbot Builder tables
-export const nonAiChatbots = pgTable("non_ai_chatbots", {
+// ChatBot Builder - Non-AI Bots
+export const chatBots = pgTable("chat_bots", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  botToken: text("bot_token").notNull(),
-  botUsername: text("bot_username").notNull(),
+  token: text("token").notNull(),
   botName: text("bot_name").notNull(),
-  webhookUrl: text("webhook_url"),
-  isActive: boolean("is_active").default(true),
+  botUsername: text("bot_username").notNull(),
+  welcomeMessage: text("welcome_message").default("Selamat datang! Pilih menu di bawah ini:"),
+  isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const botFlows = pgTable("bot_flows", {
+// Menu Items for ChatBot Builder
+export const menuItems = pgTable("menu_items", {
   id: serial("id").primaryKey(),
-  chatbotId: integer("chatbot_id").notNull().references(() => nonAiChatbots.id, { onDelete: "cascade" }),
-  command: text("command").notNull(),
-  type: text("type").notNull(), // "menu" | "text"
-  text: text("text").notNull(),
-  buttons: text("buttons").array(), // array of button labels
-  parentCommand: text("parent_command"), // for sub-menus
+  chatBotId: integer("chat_bot_id").notNull().references(() => chatBots.id, { onDelete: "cascade" }),
+  parentId: integer("parent_id"), // For sub-menus - self reference added later
+  title: text("title").notNull(),
+  description: text("description"),
+  buttonText: text("button_text").notNull(),
+  responseType: text("response_type").notNull(), // text, image, payment, form, submenu
+  responseContent: text("response_content"), // Text response or image URL
+  price: decimal("price", { precision: 10, scale: 2 }), // For payment items
+  order: integer("order").notNull().default(0), // Display order
+  isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Flow Rules for Menu Navigation
+export const flowRules = pgTable("flow_rules", {
+  id: serial("id").primaryKey(),
+  chatBotId: integer("chat_bot_id").notNull().references(() => chatBots.id, { onDelete: "cascade" }),
+  fromMenuId: integer("from_menu_id").notNull().references(() => menuItems.id, { onDelete: "cascade" }),
+  toMenuId: integer("to_menu_id").references(() => menuItems.id, { onDelete: "cascade" }),
+  condition: text("condition"), // Additional conditions if needed
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Payment Orders for ChatBot Builder
+export const chatBotOrders = pgTable("chat_bot_orders", {
+  id: serial("id").primaryKey(),
+  chatBotId: integer("chat_bot_id").notNull().references(() => chatBots.id, { onDelete: "cascade" }),
+  menuItemId: integer("menu_item_id").notNull().references(() => menuItems.id, { onDelete: "cascade" }),
+  customerTelegramId: text("customer_telegram_id").notNull(),
+  customerName: text("customer_name"),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  status: text("status").default("pending").notNull(), // pending, paid, expired, cancelled
+  qrCodeUrl: text("qr_code_url"),
+  midtransOrderId: text("midtrans_order_id").unique(),
+  snapToken: text("snap_token"),
+  paymentInfo: text("payment_info"), // JSON payment details
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Insert schemas
@@ -211,22 +242,44 @@ export const insertSmmOrderSchema = createInsertSchema(smmOrders).pick({
   notes: true,
 });
 
-export const insertNonAiChatbotSchema = createInsertSchema(nonAiChatbots).pick({
-  userId: true,
-  botToken: true,
-  botUsername: true,
-  botName: true,
-  webhookUrl: true,
+export const insertChatBotSchema = z.object({
+  token: z.string().min(1, "Bot token is required"),
+  welcomeMessage: z.string().optional(),
+});
+
+export const insertMenuItemSchema = createInsertSchema(menuItems).pick({
+  chatBotId: true,
+  parentId: true,
+  title: true,
+  description: true,
+  buttonText: true,
+  responseType: true,
+  responseContent: true,
+  price: true,
+  order: true,
   isActive: true,
 });
 
-export const insertBotFlowSchema = createInsertSchema(botFlows).pick({
-  chatbotId: true,
-  command: true,
-  type: true,
-  text: true,
-  buttons: true,
-  parentCommand: true,
+export const insertFlowRuleSchema = createInsertSchema(flowRules).pick({
+  chatBotId: true,
+  fromMenuId: true,
+  toMenuId: true,
+  condition: true,
+  isActive: true,
+});
+
+export const insertChatBotOrderSchema = createInsertSchema(chatBotOrders).pick({
+  chatBotId: true,
+  menuItemId: true,
+  customerTelegramId: true,
+  customerName: true,
+  amount: true,
+  status: true,
+  qrCodeUrl: true,
+  midtransOrderId: true,
+  snapToken: true,
+  paymentInfo: true,
+  expiresAt: true,
 });
 
 // Types
@@ -246,7 +299,11 @@ export type SmmService = typeof smmServices.$inferSelect;
 export type InsertSmmService = z.infer<typeof insertSmmServiceSchema>;
 export type SmmOrder = typeof smmOrders.$inferSelect;
 export type InsertSmmOrder = z.infer<typeof insertSmmOrderSchema>;
-export type NonAiChatbot = typeof nonAiChatbots.$inferSelect;
-export type InsertNonAiChatbot = z.infer<typeof insertNonAiChatbotSchema>;
-export type BotFlow = typeof botFlows.$inferSelect;
-export type InsertBotFlow = z.infer<typeof insertBotFlowSchema>;
+export type ChatBot = typeof chatBots.$inferSelect;
+export type InsertChatBot = z.infer<typeof insertChatBotSchema>;
+export type MenuItem = typeof menuItems.$inferSelect;
+export type InsertMenuItem = z.infer<typeof insertMenuItemSchema>;
+export type FlowRule = typeof flowRules.$inferSelect;
+export type InsertFlowRule = z.infer<typeof insertFlowRuleSchema>;
+export type ChatBotOrder = typeof chatBotOrders.$inferSelect;
+export type InsertChatBotOrder = z.infer<typeof insertChatBotOrderSchema>;

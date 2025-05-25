@@ -3,6 +3,13 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Priority middleware for API routes - must be FIRST
+app.use('/api', (req, res, next) => {
+  console.log(`[API] ${req.method} ${req.path} - Processing API request`);
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -37,7 +44,15 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Register API routes FIRST before Vite middleware
   const server = await registerRoutes(app);
+
+  // Add a fallback middleware for unhandled API routes only
+  app.use('/api/*', (req, res, next) => {
+    // This should only run if no API route was matched
+    console.log(`[API-404] ${req.method} ${req.path} - No matching API route found`);
+    res.status(404).json({ message: `API endpoint ${req.path} not found` });
+  });
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
