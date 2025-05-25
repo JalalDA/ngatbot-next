@@ -1,7 +1,7 @@
-import { users, bots, knowledge, transactions, settings, smmProviders, smmServices, smmOrders, type User, type InsertUser, type Bot, type InsertBot, type Knowledge, type InsertKnowledge, type Transaction, type InsertTransaction, type Setting, type InsertSetting, type SmmProvider, type InsertSmmProvider, type SmmService, type InsertSmmService, type SmmOrder, type InsertSmmOrder } from "@shared/schema";
+import { users, bots, knowledge, transactions, settings, smmProviders, smmServices, smmOrders, autoBots, type User, type InsertUser, type Bot, type InsertBot, type Knowledge, type InsertKnowledge, type Transaction, type InsertTransaction, type Setting, type InsertSetting, type SmmProvider, type InsertSmmProvider, type SmmService, type InsertSmmService, type SmmOrder, type InsertSmmOrder, type AutoBot, type InsertAutoBot } from "@shared/schema";
 import session from "express-session";
 import { db, pool } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 
 const PostgresSessionStore = connectPg(session);
@@ -68,7 +68,14 @@ export interface IStorage {
   createSmmOrder(order: InsertSmmOrder): Promise<SmmOrder>;
   updateSmmOrder(id: number, updates: Partial<SmmOrder>): Promise<SmmOrder | undefined>;
 
-
+  // Auto Bot management
+  createAutoBot(autoBot: InsertAutoBot): Promise<AutoBot>;
+  getAutoBot(id: number): Promise<AutoBot | undefined>;
+  getAutoBotsByUserId(userId: number): Promise<AutoBot[]>;
+  updateAutoBot(id: number, updates: Partial<AutoBot>): Promise<AutoBot | undefined>;
+  deleteAutoBot(id: number): Promise<boolean>;
+  getAllAutoBots(): Promise<AutoBot[]>;
+  getAutoBotByToken(token: string): Promise<AutoBot | undefined>;
   
   sessionStore: any;
 }
@@ -379,6 +386,62 @@ export class DatabaseStorage implements IStorage {
       .where(eq(smmOrders.id, id))
       .returning();
     return order || undefined;
+  }
+
+  // Auto Bot management
+  async createAutoBot(insertAutoBot: InsertAutoBot): Promise<AutoBot> {
+    const [autoBot] = await this.db
+      .insert(autoBots)
+      .values(insertAutoBot)
+      .returning();
+    return autoBot;
+  }
+
+  async getAutoBot(id: number): Promise<AutoBot | undefined> {
+    const [autoBot] = await this.db
+      .select()
+      .from(autoBots)
+      .where(eq(autoBots.id, id));
+    return autoBot;
+  }
+
+  async getAutoBotsByUserId(userId: number): Promise<AutoBot[]> {
+    return await this.db
+      .select()
+      .from(autoBots)
+      .where(eq(autoBots.userId, userId))
+      .orderBy(desc(autoBots.createdAt));
+  }
+
+  async updateAutoBot(id: number, updates: Partial<AutoBot>): Promise<AutoBot | undefined> {
+    const [autoBot] = await this.db
+      .update(autoBots)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(autoBots.id, id))
+      .returning();
+    return autoBot;
+  }
+
+  async deleteAutoBot(id: number): Promise<boolean> {
+    const result = await this.db
+      .delete(autoBots)
+      .where(eq(autoBots.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  async getAllAutoBots(): Promise<AutoBot[]> {
+    return await this.db
+      .select()
+      .from(autoBots)
+      .orderBy(desc(autoBots.createdAt));
+  }
+
+  async getAutoBotByToken(token: string): Promise<AutoBot | undefined> {
+    const [autoBot] = await this.db
+      .select()
+      .from(autoBots)
+      .where(eq(autoBots.token, token));
+    return autoBot;
   }
 
 
