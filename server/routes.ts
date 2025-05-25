@@ -1363,6 +1363,154 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Create example flows
+  app.post("/api/nonai-chatbots/:chatbotId/create-example", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const chatbotId = parseInt(req.params.chatbotId);
+
+      const chatbot = await storage.getNonAiChatbot(chatbotId);
+      if (!chatbot || chatbot.userId !== user.id) {
+        return res.status(404).json({ message: "Chatbot not found" });
+      }
+
+      // Create example flows structure
+      const exampleFlows = [
+        // Main menu (/start)
+        {
+          chatbotId,
+          command: "/start",
+          type: "menu" as const,
+          text: "🤖 Selamat datang! Pilih menu di bawah ini:",
+          buttons: ["🎯 Fitur", "💰 Harga", "📞 Kontak", "ℹ️ Info"],
+          parentCommand: null
+        },
+        // Fitur submenu
+        {
+          chatbotId,
+          command: "🎯 Fitur",
+          type: "menu" as const,
+          text: "🎯 Berikut adalah fitur-fitur kami:",
+          buttons: ["⚡ Fitur A", "🚀 Fitur B", "🔧 Fitur C", "🔙 Kembali ke Menu Utama"],
+          parentCommand: "/start"
+        },
+        // Fitur A detail
+        {
+          chatbotId,
+          command: "⚡ Fitur A",
+          type: "menu" as const,
+          text: "⚡ Fitur A - Solusi cepat dan mudah!\n\nDeskripsi lengkap tentang Fitur A yang amazing ini.",
+          buttons: ["📖 Detail Lebih", "💡 Cara Pakai", "🔙 Kembali ke Fitur"],
+          parentCommand: "🎯 Fitur"
+        },
+        // Fitur B detail
+        {
+          chatbotId,
+          command: "🚀 Fitur B",
+          type: "text" as const,
+          text: "🚀 Fitur B - Teknologi terdepan!\n\nIni adalah penjelasan detail tentang Fitur B yang revolusioner.",
+          buttons: null,
+          parentCommand: "🎯 Fitur"
+        },
+        // Fitur C detail
+        {
+          chatbotId,
+          command: "🔧 Fitur C",
+          type: "text" as const,
+          text: "🔧 Fitur C - Customizable sesuai kebutuhan!\n\nFitur C memberikan fleksibilitas maksimal untuk kebutuhan Anda.",
+          buttons: null,
+          parentCommand: "🎯 Fitur"
+        },
+        // Harga submenu
+        {
+          chatbotId,
+          command: "💰 Harga",
+          type: "menu" as const,
+          text: "💰 Paket harga kami:",
+          buttons: ["📦 Paket Basic", "⭐ Paket Pro", "👑 Paket Premium", "🔙 Kembali ke Menu Utama"],
+          parentCommand: "/start"
+        },
+        // Paket Basic
+        {
+          chatbotId,
+          command: "📦 Paket Basic",
+          type: "text" as const,
+          text: "📦 Paket Basic - Rp 100.000/bulan\n\n✅ Fitur A\n✅ Support email\n✅ 1 user\n\nCocok untuk pemula!",
+          buttons: null,
+          parentCommand: "💰 Harga"
+        },
+        // Paket Pro
+        {
+          chatbotId,
+          command: "⭐ Paket Pro",
+          type: "text" as const,
+          text: "⭐ Paket Pro - Rp 250.000/bulan\n\n✅ Semua fitur Basic\n✅ Fitur B & C\n✅ Support prioritas\n✅ 5 users\n\nPilihan terpopuler!",
+          buttons: null,
+          parentCommand: "💰 Harga"
+        },
+        // Paket Premium
+        {
+          chatbotId,
+          command: "👑 Paket Premium",
+          type: "text" as const,
+          text: "👑 Paket Premium - Rp 500.000/bulan\n\n✅ Semua fitur Pro\n✅ Custom development\n✅ Dedicated support\n✅ Unlimited users\n\nSolusi enterprise!",
+          buttons: null,
+          parentCommand: "💰 Harga"
+        },
+        // Kontak
+        {
+          chatbotId,
+          command: "📞 Kontak",
+          type: "text" as const,
+          text: "📞 Hubungi kami:\n\n📧 Email: support@perusahaan.com\n📱 WhatsApp: +62 812-3456-7890\n🌐 Website: www.perusahaan.com\n\nKami siap membantu Anda!",
+          buttons: null,
+          parentCommand: "/start"
+        },
+        // Info
+        {
+          chatbotId,
+          command: "ℹ️ Info",
+          type: "text" as const,
+          text: "ℹ️ Tentang Kami\n\nPerusahaan technology terdepan yang berfokus pada inovasi dan kepuasan pelanggan.\n\nBerdiri sejak 2020, kami telah melayani 1000+ klients dengan tingkat kepuasan 98%.",
+          buttons: null,
+          parentCommand: "/start"
+        },
+        // Back buttons navigation
+        {
+          chatbotId,
+          command: "🔙 Kembali ke Menu Utama",
+          type: "menu" as const,
+          text: "🤖 Selamat datang! Pilih menu di bawah ini:",
+          buttons: ["🎯 Fitur", "💰 Harga", "📞 Kontak", "ℹ️ Info"],
+          parentCommand: null
+        },
+        {
+          chatbotId,
+          command: "🔙 Kembali ke Fitur",
+          type: "menu" as const,
+          text: "🎯 Berikut adalah fitur-fitur kami:",
+          buttons: ["⚡ Fitur A", "🚀 Fitur B", "🔧 Fitur C", "🔙 Kembali ke Menu Utama"],
+          parentCommand: "/start"
+        }
+      ];
+
+      // Create flows one by one
+      for (const flowData of exampleFlows) {
+        try {
+          await storage.createBotFlow(flowData);
+        } catch (error) {
+          // Skip if flow already exists
+          console.log(`Flow ${flowData.command} already exists, skipping...`);
+        }
+      }
+
+      res.json({ message: "Example flows created successfully", count: exampleFlows.length });
+    } catch (error) {
+      console.error("Create example flows error:", error);
+      res.status(500).json({ message: "Failed to create example flows" });
+    }
+  });
+
   // Update bot flow
   app.put("/api/nonai-chatbots/:chatbotId/flows/:flowId", requireAuth, async (req, res) => {
     try {
@@ -1427,6 +1575,10 @@ export function registerRoutes(app: Express): Server {
       const chatbotId = parseInt(req.params.chatbotId);
       const update = req.body;
 
+      console.log("=== Webhook received ===");
+      console.log("Chatbot ID:", chatbotId);
+      console.log("Update:", JSON.stringify(update, null, 2));
+
       // Get chatbot
       const chatbot = await storage.getNonAiChatbot(chatbotId);
       if (!chatbot || !chatbot.isActive) {
@@ -1438,33 +1590,62 @@ export function registerRoutes(app: Express): Server {
       
       const { chatId, text, messageType } = WebhookProcessor.extractUserInput(update);
       
-      // Find matching flow
+      console.log("Extracted input:", { chatId, text, messageType });
+
+      // Find matching flow for the command/button text
       const flow = await storage.getBotFlowByCommand(chatbotId, text);
       
+      console.log("Found flow:", flow ? `${flow.command} (${flow.type})` : "None");
+
       if (flow) {
         // Send response based on flow type
         if (flow.type === "menu") {
           const replyMarkup = NonAiChatbotService.createKeyboardMarkup(flow.buttons || []);
           await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text, replyMarkup);
+          console.log("Sent menu response with buttons:", flow.buttons);
         } else {
           await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, flow.text);
+          console.log("Sent text response:", flow.text);
         }
       } else {
-        // Default response or /start command
-        if (text === "/start") {
-          const startFlow = await storage.getBotFlowByCommand(chatbotId, "/start");
-          if (startFlow) {
-            if (startFlow.type === "menu") {
-              const replyMarkup = NonAiChatbotService.createKeyboardMarkup(startFlow.buttons || []);
-              await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, startFlow.text, replyMarkup);
-            } else {
-              await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, startFlow.text);
-            }
+        // Try to find if this text matches any button and get its target flow
+        const allFlows = await storage.getBotFlowsByChatbotId(chatbotId);
+        let targetFlow = null;
+
+        // Look for a flow that has this text as one of its buttons
+        for (const checkFlow of allFlows) {
+          if (checkFlow.buttons && checkFlow.buttons.includes(text)) {
+            // Found a button match, now look for a flow with the same command as the button text
+            targetFlow = await storage.getBotFlowByCommand(chatbotId, text);
+            break;
+          }
+        }
+
+        if (targetFlow) {
+          console.log("Found target flow for button:", targetFlow.command);
+          if (targetFlow.type === "menu") {
+            const replyMarkup = NonAiChatbotService.createKeyboardMarkup(targetFlow.buttons || []);
+            await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, targetFlow.text, replyMarkup);
           } else {
-            await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, "Bot is ready! Please configure your flows.");
+            await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, targetFlow.text);
           }
         } else {
-          await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, "Command not found. Type /start to begin.");
+          // Default response or /start command
+          if (text === "/start") {
+            const startFlow = await storage.getBotFlowByCommand(chatbotId, "/start");
+            if (startFlow) {
+              if (startFlow.type === "menu") {
+                const replyMarkup = NonAiChatbotService.createKeyboardMarkup(startFlow.buttons || []);
+                await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, startFlow.text, replyMarkup);
+              } else {
+                await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, startFlow.text);
+              }
+            } else {
+              await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, "🤖 Bot siap! Silakan konfigurasikan flow Anda di dashboard.");
+            }
+          } else {
+            await NonAiChatbotService.sendMessage(chatbot.botToken, chatId, "❌ Perintah tidak ditemukan. Ketik /start untuk memulai.");
+          }
         }
       }
 
