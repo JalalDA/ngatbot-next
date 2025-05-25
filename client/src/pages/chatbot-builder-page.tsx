@@ -25,6 +25,12 @@ interface NonAiChatbot {
   updatedAt: string;
 }
 
+interface InlineButton {
+  text: string;
+  callback?: string;
+  url?: string;
+}
+
 interface BotFlow {
   id: number;
   chatbotId: number;
@@ -32,6 +38,7 @@ interface BotFlow {
   type: "menu" | "text";
   text: string;
   buttons: string[] | null;
+  inlineButtons: string | null; // JSON string
   parentCommand: string | null;
   createdAt: string;
   updatedAt: string;
@@ -49,6 +56,7 @@ export default function ChatbotBuilderPage() {
     type: "text" as "menu" | "text",
     text: "",
     buttons: [""],
+    inlineButtons: [[{ text: "", callback: "", url: "" }]] as InlineButton[][],
     parentCommand: ""
   });
 
