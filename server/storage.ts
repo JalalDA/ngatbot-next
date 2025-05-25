@@ -1,4 +1,4 @@
-import { users, bots, knowledge, transactions, settings, smmProviders, smmServices, smmOrders, type User, type InsertUser, type Bot, type InsertBot, type Knowledge, type InsertKnowledge, type Transaction, type InsertTransaction, type Setting, type InsertSetting, type SmmProvider, type InsertSmmProvider, type SmmService, type InsertSmmService, type SmmOrder, type InsertSmmOrder } from "@shared/schema";
+import { users, bots, knowledge, transactions, settings, smmProviders, smmServices, smmOrders, chatBots, menuItems, flowRules, chatBotOrders, type User, type InsertUser, type Bot, type InsertBot, type Knowledge, type InsertKnowledge, type Transaction, type InsertTransaction, type Setting, type InsertSetting, type SmmProvider, type InsertSmmProvider, type SmmService, type InsertSmmService, type SmmOrder, type InsertSmmOrder, type ChatBot, type InsertChatBot, type MenuItem, type InsertMenuItem, type FlowRule, type InsertFlowRule, type ChatBotOrder, type InsertChatBotOrder } from "@shared/schema";
 import session from "express-session";
 import { db, pool } from "./db";
 import { eq } from "drizzle-orm";
@@ -67,6 +67,35 @@ export interface IStorage {
   getSmmOrdersByUserId(userId: number): Promise<SmmOrder[]>;
   createSmmOrder(order: InsertSmmOrder): Promise<SmmOrder>;
   updateSmmOrder(id: number, updates: Partial<SmmOrder>): Promise<SmmOrder | undefined>;
+  
+  // ChatBot Builder management
+  getChatBot(id: number): Promise<ChatBot | undefined>;
+  getChatBotsByUserId(userId: number): Promise<ChatBot[]>;
+  getChatBotByToken(token: string): Promise<ChatBot | undefined>;
+  createChatBot(chatBot: InsertChatBot & { userId: number; botName: string; botUsername: string }): Promise<ChatBot>;
+  updateChatBot(id: number, updates: Partial<ChatBot>): Promise<ChatBot | undefined>;
+  deleteChatBot(id: number): Promise<boolean>;
+  
+  // Menu Items management
+  getMenuItem(id: number): Promise<MenuItem | undefined>;
+  getMenuItemsByChatBotId(chatBotId: number): Promise<MenuItem[]>;
+  createMenuItem(menuItem: InsertMenuItem): Promise<MenuItem>;
+  updateMenuItem(id: number, updates: Partial<MenuItem>): Promise<MenuItem | undefined>;
+  deleteMenuItem(id: number): Promise<boolean>;
+  
+  // Flow Rules management
+  getFlowRule(id: number): Promise<FlowRule | undefined>;
+  getFlowRulesByChatBotId(chatBotId: number): Promise<FlowRule[]>;
+  createFlowRule(flowRule: InsertFlowRule): Promise<FlowRule>;
+  updateFlowRule(id: number, updates: Partial<FlowRule>): Promise<FlowRule | undefined>;
+  deleteFlowRule(id: number): Promise<boolean>;
+  
+  // ChatBot Orders management
+  getChatBotOrder(id: number): Promise<ChatBotOrder | undefined>;
+  getChatBotOrdersByUserId(userId: number): Promise<ChatBotOrder[]>;
+  getChatBotOrderByMidtransOrderId(orderId: string): Promise<ChatBotOrder | undefined>;
+  createChatBotOrder(order: InsertChatBotOrder): Promise<ChatBotOrder>;
+  updateChatBotOrder(id: number, updates: Partial<ChatBotOrder>): Promise<ChatBotOrder | undefined>;
   
   sessionStore: any;
 }
