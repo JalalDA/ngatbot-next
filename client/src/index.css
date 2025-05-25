@@ -74,6 +74,10 @@
   }
 }
 
+.animate-glow-pulse {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
