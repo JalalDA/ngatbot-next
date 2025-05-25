@@ -1,14 +1,15 @@
 import axios from "axios";
 
 export interface SmmService {
-  service: string;
+  service: number;
   name: string;
   type: string;
   rate: string;
-  min: string;
-  max: string;
+  min: number;
+  max: number;
   category: string;
-  description?: string;
+  refill?: boolean;
+  cancel?: boolean;
 }
 
 export interface SmmOrderResponse {
@@ -38,13 +39,9 @@ export class SmmPanelAPI {
     try {
       console.log(`🔍 Fetching services from ${this.apiEndpoint}`);
       
-      const response = await axios.post(this.apiEndpoint, {
-        key: this.apiKey,
-        action: 'services'
-      }, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
+      // Use GET request with query parameters as per socpanel.com documentation
+      const url = `${this.apiEndpoint}?action=services&key=${this.apiKey}`;
+      const response = await axios.get(url, {
         timeout: 30000
       });
 

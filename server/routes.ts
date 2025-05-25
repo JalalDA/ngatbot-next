@@ -867,12 +867,12 @@ export function registerRoutes(app: Express): Server {
               providerId: provider.id,
               mid,
               name: service.name,
-              description: service.description || "",
-              min: parseInt(service.min),
-              max: parseInt(service.max),
+              description: service.category || "",
+              min: service.min,
+              max: service.max,
               rate: parseRate(service.rate).toString(),
               category: service.category,
-              serviceIdApi: service.service,
+              serviceIdApi: service.service.toString(),
               isActive: true
             });
 
