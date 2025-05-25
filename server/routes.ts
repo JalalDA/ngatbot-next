@@ -1529,10 +1529,25 @@ export function registerRoutes(app: Express): Server {
   // Update bot flow
   app.put("/api/nonai-chatbots/:chatbotId/flows/:flowId", requireAuth, async (req, res) => {
     try {
+      console.log("=== UPDATE FLOW REQUEST ===");
+      console.log("Full request body:", req.body);
+      
       const user = req.user!;
       const chatbotId = parseInt(req.params.chatbotId);
       const flowId = parseInt(req.params.flowId);
       const { command, type, text, buttons, parentCommand, inlineButtons } = req.body;
+      
+      console.log("Update flow data received:", {
+        flowId,
+        command,
+        type,
+        text,
+        buttons,
+        parentCommand,
+        inlineButtons,
+        inlineButtonsType: typeof inlineButtons,
+        inlineButtonsLength: inlineButtons ? inlineButtons.length : 'undefined'
+      });
 
       const chatbot = await storage.getNonAiChatbot(chatbotId);
       if (!chatbot || chatbot.userId !== user.id) {
