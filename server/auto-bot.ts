@@ -154,7 +154,7 @@ export class AutoBotManager {
                 show_alert: false
               });
               
-              // Handle special "back_to_main" callback
+              // Handle special navigation callbacks
               if (data === 'back_to_main') {
                 // Show main menu again
                 const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => !btn.level || btn.level === 0);
@@ -165,6 +165,37 @@ export class AutoBotManager {
                   message_id: callbackQuery.message.message_id,
                   reply_markup: keyboard
                 });
+                return;
+              }
+              
+              // Handle "back_to_submenu" callback for sub-sub menus
+              if (data.startsWith('back_to_submenu_')) {
+                const parentId = data.replace('back_to_submenu_', '');
+                const parentButton = autoBot.keyboardConfig?.find(btn => btn.id === parentId);
+                const subMenus = (autoBot.keyboardConfig || []).filter(btn => 
+                  btn.level === 1 && btn.parentId === parentId
+                );
+                
+                if (subMenus.length > 0) {
+                  // Add back button to sub-menus
+                  const subMenusWithBack = [
+                    ...subMenus,
+                    {
+                      id: 'back_button',
+                      text: '⬅️ Kembali',
+                      callbackData: 'back_to_main',
+                      level: 1
+                    }
+                  ];
+                  
+                  const subMenuKeyboard = this.createInlineKeyboard(subMenusWithBack);
+                  
+                  await bot.editMessageText(`📋 Menu ${parentButton?.text}:`, {
+                    chat_id: chatId,
+                    message_id: callbackQuery.message.message_id,
+                    reply_markup: subMenuKeyboard
+                  });
+                }
                 return;
               }
               
@@ -202,8 +233,41 @@ export class AutoBotManager {
                     parse_mode: 'Markdown'
                   });
                 }
+              } else if (pressedButton.level === 1) {
+                // This is a sub-menu button (level 1) - check if it has sub-sub menus
+                const subSubMenus = (autoBot.keyboardConfig || []).filter(btn => 
+                  btn.level === 2 && btn.parentId === pressedButton.id
+                );
+                
+                if (subSubMenus.length > 0) {
+                  // Add back button to sub-sub menus
+                  const subSubMenusWithBack = [
+                    ...subSubMenus,
+                    {
+                      id: 'back_button_subsub',
+                      text: '⬅️ Kembali',
+                      callbackData: `back_to_submenu_${pressedButton.parentId}`,
+                      level: 2
+                    }
+                  ];
+                  
+                  // Replace sub menu with sub-sub menus by editing the message
+                  const subSubMenuKeyboard = this.createInlineKeyboard(subSubMenusWithBack);
+                  
+                  await bot.editMessageText(`📋 Sub Menu ${pressedButton.text}:`, {
+                    chat_id: chatId,
+                    message_id: callbackQuery.message.message_id,
+                    reply_markup: subSubMenuKeyboard
+                  });
+                } else {
+                  // No sub-sub menus, send response text if available
+                  const responseMessage = pressedButton.responseText || `✅ Anda telah memilih: *${pressedButton.text}*`;
+                  await bot.sendMessage(chatId, responseMessage, {
+                    parse_mode: 'Markdown'
+                  });
+                }
               } else {
-                // This is a sub-menu button, send response text if available
+                // This is a sub-sub menu button (level 2), send response text if available
                 const responseMessage = pressedButton.responseText || `✅ Anda telah memilih: *${pressedButton.text}*`;
                 await bot.sendMessage(chatId, responseMessage, {
                   parse_mode: 'Markdown'

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Bot, Keyboard, Settings, Play, Square, Edit3, Layers } from "lucide-react";
+import { Plus, Trash2, Bot, Keyboard, Settings, Play, Square, Edit3, Layers, Layers2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -57,6 +57,11 @@ export default function AutoBotBuilderPage() {
   const [newSubMenuUrl, setNewSubMenuUrl] = useState("");
   const [newSubMenuResponse, setNewSubMenuResponse] = useState("");
   const [selectedParentForNewSub, setSelectedParentForNewSub] = useState<string>("");
+  const [newSubSubMenuText, setNewSubSubMenuText] = useState("");
+  const [newSubSubMenuCallback, setNewSubSubMenuCallback] = useState("");
+  const [newSubSubMenuUrl, setNewSubSubMenuUrl] = useState("");
+  const [newSubSubMenuResponse, setNewSubSubMenuResponse] = useState("");
+  const [selectedParentForNewSubSub, setSelectedParentForNewSubSub] = useState<string>("");
 
   // Fetch auto bots
   const { data: autoBots = [], isLoading } = useQuery({
@@ -835,6 +840,33 @@ export default function AutoBotBuilderPage() {
                     <Layers className="w-4 h-4 mr-2" />
                     Tambah Sub Menu
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (newSubSubMenuText && newSubSubMenuCallback && selectedParentForNewSubSub) {
+                        const newButton: InlineKeyboard = {
+                          id: Date.now().toString(),
+                          text: newSubSubMenuText,
+                          callbackData: newSubSubMenuCallback,
+                          level: 2,
+                          parentId: selectedParentForNewSubSub,
+                          url: newSubSubMenuUrl || undefined,
+                          responseText: newSubSubMenuResponse || undefined
+                        };
+                        setKeyboardButtons([...keyboardButtons, newButton]);
+                        setNewSubSubMenuText("");
+                        setNewSubSubMenuCallback("");
+                        setNewSubSubMenuUrl("");
+                        setNewSubSubMenuResponse("");
+                        setSelectedParentForNewSubSub("");
+                      }
+                    }}
+                    disabled={!newSubSubMenuText || !newSubSubMenuCallback || !selectedParentForNewSubSub}
+                  >
+                    <Layers2 className="w-4 h-4 mr-2" />
+                    Tambah Sub-Sub Menu
+                  </Button>
                 </div>
               </div>
 
@@ -918,14 +950,61 @@ export default function AutoBotBuilderPage() {
                 </CardContent>
               </Card>
 
+              {/* Add new sub-sub menu form */}
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm">Tambah Sub-Sub Menu Baru</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      <Select value={selectedParentForNewSubSub} onValueChange={setSelectedParentForNewSubSub}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih sub menu" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {keyboardButtons
+                            .filter(btn => btn.level === 1)
+                            .map(btn => (
+                              <SelectItem key={btn.id} value={btn.id}>
+                                {btn.text}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        placeholder="Teks sub-sub menu"
+                        value={newSubSubMenuText}
+                        onChange={(e) => setNewSubSubMenuText(e.target.value)}
+                      />
+                      <Input
+                        placeholder="Callback data"
+                        value={newSubSubMenuCallback}
+                        onChange={(e) => setNewSubSubMenuCallback(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <Input
+                        placeholder="URL (Opsional)"
+                        value={newSubSubMenuUrl}
+                        onChange={(e) => setNewSubSubMenuUrl(e.target.value)}
+                      />
+                      <Input
+                        placeholder="Text - Pesan yang akan dikirim ketika tombol diklik"
+                        value={newSubSubMenuResponse}
+                        onChange={(e) => setNewSubSubMenuResponse(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Show existing keyboard buttons */}
               <div className="space-y-3">
                 {keyboardButtons.map((button, index) => (
                   <div key={button.id} className="flex items-center gap-3 p-3 border rounded-lg">
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-2">
-                        <Badge variant={button.level === 1 ? "secondary" : "default"}>
-                          {button.level === 1 ? "Sub Menu" : "Menu Utama"}
+                        <Badge variant={button.level === 2 ? "destructive" : button.level === 1 ? "secondary" : "default"}>
+                          {button.level === 2 ? "Sub-Sub Menu" : button.level === 1 ? "Sub Menu" : "Menu Utama"}
                         </Badge>
                         {button.level === 1 && button.parentId && (
                           <span className="text-sm text-muted-foreground">
