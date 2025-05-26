@@ -1335,62 +1335,597 @@ export default function SmmServicesPage() {
 
                 {/* Categorized Services List with Collapsible Categories */}
                 <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                  {Object.entries(servicesByCategory).map(([category, services]: [string, any]) => (
-                    <div key={category} className="border rounded-lg">
-                      {/* Category Header */}
+                  {Object.entries(servicesByCategory).map(([category, services]: [string, any]) => {
+                    const isCategoryDisabled = disabledCategories.has(category);
+                    return (
                       <div 
-                        className="flex items-center justify-between p-3 bg-muted/30 rounded-t-lg cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => toggleCategoryCollapse(category)}
+                        key={category} 
+                        className={`border rounded-lg transition-all duration-200 ${
+                          isCategoryDisabled 
+                            ? 'opacity-60 bg-gray-50 border-gray-300' 
+                            : 'hover:shadow-sm'
+                        }`}
                       >
-                        <div className="flex items-center space-x-3">
-                          <div className="flex items-center space-x-2">
-                            {collapsedCategories.has(category) ? (
-                              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                            )}
-                            <h3 className="font-medium text-foreground">{category}</h3>
+                        {/* Category Header */}
+                        <div 
+                          className={`flex items-center justify-between p-3 bg-muted/30 rounded-t-lg cursor-pointer hover:bg-muted/50 transition-colors ${
+                            isCategoryDisabled ? 'bg-gray-100/50' : ''
+                          }`}
+                          onClick={() => toggleCategoryCollapse(category)}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="flex items-center space-x-2">
+                              {collapsedCategories.has(category) ? (
+                                <ChevronRight className={`w-4 h-4 ${
+                                  isCategoryDisabled ? 'text-gray-400' : 'text-muted-foreground'
+                                }`} />
+                              ) : (
+                                <ChevronDown className={`w-4 h-4 ${
+                                  isCategoryDisabled ? 'text-gray-400' : 'text-muted-foreground'
+                                }`} />
+                              )}
+                              <h3 className={`font-medium ${
+                                isCategoryDisabled ? 'text-gray-500' : 'text-foreground'
+                              }`}>
+                                {category}
+                              </h3>
+                              {/* Status Indicator untuk kategori disabled */}
+                              {isCategoryDisabled && (
+                                <Badge variant="destructive" className="text-xs bg-red-100 text-red-700 border-red-200">
+                                  OFF
+                                </Badge>
+                              )}
+                            </div>
+                            <Badge 
+                              variant="secondary" 
+                              className={`text-xs ${
+                                isCategoryDisabled 
+                                  ? 'bg-gray-200 text-gray-600' 
+                                  : ''
+                              }`}
+                            >
+                              {services.length} services
+                            </Badge>
                           </div>
-                          <Badge variant="secondary" className="text-xs">
-                            {services.length} services
-                          </Badge>
+                          
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingCategory(category);
+                                setCategoryForm({
+                                  name: category,
+                                  isDisabled: isCategoryDisabled,
+                                  sortBy: categorySortSettings[category] || "default"
+                                });
+                                setShowEditCategoryModal(true);
+                              }}
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            >
+                              <Settings className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditCategory(category);
-                            }}
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                          >
-                            <Settings className="w-4 h-4" />
-                          </Button>
-                          <Checkbox
-                            checked={services.every((service: any) => selectedServicesForDelete.has(service.id))}
-                            onCheckedChange={(checked) => {
-                              const newSelected = new Set(selectedServicesForDelete);
-                              services.forEach((service: any) => {
-                                if (checked) {
-                                  newSelected.add(service.id);
-                                } else {
-                                  newSelected.delete(service.id);
-                                }
-                              });
-                              setSelectedServicesForDelete(newSelected);
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <span className="text-xs text-muted-foreground">Select All</span>
-                        </div>
-                      </div>
 
-                      {/* Services List (Collapsible) */}
-                      {!collapsedCategories.has(category) && (
-                        <div className="space-y-1 p-2">
-                          {services.map((service: any) => {
+                        {/* Services List (Collapsible) */}
+                        {!collapsedCategories.has(category) && (
+                          <div className={`space-y-1 p-2 ${
+                            isCategoryDisabled ? 'opacity-50' : ''
+                          }`}>
+                            {services.map((service: any) => {
+                              const isServiceDisabled = disabledServices.has(service.id) || isCategoryDisabled;
+                              return (
+                                <div 
+                                  key={service.id} 
+                                  className={`bg-card p-2 rounded border border-border hover:bg-muted/20 transition-colors ${
+                                    isServiceDisabled ? 'opacity-50 bg-gray-100' : ''
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3 flex-1">
+                                      <Checkbox
+                                        checked={selectedServicesForDelete.has(service.id)}
+                                        onCheckedChange={(checked) => {
+                                          const newSelected = new Set(selectedServicesForDelete);
+                                          if (checked) {
+                                            newSelected.add(service.id);
+                                          } else {
+                                            newSelected.delete(service.id);
+                                          }
+                                          setSelectedServicesForDelete(newSelected);
+                                        }}
+                                      />
+                                      
+                                      {/* Switch On/Off */}
+                                      <div className="flex items-center space-x-2">
+                                        <Switch
+                                          checked={!isServiceDisabled}
+                                          onCheckedChange={(checked) => handleToggleService(service.id, checked)}
+                                          className="scale-75"
+                                          disabled={isCategoryDisabled}
+                                        />
+                                        <span className={`text-xs font-medium ${
+                                          isServiceDisabled ? 'text-red-600' : 'text-green-600'
+                                        }`}>
+                                          {isServiceDisabled ? 'OFF' : 'ON'}
+                                        </span>
+                                      </div>
+                                      
+                                      <div className="flex-1">
+                                        <div className="flex items-center justify-between mb-1">
+                                          <h4 className={`font-medium text-sm truncate pr-2 ${
+                                            isServiceDisabled ? 'text-gray-500' : 'text-foreground'
+                                          }`}>
+                                            {service.name}
+                                          </h4>
+                                          <span className="text-xs text-muted-foreground">ID: {service.service}</span>
+                                        </div>
+                                        
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                          <div className="flex items-center space-x-4">
+                                            <span className={`font-medium ${
+                                              isServiceDisabled ? 'text-gray-400' : 'text-green-600'
+                                            }`}>
+                                              ${service.rate}/1K
+                                            </span>
+                                            <span>Min: {service.min?.toLocaleString()}</span>
+                                            <span>Max: {service.max?.toLocaleString()}</span>
+                                            {service.refill && <span className="text-blue-600">♻️</span>}
+                                            {service.cancel && <span className="text-red-600">❌</span>}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="flex items-center space-x-1 ml-3">
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => {
+                                          setEditingService(service);
+                                          setServiceForm({
+                                            name: service.name || "",
+                                            description: service.description || "",
+                                            category: service.category || "",
+                                            rate: service.rate || "",
+                                            min: service.min || "",
+                                            max: service.max || "",
+                                            syncMinMax: true,
+                                            customRate: service.customRate || "",
+                                            useCustomRate: false
+                                          });
+                                          setShowEditServiceModal(true);
+                                        }}
+                                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                        disabled={isServiceDisabled}
+                                      >
+                                        <Edit className="w-3 h-3" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => deleteSmmServiceMutation.mutate(service.id)}
+                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <ShoppingCart className="w-16 h-16 mx-auto text-slate-400 mb-4" />
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">No services available</h3>
+                <p className="text-slate-600 mb-6">Add a provider and import services to get started</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Import Services Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg p-3 sm:p-6 w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900">Import Services</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportingProvider("");
+                  setSelectedServices(new Set());
+                  setProviderServices([]);
+                }}
+                className="text-slate-500 hover:text-slate-700"
+              >
+                ✕
+              </Button>
+            </div>
+
+            {/* Provider Selection */}
+            <div className="mb-4 sm:mb-6">
+              <Label className="text-sm font-medium mb-2 block">Select Provider</Label>
+              <Select value={importingProvider} onValueChange={(value) => {
+                const provider = smmProviders.find((p: any) => p.id.toString() === value);
+                if (!provider) return;
+                
+                setImportingProvider(value);
+                setSelectedServices(new Set());
+                setLoadingProviderServices(true);
+                
+                toast({
+                  title: "Loading services...",
+                  description: "Fetching services from provider",
+                });
+
+                fetch(`/api/smm/providers/${provider.id}/services`)
+                  .then(res => res.json())
+                  .then(data => {
+                    setProviderServices(data);
+                    toast({
+                      title: "Services loaded",
+                      description: `${data.length} services available for import`,
+                    });
+                  })
+                  .catch(err => {
+                    toast({
+                      title: "Error loading services", 
+                      description: "Failed to fetch services from provider",
+                      variant: "destructive",
+                    });
+                    setProviderServices([]);
+                  })
+                  .finally(() => {
+                    setLoadingProviderServices(false);
+                  });
+              }}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choose a provider..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {smmProviders.map((provider: any) => (
+                    <SelectItem key={provider.id} value={provider.id.toString()}>
+                      {provider.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Import Progress */}
+            {isImporting && (
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                  <span className="text-sm font-medium text-blue-900">
+                    Importing services... ({importProgress.current}/{importProgress.total})
+                  </span>
+                </div>
+                <div className="w-full bg-blue-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                    style={{ 
+                      width: `${importProgress.total > 0 ? (importProgress.current / importProgress.total) * 100 : 0}%` 
+                    }}
+                  ></div>
+                </div>
+                <p className="text-xs text-blue-700 mt-2">
+                  Progress: {importProgress.total > 0 ? Math.round((importProgress.current / importProgress.total) * 100) : 0}%
+                </p>
+              </div>
+            )}
+
+            {/* Services List */}
+            {loadingProviderServices ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-slate-600">Loading services...</p>
+              </div>
+            ) : providerServices.length > 0 ? (
+              <>
+                {/* Selection Controls */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      checked={providerServices.every((service: any) => selectedServices.has(service.service))}
+                      onCheckedChange={(checked) => {
+                        const newSelected = new Set(selectedServices);
+                        providerServices.forEach((service: any) => {
+                          if (checked) {
+                            newSelected.add(service.service);
+                          } else {
+                            newSelected.delete(service.service);
+                          }
+                        });
+                        setSelectedServices(newSelected);
+                      }}
+                    />
+                    <span className="text-xs text-muted-foreground">Select All Services</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {selectedServices.size} of {providerServices.length} services selected
+                  </div>
+                </div>
+
+                {/* Services Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+                  {providerServices.map((service: any) => (
+                    <div
+                      key={service.service}
+                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                        selectedServices.has(service.service)
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => {
+                        const newSelected = new Set(selectedServices);
+                        if (selectedServices.has(service.service)) {
+                          newSelected.delete(service.service);
+                        } else {
+                          newSelected.add(service.service);
+                        }
+                        setSelectedServices(newSelected);
+                      }}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h4 className="font-medium text-sm text-slate-900 line-clamp-2">{service.name}</h4>
+                        <Checkbox
+                          checked={selectedServices.has(service.service)}
+                          onChange={() => {}}
+                          className="ml-2 flex-shrink-0"
+                        />
+                      </div>
+                      <div className="space-y-1 text-xs text-slate-600">
+                        <p><strong>Rate:</strong> ${service.rate}/1K</p>
+                        <p><strong>Category:</strong> {service.category}</p>
+                        <p><strong>Min/Max:</strong> {service.min?.toLocaleString()}/{service.max?.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Import Actions */}
+                <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowImportModal(false);
+                      setImportingProvider("");
+                      setSelectedServices(new Set());
+                      setIsImporting(false);
+                      setImportProgress({ current: 0, total: 0 });
+                    }}
+                    disabled={isImporting}
+                  >
+                    Cancel
+                  </Button>
+                  
+                  <Button
+                    onClick={() => handleBatchImport(selectedServices)}
+                    disabled={selectedServices.size === 0 || isImporting}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {isImporting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Importing... ({importProgress.current}/{importProgress.total})
+                      </>
+                    ) : (
+                      `Import ${selectedServices.size} Services`
+                    )}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              importingProvider && (
+                <div className="text-center py-8">
+                  <Package className="w-12 h-12 mx-auto text-slate-400 mb-4" />
+                  <p className="text-slate-600">No services available from this provider</p>
+                </div>
+              )
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Edit Service Modal */}
+      {showEditServiceModal && editingService && (
+        <Dialog open={showEditServiceModal} onOpenChange={setShowEditServiceModal}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <Edit className="w-5 h-5 text-blue-600" />
+                <span>Edit Service</span>
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* Service Info */}
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600">Service ID: <span className="font-mono">{editingService.service}</span></p>
+                <p className="text-sm text-gray-600">Original Rate: <span className="font-medium">${editingService.rate}/1K</span></p>
+              </div>
+
+              {/* Service Name */}
+              <div>
+                <Label htmlFor="serviceName" className="text-gray-900 font-medium">Service Name</Label>
+                <Input
+                  id="serviceName"
+                  value={serviceForm.name}
+                  onChange={(e) => setServiceForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter service name"
+                  className="mt-2"
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <Label htmlFor="serviceCategory" className="text-gray-900 font-medium">Category</Label>
+                <Input
+                  id="serviceCategory"
+                  value={serviceForm.category}
+                  onChange={(e) => setServiceForm(prev => ({ ...prev, category: e.target.value }))}
+                  placeholder="Enter category"
+                  className="mt-2"
+                />
+              </div>
+
+              {/* Custom Rate */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="useCustomRate"
+                  checked={serviceForm.useCustomRate}
+                  onCheckedChange={(checked) => setServiceForm(prev => ({ ...prev, useCustomRate: !!checked }))}
+                />
+                <Label htmlFor="useCustomRate" className="text-gray-900 font-medium">Use Custom Rate</Label>
+              </div>
+
+              {serviceForm.useCustomRate && (
+                <div>
+                  <Label htmlFor="customRate" className="text-gray-900 font-medium">Custom Rate (per 1K)</Label>
+                  <Input
+                    id="customRate"
+                    type="number"
+                    step="0.01"
+                    value={serviceForm.customRate}
+                    onChange={(e) => setServiceForm(prev => ({ ...prev, customRate: e.target.value }))}
+                    placeholder="0.00"
+                    className="mt-2"
+                  />
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowEditServiceModal(false);
+                    setEditingService(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    // Handle service update here
+                    setShowEditServiceModal(false);
+                    setEditingService(null);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Modal Edit Kategori */}
+      {showEditCategoryModal && (
+        <Dialog open={showEditCategoryModal} onOpenChange={setShowEditCategoryModal}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <Settings className="w-5 h-5 text-blue-600" />
+                <span>Edit Kategori</span>
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* Edit Nama Kategori */}
+              <div>
+                <Label htmlFor="categoryName" className="text-gray-900 font-medium">Nama Kategori</Label>
+                <Input
+                  id="categoryName"
+                  value={categoryForm.name}
+                  onChange={(e) => setCategoryForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Masukkan nama kategori"
+                  className="mt-2 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Disable Kategori */}
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <Label htmlFor="disableCategory" className="text-gray-900 font-medium">Disable Kategori</Label>
+                  <p className="text-xs text-gray-600 mt-1">Kategori dan semua service di dalamnya akan disembunyikan</p>
+                </div>
+                <Switch
+                  id="disableCategory"
+                  checked={categoryForm.isDisabled}
+                  onCheckedChange={(checked) => setCategoryForm(prev => ({ ...prev, isDisabled: checked }))}
+                />
+              </div>
+
+              {/* Sort by Price */}
+              <div>
+                <Label htmlFor="sortByPrice" className="text-gray-900 font-medium">Urutkan Berdasarkan Harga</Label>
+                <Select
+                  value={categoryForm.sortBy}
+                  onValueChange={(value) => setCategoryForm(prev => ({ ...prev, sortBy: value }))}
+                >
+                  <SelectTrigger className="mt-2">
+                    <SelectValue placeholder="Pilih urutan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Default (Tidak diurutkan)</SelectItem>
+                    <SelectItem value="price-low">Harga Terendah ke Tertinggi</SelectItem>
+                    <SelectItem value="price-high">Harga Tertinggi ke Terendah</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-between pt-4 border-t">
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteCategory}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Hapus Kategori
+                </Button>
+
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowEditCategoryModal(false);
+                      setEditingCategory("");
+                    }}
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    onClick={handleSaveCategory}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Simpan
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
                             const isServiceDisabled = disabledServices.has(service.id);
                             return (
                               <div 
