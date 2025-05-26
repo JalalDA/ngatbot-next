@@ -278,33 +278,76 @@ export default function SmmServicesPage() {
     syncOrderStatusMutation.mutate();
   };
 
-  // Handle batch import for large service imports
+  // Handle batch import for large service imports with client-side batching
   const handleBatchImport = async () => {
     if (!importingProvider || selectedServices.size === 0) return;
 
     setIsImporting(true);
-    setImportProgress({ current: 0, total: selectedServices.size });
-
+    
     try {
       // Convert selected services to array
       const selectedServicesList = providerServices.filter(service => 
         selectedServices.has(service.service || service.id)
       );
 
-      console.log(`Starting batch import of ${selectedServicesList.length} services`);
+      console.log(`Starting client-side batch import of ${selectedServicesList.length} services`);
+      
+      // Client-side batching with very small batches (5 services per request)
+      const BATCH_SIZE = 5;
+      const batches = [];
+      for (let i = 0; i < selectedServicesList.length; i += BATCH_SIZE) {
+        batches.push(selectedServicesList.slice(i, i + BATCH_SIZE));
+      }
 
-      // Use the enhanced endpoint with batch processing
-      const response = await apiRequest("POST", `/api/smm/providers/${importingProvider.id}/import-services`, {
-        services: selectedServicesList,
-        batchSize: 10 // Process in very small batches of 10 to avoid request size limits
-      });
+      setImportProgress({ current: 0, total: selectedServicesList.length });
+      
+      let totalImported = 0;
+      let allErrors = [];
 
-      const result = await response.json();
+      // Process each batch sequentially with delays
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
+        console.log(`Processing client batch ${batchIndex + 1}/${batches.length} with ${batch.length} services`);
 
-      if (response.ok) {
+        try {
+          const response = await apiRequest("POST", `/api/smm/providers/${importingProvider.id}/import-services`, {
+            services: batch,
+            batchSize: BATCH_SIZE
+          });
+
+          const result = await response.json();
+
+          if (response.ok) {
+            totalImported += result.importedCount || 0;
+            if (result.errors && result.errors.length > 0) {
+              allErrors.push(...result.errors);
+            }
+            
+            // Update progress
+            setImportProgress({ 
+              current: Math.min((batchIndex + 1) * BATCH_SIZE, selectedServicesList.length), 
+              total: selectedServicesList.length 
+            });
+          } else {
+            throw new Error(result.message || `Batch ${batchIndex + 1} failed`);
+          }
+
+          // Add delay between batches to prevent overwhelming the server
+          if (batchIndex < batches.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+
+        } catch (error: any) {
+          console.error(`Client batch ${batchIndex + 1} error:`, error);
+          allErrors.push(`Batch ${batchIndex + 1}: ${error.message}`);
+        }
+      }
+
+      // Show final results
+      if (totalImported > 0) {
         toast({
           title: "✅ Import berhasil!",
-          description: `${result.importedCount} services berhasil diimpor dari ${selectedServicesList.length} yang dipilih${result.batchesProcessed ? ` dalam ${result.batchesProcessed} batch` : ''}`,
+          description: `${totalImported} services berhasil diimpor dari ${selectedServicesList.length} yang dipilih dalam ${batches.length} batch`,
         });
 
         // Reset states
@@ -314,32 +357,24 @@ export default function SmmServicesPage() {
         
         // Refresh services list
         queryClient.invalidateQueries({ queryKey: ["/api/smm/services"] });
-
-        // Show errors if any
-        if (result.errors && result.errors.length > 0) {
-          console.warn("Import errors:", result.errors);
-          toast({
-            title: "⚠️ Beberapa service gagal diimpor",
-            description: `${result.errors.length} service mengalami error. Periksa console untuk detail.`,
-            variant: "destructive",
-          });
-        }
-      } else {
-        throw new Error(result.message || "Import failed");
       }
+
+      // Show errors if any
+      if (allErrors.length > 0) {
+        console.warn("Import errors:", allErrors);
+        toast({
+          title: "⚠️ Beberapa batch mengalami error",
+          description: `${allErrors.length} batch atau service gagal diimpor. Total berhasil: ${totalImported}`,
+          variant: "destructive",
+        });
+      }
+
     } catch (error: any) {
-      console.error("Batch import error:", error);
+      console.error("Overall batch import error:", error);
       
-      let errorMessage = "Gagal mengimpor services";
-      if (error.message?.includes("413") || error.message?.includes("request entity too large")) {
-        errorMessage = "Request terlalu besar. Coba pilih lebih sedikit services per batch.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
       toast({
         title: "❌ Import gagal!",
-        description: errorMessage,
+        description: error.message || "Gagal memproses import services",
         variant: "destructive",
       });
     } finally {
