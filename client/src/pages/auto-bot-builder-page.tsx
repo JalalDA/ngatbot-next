@@ -47,6 +47,11 @@ export default function AutoBotBuilderPage() {
   const [showSubMenuSelector, setShowSubMenuSelector] = useState(false);
   const [selectedParentId, setSelectedParentId] = useState<string>("");
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [newMainMenuText, setNewMainMenuText] = useState("");
+  const [newMainMenuCallback, setNewMainMenuCallback] = useState("");
+  const [newSubMenuText, setNewSubMenuText] = useState("");
+  const [newSubMenuCallback, setNewSubMenuCallback] = useState("");
+  const [selectedParentForNewSub, setSelectedParentForNewSub] = useState<string>("");
 
   // Fetch auto bots
   const { data: autoBots = [], isLoading } = useQuery({
@@ -762,7 +767,109 @@ export default function AutoBotBuilderPage() {
                   <Keyboard className="w-5 h-5" />
                   Menu Yang Ada
                 </Label>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (newMainMenuText && newMainMenuCallback) {
+                        const newButton: InlineKeyboard = {
+                          id: Date.now().toString(),
+                          text: newMainMenuText,
+                          callbackData: newMainMenuCallback,
+                          level: 0
+                        };
+                        setKeyboardButtons([...keyboardButtons, newButton]);
+                        setNewMainMenuText("");
+                        setNewMainMenuCallback("");
+                      }
+                    }}
+                    disabled={!newMainMenuText || !newMainMenuCallback}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Tambah Menu Utama
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (newSubMenuText && newSubMenuCallback && selectedParentForNewSub) {
+                        const newButton: InlineKeyboard = {
+                          id: Date.now().toString(),
+                          text: newSubMenuText,
+                          callbackData: newSubMenuCallback,
+                          level: 1,
+                          parentId: selectedParentForNewSub
+                        };
+                        setKeyboardButtons([...keyboardButtons, newButton]);
+                        setNewSubMenuText("");
+                        setNewSubMenuCallback("");
+                        setSelectedParentForNewSub("");
+                      }
+                    }}
+                    disabled={!newSubMenuText || !newSubMenuCallback || !selectedParentForNewSub}
+                  >
+                    <Layers className="w-4 h-4 mr-2" />
+                    Tambah Sub Menu
+                  </Button>
+                </div>
               </div>
+
+              {/* Add new main menu form */}
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm">Tambah Menu Utama Baru</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input
+                        placeholder="Teks menu utama"
+                        value={newMainMenuText}
+                        onChange={(e) => setNewMainMenuText(e.target.value)}
+                      />
+                      <Input
+                        placeholder="Callback data"
+                        value={newMainMenuCallback}
+                        onChange={(e) => setNewMainMenuCallback(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Add new sub menu form */}
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm">Tambah Sub Menu Baru</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      <Select value={selectedParentForNewSub} onValueChange={setSelectedParentForNewSub}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih menu utama" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {keyboardButtons
+                            .filter(btn => !btn.level || btn.level === 0)
+                            .map(btn => (
+                              <SelectItem key={btn.id} value={btn.id}>
+                                {btn.text}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        placeholder="Teks sub menu"
+                        value={newSubMenuText}
+                        onChange={(e) => setNewSubMenuText(e.target.value)}
+                      />
+                      <Input
+                        placeholder="Callback data"
+                        value={newSubMenuCallback}
+                        onChange={(e) => setNewSubMenuCallback(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Show existing keyboard buttons */}
               <div className="space-y-3">
