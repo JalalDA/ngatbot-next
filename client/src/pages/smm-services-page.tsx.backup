@@ -2053,6 +2053,10 @@ export default function SmmServicesPage() {
     </div>
   );
 }
+                            
+                            const services = data.services || data;
+                            
+                            if (Array.isArray(services)) {
                               setProviderServices(services);
                               toast({
                                 title: "Services loaded successfully",
