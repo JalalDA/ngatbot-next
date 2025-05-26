@@ -647,7 +647,7 @@ export default function AutoBotBuilderPage() {
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-2">
                             <Label className="text-sm font-medium">
-                              {button.isAllShow ? '📋 Tombol All Show' : level === 0 ? `Menu Utama ${index + 1}` : `Sub Menu ${index + 1}`}
+                              {button.isAllShow ? '📋 Tombol All Show' : level === 0 ? `Menu Utama ${index + 1}` : level === 1 ? `Sub Menu ${index + 1}` : level === 2 ? `Sub-Sub Menu ${index + 1}` : level === 3 ? `Level 4 Menu ${index + 1}` : level === 4 ? `Level 5 Menu ${index + 1}` : `Menu ${index + 1}`}
                               {button.parentId && (
                                 <span className="ml-2 text-xs text-muted-foreground">
                                   (Parent: {keyboardButtons.find(b => b.id === button.parentId)?.text || 'Unknown'})
