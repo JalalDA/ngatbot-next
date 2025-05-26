@@ -194,8 +194,47 @@ export class AutoBotManager {
                 message_id: msg.message_id,
                 reply_markup: keyboard
               });
+            } else if (level === 1) {
+              // Back to sub-menu (level 1)
+              const parentButton = autoBot.keyboardConfig?.find(btn => btn.id === parentId);
+              const subMenus = (autoBot.keyboardConfig || []).filter(btn => 
+                btn.level === 1 && btn.parentId === parentId
+              );
+              
+              console.log(`Found ${subMenus.length} sub-menu items for parent: ${parentId}`);
+              
+              if (subMenus.length > 0) {
+                // Add navigation buttons for sub-menus (level 1)
+                const subMenusWithBack = [
+                  ...subMenus,
+                  {
+                    id: 'back_button_level_1',
+                    text: '⬅️ Kembali',
+                    callbackData: 'back_to_main',
+                    level: 1
+                  }
+                ];
+                
+                const subMenuKeyboard = this.createInlineKeyboard(subMenusWithBack);
+                
+                await bot.editMessageText(`📋 Menu ${parentButton?.text}:`, {
+                  chat_id: chatId,
+                  message_id: msg.message_id,
+                  reply_markup: subMenuKeyboard
+                });
+              } else {
+                // Fallback to main menu if no items found
+                const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => !btn.level || btn.level === 0);
+                const keyboard = this.createInlineKeyboard(mainMenuButtons);
+                
+                await bot.editMessageText(autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:", {
+                  chat_id: chatId,
+                  message_id: msg.message_id,
+                  reply_markup: keyboard
+                });
+              }
             } else {
-              // Back to specific level
+              // Back to higher level (level 2+)
               const parentButton = autoBot.keyboardConfig?.find(btn => btn.id === parentId);
               const menuItems = (autoBot.keyboardConfig || []).filter(btn => 
                 btn.level === level && btn.parentId === parentId
@@ -340,16 +379,14 @@ export class AutoBotManager {
                   let backCallback = 'back_to_main';
                   
                   // Determine appropriate back callback based on current level
-                  if (currentLevel === 1) {
+                  if (currentLevel === 0) {
+                    // From level 1 (sub-menu) back to main menu (level 0)
                     backCallback = 'back_to_main';
-                  } else if (currentLevel >= 2 && pressedButton.parentId) {
-                    // Find the parent button to get its parentId for proper navigation
-                    const parentButton = autoBot.keyboardConfig?.find(btn => btn.id === pressedButton.parentId);
-                    if (parentButton) {
-                      backCallback = `back_to_level_${currentLevel - 1}_${parentButton.parentId || 'main'}`;
-                    } else {
-                      backCallback = 'back_to_main';
-                    }
+                  } else if (currentLevel >= 1 && pressedButton.parentId) {
+                    // From level 2+ back to previous level
+                    backCallback = `back_to_level_${currentLevel}_${pressedButton.parentId}`;
+                  } else {
+                    backCallback = 'back_to_main';
                   }
                   
                   // Create navigation buttons array
