@@ -276,7 +276,7 @@ export class AutoBotManager {
                   
                   await bot.editMessageText(`📋 Menu ${pressedButton.text}:`, {
                     chat_id: chatId,
-                    message_id: callbackQuery.message.message_id,
+                    message_id: msg.message_id,
                     reply_markup: subMenuKeyboard
                   });
                 } else {
@@ -320,7 +320,7 @@ export class AutoBotManager {
                   
                   await bot.editMessageText(`📋 ${levelName} ${pressedButton.text}:`, {
                     chat_id: chatId,
-                    message_id: callbackQuery.message.message_id,
+                    message_id: msg.message_id,
                     reply_markup: childMenuKeyboard
                   });
                 } else {
