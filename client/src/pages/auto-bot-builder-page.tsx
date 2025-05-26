@@ -529,8 +529,8 @@ export default function AutoBotBuilderPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Quick Actions Bar */}
-              <div className="flex flex-wrap gap-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+              <div className="flex flex-wrap gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
                   <Keyboard className="w-5 h-5" />
                   <span className="font-medium">Quick Actions:</span>
                 </div>
@@ -540,7 +540,7 @@ export default function AutoBotBuilderPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => addKeyboardButton(0)}
-                  className="flex items-center gap-2 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900"
+                  className="flex items-center gap-2 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                 >
                   <Plus className="w-4 h-4" />
                   Menu Utama
@@ -548,7 +548,6 @@ export default function AutoBotBuilderPage() {
                 
                 <Button
                   type="button"
-                  variant="outline"
                   size="sm"
                   onClick={() => {
                     const newButton: InlineKeyboard = {
@@ -564,7 +563,7 @@ export default function AutoBotBuilderPage() {
                       description: "Tombol untuk menampilkan semua menu telah ditambahkan.",
                     });
                   }}
-                  className="flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 border-indigo-600"
+                  className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 border-0"
                 >
                   <Grid3X3 className="w-4 h-4" />
                   All Show
@@ -576,7 +575,7 @@ export default function AutoBotBuilderPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => setShowSubMenuSelector(true)}
-                    className="flex items-center gap-2 bg-white dark:bg-gray-800 hover:bg-green-50 dark:hover:bg-green-900"
+                    className="flex items-center gap-2 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                   >
                     <Layers className="w-4 h-4" />
                     Sub Menu
@@ -589,7 +588,7 @@ export default function AutoBotBuilderPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => setShowSubSubMenuSelector(true)}
-                    className="flex items-center gap-2 bg-white dark:bg-gray-800 hover:bg-orange-50 dark:hover:bg-orange-900"
+                    className="flex items-center gap-2 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                   >
                     <Layers2 className="w-4 h-4" />
                     Sub-Sub Menu
@@ -602,7 +601,7 @@ export default function AutoBotBuilderPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => setShowLevel4Selector(true)}
-                    className="flex items-center gap-2 bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-purple-900"
+                    className="flex items-center gap-2 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                   >
                     <Grid3X3 className="w-4 h-4" />
                     Level 4
@@ -615,7 +614,7 @@ export default function AutoBotBuilderPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => setShowLevel5Selector(true)}
-                    className="flex items-center gap-2 bg-white dark:bg-gray-800 hover:bg-pink-50 dark:hover:bg-pink-900"
+                    className="flex items-center gap-2 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                   >
                     <Layers className="w-4 h-4" />
                     Level 5
@@ -625,7 +624,6 @@ export default function AutoBotBuilderPage() {
                 {keyboardButtons.length > 0 && (
                   <Button
                     type="button"
-                    variant="outline"
                     size="sm"
                     onClick={() => {
                       // Add template hierarchy buttons
@@ -657,7 +655,7 @@ export default function AutoBotBuilderPage() {
                         description: "Template menu hierarkis telah ditambahkan ke konfigurasi Anda.",
                       });
                     }}
-                    className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 border-0"
+                    className="flex items-center gap-2 bg-emerald-600 text-white hover:bg-emerald-700 border-0"
                   >
                     <Settings className="w-4 h-4" />
                     Template
@@ -677,17 +675,35 @@ export default function AutoBotBuilderPage() {
                   return (
                     <div key={level} className="space-y-4">
                       {/* Level Header */}
-                      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-lg border">
+                      <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
                         <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-full ${levelInfo.color} bg-opacity-20`}>
-                            <IconComponent className="w-5 h-5" />
+                          <div className={`p-2 rounded-full ${
+                            level === 0 ? 'bg-blue-100 dark:bg-blue-900/30' :
+                            level === 1 ? 'bg-green-100 dark:bg-green-900/30' :
+                            level === 2 ? 'bg-orange-100 dark:bg-orange-900/30' :
+                            level === 3 ? 'bg-purple-100 dark:bg-purple-900/30' :
+                            'bg-pink-100 dark:bg-pink-900/30'
+                          }`}>
+                            <IconComponent className={`w-5 h-5 ${
+                              level === 0 ? 'text-blue-600 dark:text-blue-400' :
+                              level === 1 ? 'text-green-600 dark:text-green-400' :
+                              level === 2 ? 'text-orange-600 dark:text-orange-400' :
+                              level === 3 ? 'text-purple-600 dark:text-purple-400' :
+                              'text-pink-600 dark:text-pink-400'
+                            }`} />
                           </div>
                           <div>
-                            <h3 className="font-semibold text-lg">{levelInfo.name}</h3>
-                            <p className="text-sm text-muted-foreground">{buttonsAtLevel.length} tombol dikonfigurasi</p>
+                            <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-200">{levelInfo.name}</h3>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">{buttonsAtLevel.length} tombol dikonfigurasi</p>
                           </div>
                         </div>
-                        <Badge variant="outline" className={levelInfo.color}>
+                        <Badge variant="outline" className={`border ${
+                          level === 0 ? 'border-blue-300 text-blue-700 dark:border-blue-600 dark:text-blue-300' :
+                          level === 1 ? 'border-green-300 text-green-700 dark:border-green-600 dark:text-green-300' :
+                          level === 2 ? 'border-orange-300 text-orange-700 dark:border-orange-600 dark:text-orange-300' :
+                          level === 3 ? 'border-purple-300 text-purple-700 dark:border-purple-600 dark:text-purple-300' :
+                          'border-pink-300 text-pink-700 dark:border-pink-600 dark:text-pink-300'
+                        }`}>
                           Level {level + 1}
                         </Badge>
                       </div>
@@ -695,12 +711,28 @@ export default function AutoBotBuilderPage() {
                       {/* Button Cards Grid */}
                       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {buttonsAtLevel.map((button, index) => (
-                          <Card key={button.id} className={`relative transition-all hover:shadow-lg ${button.isAllShow ? 'ring-2 ring-indigo-200 bg-indigo-50/50' : ''} ${level > 0 ? 'border-l-4 border-l-green-300' : ''}`}>
+                          <Card key={button.id} className={`relative transition-all hover:shadow-md bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 ${
+                            button.isAllShow ? 'ring-2 ring-blue-200 dark:ring-blue-800' : ''
+                          } ${
+                            level > 0 ? `border-l-4 ${
+                              level === 1 ? 'border-l-green-400' :
+                              level === 2 ? 'border-l-orange-400' :
+                              level === 3 ? 'border-l-purple-400' :
+                              'border-l-pink-400'
+                            }` : 'border-l-4 border-l-blue-400'
+                          }`}>
                             <CardHeader className="pb-3">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                  <div className={`w-3 h-3 rounded-full ${button.isAllShow ? 'bg-indigo-500' : levelInfo.color.includes('blue') ? 'bg-blue-500' : levelInfo.color.includes('green') ? 'bg-green-500' : levelInfo.color.includes('orange') ? 'bg-orange-500' : levelInfo.color.includes('purple') ? 'bg-purple-500' : 'bg-pink-500'}`}></div>
-                                  <CardTitle className="text-sm">
+                                  <div className={`w-3 h-3 rounded-full ${
+                                    button.isAllShow ? 'bg-blue-500' :
+                                    level === 0 ? 'bg-blue-500' :
+                                    level === 1 ? 'bg-green-500' :
+                                    level === 2 ? 'bg-orange-500' :
+                                    level === 3 ? 'bg-purple-500' :
+                                    'bg-pink-500'
+                                  }`}></div>
+                                  <CardTitle className="text-sm text-slate-800 dark:text-slate-200">
                                     {button.isAllShow ? '📋 All Show' : `${levelInfo.name} ${index + 1}`}
                                   </CardTitle>
                                 </div>
@@ -708,60 +740,60 @@ export default function AutoBotBuilderPage() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => removeKeyboardButton(button.id)}
-                                  className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
                               </div>
                               {button.isAllShow && (
-                                <Badge variant="secondary" className="w-fit bg-indigo-100 text-indigo-800 border-indigo-200">
+                                <Badge variant="secondary" className="w-fit bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-700">
                                   Special Button
                                 </Badge>
                               )}
                               {button.parentId && (
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-xs text-slate-600 dark:text-slate-400">
                                   Parent: {keyboardButtons.find(b => b.id === button.parentId)?.text || 'Unknown'}
                                 </p>
                               )}
                             </CardHeader>
                             <CardContent className="space-y-3">
                               <div className="space-y-2">
-                                <Label className="text-xs font-medium">Teks Tombol</Label>
+                                <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">Teks Tombol</Label>
                                 <Input
                                   placeholder="Nama tombol"
                                   value={button.text}
                                   onChange={(e) => updateKeyboardButton(button.id, "text", e.target.value)}
-                                  className="h-9"
+                                  className="h-9 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
                                 />
                               </div>
                               
                               <div className="space-y-2">
-                                <Label className="text-xs font-medium">Callback Data</Label>
+                                <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">Callback Data</Label>
                                 <Input
                                   placeholder="callback_data"
                                   value={button.callbackData}
                                   onChange={(e) => updateKeyboardButton(button.id, "callbackData", e.target.value)}
-                                  className="h-9"
+                                  className="h-9 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
                                 />
                               </div>
 
                               <div className="space-y-2">
-                                <Label className="text-xs font-medium">URL (Opsional)</Label>
+                                <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">URL (Opsional)</Label>
                                 <Input
                                   placeholder="https://example.com"
                                   value={button.url || ""}
                                   onChange={(e) => updateKeyboardButton(button.id, "url", e.target.value)}
-                                  className="h-9"
+                                  className="h-9 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
                                 />
                               </div>
 
                               <div className="space-y-2">
-                                <Label className="text-xs font-medium">Pesan Respons</Label>
+                                <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">Pesan Respons</Label>
                                 <Textarea
                                   placeholder="Pesan yang dikirim saat tombol diklik"
                                   value={button.responseText || ""}
                                   onChange={(e) => updateKeyboardButton(button.id, "responseText", e.target.value)}
-                                  className="min-h-[60px] resize-none"
+                                  className="min-h-[60px] resize-none border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
                                 />
                               </div>
                             </CardContent>
