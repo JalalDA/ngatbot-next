@@ -772,11 +772,50 @@ export default function AutoBotBuilderPage() {
                               }}
                               className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-900"
                             >
-                              <Plus className="w-3 h-3" />
-                              +Sub Menu
+                              <Layers className="w-3 h-3" />
+                              Sub Menu
                             </Button>
 
-                            {/* Add All Show Button for this group */}
+                            {/* Add Sub Level 1 if there are level 1 children */}
+                            {allChildren.some(child => (child.level || 0) === 1) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowSubSubMenuSelector(true)}
+                                className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-900"
+                              >
+                                <Layers2 className="w-3 h-3" />
+                                Sub Level 1
+                              </Button>
+                            )}
+
+                            {/* Add Sub Level 2 if there are level 2 children */}
+                            {allChildren.some(child => (child.level || 0) === 2) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowLevel4Selector(true)}
+                                className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-900"
+                              >
+                                <Grid3X3 className="w-3 h-3" />
+                                Sub Level 2
+                              </Button>
+                            )}
+
+                            {/* Add Sub Level 3 if there are level 3 children */}
+                            {allChildren.some(child => (child.level || 0) === 3) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowLevel5Selector(true)}
+                                className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-900"
+                              >
+                                <Layers className="w-3 h-3" />
+                                Sub Level 3
+                              </Button>
+                            )}
+
+                            {/* Add All Show Button for this group - moved to end */}
                             <Button
                               size="sm"
                               onClick={() => {
@@ -799,46 +838,7 @@ export default function AutoBotBuilderPage() {
                               All Show
                             </Button>
 
-                            {/* Add Sub Level 1 if there are level 1 children */}
-                            {allChildren.some(child => (child.level || 0) === 1) && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setShowSubSubMenuSelector(true)}
-                                className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-900"
-                              >
-                                <Layers2 className="w-3 h-3" />
-                                +Sub Level 1
-                              </Button>
-                            )}
-
-                            {/* Add Sub Level 2 if there are level 2 children */}
-                            {allChildren.some(child => (child.level || 0) === 2) && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setShowLevel4Selector(true)}
-                                className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-900"
-                              >
-                                <Grid3X3 className="w-3 h-3" />
-                                +Sub Level 2
-                              </Button>
-                            )}
-
-                            {/* Add Sub Level 3 if there are level 3 children */}
-                            {allChildren.some(child => (child.level || 0) === 3) && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setShowLevel5Selector(true)}
-                                className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-900"
-                              >
-                                <Layers className="w-3 h-3" />
-                                +Sub Level 3
-                              </Button>
-                            )}
-
-                            {/* Add Template Button */}
+                            {/* Add Template Button - moved to end */}
                             <Button
                               size="sm"
                               onClick={() => {
