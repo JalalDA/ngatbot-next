@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Bot, Keyboard, Settings, Play, Square, Edit3, Layers, Layers2, Menu, Grid3X3, Wand2 } from "lucide-react";
+import { Plus, Trash2, Bot, Keyboard, Settings, Play, Square, Edit3, Layers, Layers2, Menu, Grid3X3, Wand2, ChevronDown, ChevronRight } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -71,6 +71,32 @@ export default function AutoBotBuilderPage() {
   const [selectedLevel3ForLevel4, setSelectedLevel3ForLevel4] = useState<string>("");
   const [showLevel5Selector, setShowLevel5Selector] = useState(false);
   const [selectedLevel4ForLevel5, setSelectedLevel4ForLevel5] = useState<string>("");
+  
+  // State for collapsed menu groups
+  const [collapsedMenus, setCollapsedMenus] = useState<Set<string>>(new Set());
+
+  // Helper function to toggle collapsed state
+  const toggleMenuCollapse = (menuId: string) => {
+    const newCollapsed = new Set(collapsedMenus);
+    if (newCollapsed.has(menuId)) {
+      newCollapsed.delete(menuId);
+    } else {
+      newCollapsed.add(menuId);
+    }
+    setCollapsedMenus(newCollapsed);
+  };
+
+  // Helper function to get all children of a menu recursively
+  const getMenuChildren = (parentId: string, level: number = 1): InlineKeyboard[] => {
+    const directChildren = keyboardButtons.filter(btn => btn.parentId === parentId && (btn.level || 0) === level);
+    let allChildren: InlineKeyboard[] = [...directChildren];
+    
+    directChildren.forEach(child => {
+      allChildren = [...allChildren, ...getMenuChildren(child.id, level + 1)];
+    });
+    
+    return allChildren;
+  };
 
   // Helper function to get level color and name
   const getLevelInfo = (level: number) => {
@@ -663,146 +689,247 @@ export default function AutoBotBuilderPage() {
                 )}
               </div>
 
-              {/* Visual Card-based Management */}
-              <div className="space-y-6">
-                {[0, 1, 2, 3, 4].map(level => {
-                  const buttonsAtLevel = keyboardButtons.filter(btn => (btn.level || 0) === level);
-                  if (buttonsAtLevel.length === 0) return null;
-
-                  const levelInfo = getLevelInfo(level);
-                  const IconComponent = levelInfo.icon;
+              {/* Menu Groups Management */}
+              <div className="space-y-4">
+                {/* Main Menus with Hierarchical Children */}
+                {keyboardButtons.filter(btn => (btn.level || 0) === 0).map((mainMenu, index) => {
+                  const allChildren = getMenuChildren(mainMenu.id);
+                  const isCollapsed = collapsedMenus.has(mainMenu.id);
+                  const totalChildren = allChildren.length;
 
                   return (
-                    <div key={level} className="space-y-4">
-                      {/* Level Header */}
-                      <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <div key={mainMenu.id} className="border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 overflow-hidden">
+                      {/* Main Menu Header */}
+                      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-b border-slate-200 dark:border-slate-700">
                         <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-full ${
-                            level === 0 ? 'bg-blue-100 dark:bg-blue-900/30' :
-                            level === 1 ? 'bg-green-100 dark:bg-green-900/30' :
-                            level === 2 ? 'bg-orange-100 dark:bg-orange-900/30' :
-                            level === 3 ? 'bg-purple-100 dark:bg-purple-900/30' :
-                            'bg-pink-100 dark:bg-pink-900/30'
-                          }`}>
-                            <IconComponent className={`w-5 h-5 ${
-                              level === 0 ? 'text-blue-600 dark:text-blue-400' :
-                              level === 1 ? 'text-green-600 dark:text-green-400' :
-                              level === 2 ? 'text-orange-600 dark:text-orange-400' :
-                              level === 3 ? 'text-purple-600 dark:text-purple-400' :
-                              'text-pink-600 dark:text-pink-400'
-                            }`} />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleMenuCollapse(mainMenu.id)}
+                            className="h-8 w-8 p-0 hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                          >
+                            {isCollapsed ? (
+                              <ChevronRight className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                          </Button>
+                          <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                            <Menu className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                           </div>
                           <div>
-                            <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-200">{levelInfo.name}</h3>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">{buttonsAtLevel.length} tombol dikonfigurasi</p>
+                            <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-200">
+                              {mainMenu.isAllShow ? '📋 All Show Button' : `Menu Utama ${index + 1}`}
+                            </h3>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              {mainMenu.text || 'Untitled Menu'} 
+                              {totalChildren > 0 && (
+                                <span className="ml-1">• {totalChildren} sub-menu</span>
+                              )}
+                            </p>
                           </div>
                         </div>
-                        <Badge variant="outline" className={`border ${
-                          level === 0 ? 'border-blue-300 text-blue-700 dark:border-blue-600 dark:text-blue-300' :
-                          level === 1 ? 'border-green-300 text-green-700 dark:border-green-600 dark:text-green-300' :
-                          level === 2 ? 'border-orange-300 text-orange-700 dark:border-orange-600 dark:text-orange-300' :
-                          level === 3 ? 'border-purple-300 text-purple-700 dark:border-purple-600 dark:text-purple-300' :
-                          'border-pink-300 text-pink-700 dark:border-pink-600 dark:text-pink-300'
-                        }`}>
-                          Level {level + 1}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          {mainMenu.isAllShow && (
+                            <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-700">
+                              Special
+                            </Badge>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeKeyboardButton(mainMenu.id)}
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
-                      
-                      {/* Button Cards Grid */}
-                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {buttonsAtLevel.map((button, index) => (
-                          <Card key={button.id} className={`relative transition-all hover:shadow-md bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 ${
-                            button.isAllShow ? 'ring-2 ring-blue-200 dark:ring-blue-800' : ''
-                          } ${
-                            level > 0 ? `border-l-4 ${
-                              level === 1 ? 'border-l-green-400' :
-                              level === 2 ? 'border-l-orange-400' :
-                              level === 3 ? 'border-l-purple-400' :
-                              'border-l-pink-400'
-                            }` : 'border-l-4 border-l-blue-400'
-                          }`}>
-                            <CardHeader className="pb-3">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <div className={`w-3 h-3 rounded-full ${
-                                    button.isAllShow ? 'bg-blue-500' :
-                                    level === 0 ? 'bg-blue-500' :
-                                    level === 1 ? 'bg-green-500' :
-                                    level === 2 ? 'bg-orange-500' :
-                                    level === 3 ? 'bg-purple-500' :
-                                    'bg-pink-500'
-                                  }`}></div>
-                                  <CardTitle className="text-sm text-slate-800 dark:text-slate-200">
-                                    {button.isAllShow ? '📋 All Show' : `${levelInfo.name} ${index + 1}`}
-                                  </CardTitle>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeKeyboardButton(button.id)}
-                                  className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                              {button.isAllShow && (
-                                <Badge variant="secondary" className="w-fit bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-700">
-                                  Special Button
-                                </Badge>
-                              )}
-                              {button.parentId && (
-                                <p className="text-xs text-slate-600 dark:text-slate-400">
-                                  Parent: {keyboardButtons.find(b => b.id === button.parentId)?.text || 'Unknown'}
-                                </p>
-                              )}
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                              <div className="space-y-2">
-                                <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">Teks Tombol</Label>
-                                <Input
-                                  placeholder="Nama tombol"
-                                  value={button.text}
-                                  onChange={(e) => updateKeyboardButton(button.id, "text", e.target.value)}
-                                  className="h-9 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
-                                />
-                              </div>
+
+                      {/* Main Menu Configuration */}
+                      <div className="p-4 bg-blue-50/30 dark:bg-blue-950/10 border-b border-slate-200 dark:border-slate-700">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">Teks Tombol</Label>
+                            <Input
+                              placeholder="Nama menu utama"
+                              value={mainMenu.text}
+                              onChange={(e) => updateKeyboardButton(mainMenu.id, "text", e.target.value)}
+                              className="h-9 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">Callback Data</Label>
+                            <Input
+                              placeholder="callback_data"
+                              value={mainMenu.callbackData}
+                              onChange={(e) => updateKeyboardButton(mainMenu.id, "callbackData", e.target.value)}
+                              className="h-9 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">URL (Opsional)</Label>
+                            <Input
+                              placeholder="https://example.com"
+                              value={mainMenu.url || ""}
+                              onChange={(e) => updateKeyboardButton(mainMenu.id, "url", e.target.value)}
+                              className="h-9 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">Pesan Respons</Label>
+                            <Input
+                              placeholder="Pesan saat tombol diklik"
+                              value={mainMenu.responseText || ""}
+                              onChange={(e) => updateKeyboardButton(mainMenu.id, "responseText", e.target.value)}
+                              className="h-9 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Sub-Menus (Collapsible) */}
+                      {!isCollapsed && totalChildren > 0 && (
+                        <div className="p-4 space-y-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Layers className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Sub-Menu dalam grup ini:</span>
+                          </div>
+                          
+                          <div className="grid gap-3 md:grid-cols-2">
+                            {allChildren.map((child) => {
+                              const levelColor = 
+                                (child.level || 0) === 1 ? 'border-l-green-400' :
+                                (child.level || 0) === 2 ? 'border-l-orange-400' :
+                                (child.level || 0) === 3 ? 'border-l-purple-400' :
+                                'border-l-pink-400';
                               
-                              <div className="space-y-2">
-                                <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">Callback Data</Label>
-                                <Input
-                                  placeholder="callback_data"
-                                  value={button.callbackData}
-                                  onChange={(e) => updateKeyboardButton(button.id, "callbackData", e.target.value)}
-                                  className="h-9 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
-                                />
-                              </div>
+                              const levelName = 
+                                (child.level || 0) === 1 ? 'Sub Menu' :
+                                (child.level || 0) === 2 ? 'Sub-Sub Menu' :
+                                (child.level || 0) === 3 ? 'Level 4' :
+                                'Level 5';
 
-                              <div className="space-y-2">
-                                <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">URL (Opsional)</Label>
-                                <Input
-                                  placeholder="https://example.com"
-                                  value={button.url || ""}
-                                  onChange={(e) => updateKeyboardButton(button.id, "url", e.target.value)}
-                                  className="h-9 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
-                                />
-                              </div>
+                              return (
+                                <Card key={child.id} className={`border-l-4 ${levelColor} bg-slate-50 dark:bg-slate-800/50`}>
+                                  <CardHeader className="pb-2">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <div className={`w-2 h-2 rounded-full ${
+                                          (child.level || 0) === 1 ? 'bg-green-500' :
+                                          (child.level || 0) === 2 ? 'bg-orange-500' :
+                                          (child.level || 0) === 3 ? 'bg-purple-500' :
+                                          'bg-pink-500'
+                                        }`}></div>
+                                        <CardTitle className="text-xs text-slate-700 dark:text-slate-300">
+                                          {levelName}
+                                        </CardTitle>
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => removeKeyboardButton(child.id)}
+                                        className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  </CardHeader>
+                                  <CardContent className="space-y-2">
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <Input
+                                        placeholder="Teks tombol"
+                                        value={child.text}
+                                        onChange={(e) => updateKeyboardButton(child.id, "text", e.target.value)}
+                                        className="h-8 text-xs border-slate-300 dark:border-slate-600"
+                                      />
+                                      <Input
+                                        placeholder="callback_data"
+                                        value={child.callbackData}
+                                        onChange={(e) => updateKeyboardButton(child.id, "callbackData", e.target.value)}
+                                        className="h-8 text-xs border-slate-300 dark:border-slate-600"
+                                      />
+                                    </div>
+                                    <Input
+                                      placeholder="URL (opsional)"
+                                      value={child.url || ""}
+                                      onChange={(e) => updateKeyboardButton(child.id, "url", e.target.value)}
+                                      className="h-8 text-xs border-slate-300 dark:border-slate-600"
+                                    />
+                                    <Textarea
+                                      placeholder="Pesan respons"
+                                      value={child.responseText || ""}
+                                      onChange={(e) => updateKeyboardButton(child.id, "responseText", e.target.value)}
+                                      className="min-h-[50px] text-xs resize-none border-slate-300 dark:border-slate-600"
+                                    />
+                                  </CardContent>
+                                </Card>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
 
-                              <div className="space-y-2">
-                                <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">Pesan Respons</Label>
-                                <Textarea
-                                  placeholder="Pesan yang dikirim saat tombol diklik"
-                                  value={button.responseText || ""}
-                                  onChange={(e) => updateKeyboardButton(button.id, "responseText", e.target.value)}
-                                  className="min-h-[60px] resize-none border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
-                                />
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
+                      {/* Add Sub-Menu Button */}
+                      {!isCollapsed && !mainMenu.isAllShow && (
+                        <div className="p-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedParentForNewSub(mainMenu.id);
+                              setShowSubMenuSelector(true);
+                            }}
+                            className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Tambah Sub-Menu ke grup ini
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
+
+                {/* Standalone All Show Buttons */}
+                {keyboardButtons.filter(btn => btn.isAllShow && (btn.level || 0) === 0).length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
+                      <Grid3X3 className="w-5 h-5" />
+                      Tombol All Show
+                    </h3>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {keyboardButtons.filter(btn => btn.isAllShow && (btn.level || 0) === 0).map((button) => (
+                        <Card key={button.id} className="border-l-4 border-l-blue-500 bg-blue-50/30 dark:bg-blue-950/10">
+                          <CardHeader className="pb-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                                <CardTitle className="text-sm text-blue-800 dark:text-blue-200">📋 All Show Button</CardTitle>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeKeyboardButton(button.id)}
+                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-2">
+                            <Input
+                              placeholder="Teks tombol All Show"
+                              value={button.text}
+                              onChange={(e) => updateKeyboardButton(button.id, "text", e.target.value)}
+                              className="h-8 border-slate-300 dark:border-slate-600"
+                            />
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {keyboardButtons.length === 0 && (
