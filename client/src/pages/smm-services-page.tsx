@@ -676,7 +676,7 @@ export default function SmmServicesPage() {
                                 </div>
                               </TableCell>
                               <TableCell>{order.quantity?.toLocaleString()}</TableCell>
-                              <TableCell>${order.charge}</TableCell>
+                              <TableCell>${order.amount || '0.00'}</TableCell>
                               <TableCell>
                                 <Badge variant={getStatusBadgeVariant(order.status)}>
                                   {order.status}
