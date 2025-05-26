@@ -223,6 +223,7 @@ export class AutoBotManager {
                 if (subMenus.length > 0) {
                   // Find All Show button from config
                   const allShowButton = (autoBot.keyboardConfig || []).find(btn => btn.isAllShow);
+                  console.log('🔍 Found All Show button:', allShowButton ? 'YES' : 'NO');
                   
                   // Add "Menu Utama" and "All Show" buttons for level 1
                   const navigationButtons = [
@@ -242,12 +243,15 @@ export class AutoBotManager {
                       callbackData: 'show_all_menus',
                       level: 1
                     });
+                    console.log('✅ Added All Show button to sub menu level');
                   }
                   
                   const subMenusWithNavigation = [
                     ...subMenus,
                     ...navigationButtons
                   ];
+                  
+                  console.log('📋 Sub menu with navigation buttons:', subMenusWithNavigation.map(btn => btn.text));
                   
                   // Replace main menu with sub-menus by editing the message
                   const subMenuKeyboard = this.createInlineKeyboard(subMenusWithNavigation);
@@ -274,6 +278,7 @@ export class AutoBotManager {
                 if (childMenus.length > 0) {
                   // Find All Show button from config
                   const allShowButton = (autoBot.keyboardConfig || []).find(btn => btn.isAllShow);
+                  console.log(`🔍 Level ${currentLevel + 1} - Found All Show button:`, allShowButton ? 'YES' : 'NO');
                   
                   // This button has child menus, show them with navigation buttons
                   const navigationButtons = [
@@ -293,12 +298,15 @@ export class AutoBotManager {
                       callbackData: 'show_all_menus',
                       level: currentLevel + 1
                     });
+                    console.log(`✅ Added All Show button to level ${currentLevel + 1}`);
                   }
                   
                   const childMenusWithNavigation = [
                     ...childMenus,
                     ...navigationButtons
                   ];
+                  
+                  console.log(`📋 Level ${currentLevel + 1} menu buttons:`, childMenusWithNavigation.map(btn => btn.text));
                   
                   const childMenuKeyboard = this.createInlineKeyboard(childMenusWithNavigation);
                   const levelNames = ['Menu', 'Sub Menu', 'Sub Sub Menu', 'Level 4 Menu', 'Level 5 Menu', 'Level 6 Menu'];
