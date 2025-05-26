@@ -46,7 +46,7 @@ export function Navigation() {
               <div className="w-8 h-8 bg-gradient-to-r from-primary to-blue-600 rounded-lg flex items-center justify-center">
                 <i className="fas fa-robot text-white text-sm"></i>
               </div>
-              <span className="text-xl font-bold text-slate-900">BotBuilder AI</span>
+              <span className="text-xl font-bold text-[#ffffff]">BotBuilder AI</span>
             </Link>
 
           {/* Desktop Navigation */}
@@ -166,38 +166,37 @@ export function Navigation() {
         </div>
       </div>
     </header>
-
-    {/* Mobile Bottom Navigation - Simple */}
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border">
-      <div className="flex justify-around items-center py-2 px-1">
-        {navigationItems.map((item) => {
-          const isActive = location === item.href;
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className="flex flex-col items-center justify-center transition-colors duration-200"
-            >
-              {/* Icon Container - Simple */}
-              <div className={`
-                p-2 rounded-lg transition-colors duration-200
-                ${isActive 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'text-muted-foreground hover:text-foreground'
-                }
-              `}>
-                <item.icon className="h-4 w-4" />
-              </div>
-              
-              {/* Simple active indicator */}
-              {isActive && (
-                <div className="w-1 h-1 bg-primary rounded-full mt-1"></div>
-              )}
-            </Link>
-          );
-        })}
+      {/* Mobile Bottom Navigation - Simple */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border">
+        <div className="flex justify-around items-center py-2 px-1">
+          {navigationItems.map((item) => {
+            const isActive = location === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className="flex flex-col items-center justify-center transition-colors duration-200"
+              >
+                {/* Icon Container - Simple */}
+                <div className={`
+                  p-2 rounded-lg transition-colors duration-200
+                  ${isActive 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'text-muted-foreground hover:text-foreground'
+                  }
+                `}>
+                  <item.icon className="h-4 w-4" />
+                </div>
+                
+                {/* Simple active indicator */}
+                {isActive && (
+                  <div className="w-1 h-1 bg-primary rounded-full mt-1"></div>
+                )}
+              </Link>
+            );
+          })}
+        </div>
       </div>
-    </div>
     </>
   );
 }

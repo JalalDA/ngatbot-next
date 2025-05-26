@@ -244,7 +244,7 @@ export default function SmmServicesPage() {
       return;
     }
 
-    const service = smmServices.find(s => s.id === parseInt(orderForm.serviceId));
+    const service = Array.isArray(smmServices) ? smmServices.find((s: any) => s.id === parseInt(orderForm.serviceId)) : null;
     if (!service) {
       toast({
         title: "Error",
@@ -272,13 +272,13 @@ export default function SmmServicesPage() {
   };
 
   const handleServiceSelect = (serviceId: string) => {
-    const service = smmServices.find(s => s.id === parseInt(serviceId));
+    const service = Array.isArray(smmServices) ? smmServices.find((s: any) => s.id === parseInt(serviceId)) : null;
     setSelectedOrderService(service);
     setOrderForm({ ...orderForm, serviceId });
     
     if (service && orderForm.quantity) {
       const charge = calculateCharge(service, parseInt(orderForm.quantity));
-      setOrderCharge(charge);
+      setOrderCharge(charge.toString());
     }
   };
 
@@ -287,14 +287,14 @@ export default function SmmServicesPage() {
     
     if (selectedOrderService && quantity) {
       const charge = calculateCharge(selectedOrderService, parseInt(quantity));
-      setOrderCharge(charge);
+      setOrderCharge(charge.toString());
     } else {
       setOrderCharge("");
     }
   };
 
   // Filter orders berdasarkan status dan search
-  const filteredOrders = smmOrders.filter((order: any) => {
+  const filteredOrders = Array.isArray(smmOrders) ? smmOrders.filter((order: any) => {
     const matchesStatus = orderStatusFilter === "all" || order.status.toLowerCase() === orderStatusFilter.toLowerCase();
     const matchesSearch = orderSearchTerm === "" || 
       order.id.toString().includes(orderSearchTerm) ||
@@ -302,7 +302,7 @@ export default function SmmServicesPage() {
       order.service?.name.toLowerCase().includes(orderSearchTerm.toLowerCase());
     
     return matchesStatus && matchesSearch;
-  });
+  }) : [];
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status.toLowerCase()) {
@@ -486,9 +486,14 @@ export default function SmmServicesPage() {
                           <SelectValue placeholder="Choose a service..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {smmServices.map((service: any) => (
+                          {Array.isArray(smmServices) && smmServices.map((service: any) => (
                             <SelectItem key={service.id} value={service.id.toString()}>
-                              {service.name} - ${service.rate}/1K
+                              <div className="flex flex-col">
+                                <span className="font-medium">{service.name}</span>
+                                <span className="text-sm text-muted-foreground">
+                                  ${service.rate}/1K • {service.category}
+                                </span>
+                              </div>
                             </SelectItem>
                           ))}
                         </SelectContent>
