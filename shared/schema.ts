@@ -107,6 +107,7 @@ export const smmOrders = pgTable("smm_orders", {
   startCount: integer("start_count"),
   remains: integer("remains"),
   notes: text("notes"),
+  errorMessage: text("error_message"), // Error message for failed orders
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -186,6 +187,7 @@ export const insertSmmOrderSchema = createInsertSchema(smmOrders).pick({
   startCount: true,
   remains: true,
   notes: true,
+  errorMessage: true,
 });
 
 export const autoBots = pgTable("auto_bots", {
