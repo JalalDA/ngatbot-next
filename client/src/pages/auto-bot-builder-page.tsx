@@ -541,31 +541,29 @@ export default function AutoBotBuilderPage() {
                 </Button>
                 
                 {/* Add All Show Button */}
-                {!keyboardButtons.some(btn => btn.isAllShow) && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const newButton: InlineKeyboard = {
-                        id: 'all_show_' + Date.now().toString(),
-                        text: '📋 Lihat Semua Menu',
-                        callbackData: 'show_all_menus',
-                        level: 0,
-                        isAllShow: true
-                      };
-                      setKeyboardButtons([...keyboardButtons, newButton]);
-                      toast({
-                        title: "Tombol All Show Ditambahkan!",
-                        description: "Tombol untuk menampilkan semua menu telah ditambahkan.",
-                      });
-                    }}
-                    className="flex items-center gap-2 hover:bg-blue-100 border-blue-200 bg-[#02080f]"
-                  >
-                    <Grid3X3 className="w-4 h-4" />
-                    Tambah Tombol All Show
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newButton: InlineKeyboard = {
+                      id: 'all_show_' + Date.now().toString(),
+                      text: '📋 Lihat Semua Menu',
+                      callbackData: 'show_all_menus',
+                      level: 0,
+                      isAllShow: true
+                    };
+                    setKeyboardButtons([...keyboardButtons, newButton]);
+                    toast({
+                      title: "Tombol All Show Ditambahkan!",
+                      description: "Tombol untuk menampilkan semua menu telah ditambahkan.",
+                    });
+                  }}
+                  className="flex items-center gap-2 hover:bg-blue-100 border-blue-200 bg-[#02080f]"
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                  Tambah Tombol All Show
+                </Button>
                 
                 {/* Show "Add Sub Menu" button only if there are main menu buttons */}
                 {keyboardButtons.some(btn => (btn.level || 0) === 0) && (
