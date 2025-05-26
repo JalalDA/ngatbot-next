@@ -1122,6 +1122,59 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Create new SMM order
+  app.post("/api/smm/orders", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { serviceId, link, quantity } = req.body;
+
+      // Validate input
+      if (!serviceId || !link || !quantity) {
+        return res.status(400).json({ message: "Service, link, and quantity are required" });
+      }
+
+      // Get service details
+      const service = await storage.getSmmService(serviceId);
+      if (!service || service.userId !== user.id) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      // Validate quantity
+      if (quantity < service.min || quantity > service.max) {
+        return res.status(400).json({ 
+          message: `Quantity must be between ${service.min} and ${service.max}` 
+        });
+      }
+
+      // Calculate amount
+      const rate = parseFloat(service.rate);
+      const amount = (rate * quantity / 1000).toFixed(2);
+
+      // Generate unique order ID
+      const orderId = `ORD_${user.id}_${Date.now()}`;
+
+      // Create order
+      const orderData = {
+        userId: user.id,
+        serviceId: serviceId,
+        providerId: service.providerId,
+        orderId: orderId,
+        link: link,
+        quantity: quantity,
+        amount: amount,
+        status: "pending",
+        paymentStatus: "pending"
+      };
+
+      const newOrder = await storage.createSmmOrder(orderData);
+      res.json(newOrder);
+
+    } catch (error) {
+      console.error("Create SMM order error:", error);
+      res.status(500).json({ message: "Failed to create order" });
+    }
+  });
+
   // Auto Bot Routes
   
   // Validate bot token
