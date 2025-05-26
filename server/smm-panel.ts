@@ -96,13 +96,16 @@ export class SmmPanelAPI {
     try {
       console.log(`📝 Creating order - Service: ${serviceId}, Link: ${link}, Quantity: ${quantity}`);
       
-      const response = await axios.post(this.apiEndpoint, {
+      // Try POST with form data first (most common format)
+      const formData = new URLSearchParams({
         key: this.apiKey,
         action: 'add',
         service: serviceId,
         link: link,
-        quantity: quantity
-      }, {
+        quantity: quantity.toString()
+      });
+
+      const response = await axios.post(this.apiEndpoint, formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         },
@@ -114,13 +117,41 @@ export class SmmPanelAPI {
           throw new Error(response.data.error);
         }
         
-        console.log(`✅ Order created successfully: ${response.data.order}`);
-        return response.data;
+        console.log(`✅ Order created successfully: ${response.data.order || response.data}`);
+        return {
+          order: response.data.order || response.data.toString(),
+          error: response.data.error
+        };
       } else {
         throw new Error('Invalid response from SMM Panel');
       }
     } catch (error: any) {
       console.error('❌ Error creating order in SMM Panel:', error.message);
+      
+      // If POST fails, try GET method as fallback (some providers use GET for all actions)
+      if (error.response?.status === 404 || error.code === 'ECONNREFUSED') {
+        try {
+          console.log(`🔄 Retrying with GET method...`);
+          const url = `${this.apiEndpoint}?key=${this.apiKey}&action=add&service=${serviceId}&link=${encodeURIComponent(link)}&quantity=${quantity}`;
+          const getResponse = await axios.get(url, { timeout: 30000 });
+          
+          if (getResponse.data) {
+            if (getResponse.data.error) {
+              throw new Error(getResponse.data.error);
+            }
+            
+            console.log(`✅ Order created successfully with GET: ${getResponse.data.order || getResponse.data}`);
+            return {
+              order: getResponse.data.order || getResponse.data.toString(),
+              error: getResponse.data.error
+            };
+          }
+        } catch (getError: any) {
+          console.error('❌ GET method also failed:', getError.message);
+          throw new Error(`Failed to create order: ${error.message}. GET fallback also failed: ${getError.message}`);
+        }
+      }
+      
       throw new Error(`Failed to create order: ${error.message}`);
     }
   }
@@ -130,11 +161,14 @@ export class SmmPanelAPI {
     try {
       console.log(`🔍 Checking order status for: ${orderId}`);
       
-      const response = await axios.post(this.apiEndpoint, {
+      // Try POST with form data first
+      const formData = new URLSearchParams({
         key: this.apiKey,
         action: 'status',
         order: orderId
-      }, {
+      });
+
+      const response = await axios.post(this.apiEndpoint, formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         },
@@ -149,6 +183,23 @@ export class SmmPanelAPI {
       }
     } catch (error: any) {
       console.error('❌ Error checking order status:', error.message);
+      
+      // If POST fails, try GET method as fallback
+      if (error.response?.status === 404 || error.code === 'ECONNREFUSED') {
+        try {
+          console.log(`🔄 Retrying status check with GET method...`);
+          const url = `${this.apiEndpoint}?key=${this.apiKey}&action=status&order=${orderId}`;
+          const getResponse = await axios.get(url, { timeout: 30000 });
+          
+          if (getResponse.data) {
+            console.log(`✅ Order status retrieved with GET: ${getResponse.data.status}`);
+            return getResponse.data;
+          }
+        } catch (getError: any) {
+          console.error('❌ GET method also failed for status check:', getError.message);
+        }
+      }
+      
       throw new Error(`Failed to check order status: ${error.message}`);
     }
   }
