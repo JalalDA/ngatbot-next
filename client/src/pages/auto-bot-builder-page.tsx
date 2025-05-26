@@ -358,7 +358,7 @@ export default function AutoBotBuilderPage() {
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="create">
             <Plus className="w-4 h-4 mr-2" />
-            {editingBot ? "Edit Bot" : "Buat Bot"}
+            Buat Bot
           </TabsTrigger>
           <TabsTrigger value="manage">
             <Settings className="w-4 h-4 mr-2" />
@@ -371,10 +371,10 @@ export default function AutoBotBuilderPage() {
             <CardHeader>
               <CardTitle>
                 <Bot className="w-5 h-5 mr-2 inline" />
-                {editingBot ? "Edit Bot" : "Konfigurasi Bot Baru"}
+                Konfigurasi Bot Baru
               </CardTitle>
               <CardDescription>
-                {editingBot ? "Edit pengaturan bot Telegram Anda" : "Masukkan token bot Telegram dan konfigurasikan keyboard inline"}
+                Masukkan token bot Telegram dan konfigurasikan keyboard inline
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
