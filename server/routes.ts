@@ -1253,7 +1253,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Update auto bot
-  app.put("/api/autobots/:id", requireAuth, async (req, res) => {
+  app.patch("/api/autobots/:id", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
       const botId = parseInt(req.params.id);
