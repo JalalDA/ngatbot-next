@@ -143,20 +143,111 @@ export class AutoBotManager {
         if (msg && data) {
           const chatId = msg.chat.id;
           
+          // Debug: Log the callback data
+          console.log(`Received callback data: ${data}`);
+          
           // Find the button that was pressed
           const pressedButton = autoBot.keyboardConfig?.find(btn => btn.callbackData === data);
           
-          if (pressedButton) {
-            try {
-              // Answer the callback query to remove loading state
-              await bot.answerCallbackQuery(callbackQuery.id, {
-                text: `Anda memilih: ${pressedButton.text}`,
-                show_alert: false
-              });
+          console.log(`Found pressed button: ${pressedButton ? pressedButton.text : 'Not found'}`);
+          
+          try {
+            // Answer the callback query to remove loading state
+            const answerText = pressedButton ? `Anda memilih: ${pressedButton.text}` : 'Navigasi...';
+            await bot.answerCallbackQuery(callbackQuery.id, {
+              text: answerText,
+              show_alert: false
+            });
+          } catch (error) {
+            console.error('Error answering callback query:', error);
+          }
+          
+          // Handle special navigation callbacks first (they might not be in pressedButton)
+          if (data === 'back_to_main') {
+            // Show main menu again
+            const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => !btn.level || btn.level === 0);
+            const keyboard = this.createInlineKeyboard(mainMenuButtons);
+            
+            await bot.editMessageText(autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:", {
+              chat_id: chatId,
+              message_id: msg.message_id,
+              reply_markup: keyboard
+            });
+            return;
+          }
+
+          // Handle back navigation for all levels (outside pressedButton check)
+          if (data.startsWith('back_to_level_')) {
+            const parts = data.split('_');
+            const level = parseInt(parts[3]);
+            const parentId = parts[4];
+            
+            console.log(`Navigating back to level ${level}, parentId: ${parentId}`);
+            
+            if (level === 0 || parentId === 'main') {
+              // Back to main menu
+              const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => !btn.level || btn.level === 0);
+              const keyboard = this.createInlineKeyboard(mainMenuButtons);
               
-              // Handle special navigation callbacks
-              if (data === 'back_to_main') {
-                // Show main menu again
+              await bot.editMessageText(autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:", {
+                chat_id: chatId,
+                message_id: msg.message_id,
+                reply_markup: keyboard
+              });
+            } else {
+              // Back to specific level
+              const parentButton = autoBot.keyboardConfig?.find(btn => btn.id === parentId);
+              const menuItems = (autoBot.keyboardConfig || []).filter(btn => 
+                btn.level === level && btn.parentId === parentId
+              );
+              
+              console.log(`Found ${menuItems.length} menu items for level ${level}, parent: ${parentId}`);
+              
+              if (menuItems.length > 0) {
+                // Determine back button callback based on level
+                let backCallback = 'back_to_main';
+                if (level === 1) {
+                  backCallback = 'back_to_main';
+                } else if (level >= 2 && parentButton?.parentId) {
+                  backCallback = `back_to_level_${level - 1}_${parentButton.parentId}`;
+                }
+                
+                // Create navigation buttons for current level
+                const navigationButtons = [];
+                
+                // Add back button
+                navigationButtons.push({
+                  id: `back_button_level_${level}`,
+                  text: '⬅️ Kembali',
+                  callbackData: backCallback,
+                  level: level
+                });
+                
+                // Add "Menu Utama" button for level 2 and above
+                if (level >= 2) {
+                  navigationButtons.push({
+                    id: `main_menu_button_level_${level}`,
+                    text: '🏠 Menu Utama',
+                    callbackData: 'back_to_main',
+                    level: level
+                  });
+                }
+                
+                const menuItemsWithBack = [
+                  ...menuItems,
+                  ...navigationButtons
+                ];
+                
+                const menuKeyboard = this.createInlineKeyboard(menuItemsWithBack);
+                const levelName = level === 1 ? 'Menu' : level === 2 ? 'Sub Menu' : level === 3 ? 'Sub Sub Menu' : level === 4 ? 'Level 4 Menu' : 'Level 5 Menu';
+                
+                await bot.editMessageText(`📋 ${levelName} ${parentButton?.text}:`, {
+                  chat_id: chatId,
+                  message_id: msg.message_id,
+                  reply_markup: menuKeyboard
+                });
+              } else {
+                // Fallback to main menu if no items found
                 const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => !btn.level || btn.level === 0);
                 const keyboard = this.createInlineKeyboard(mainMenuButtons);
                 
@@ -165,79 +256,13 @@ export class AutoBotManager {
                   message_id: msg.message_id,
                   reply_markup: keyboard
                 });
-                return;
               }
-              
-              // Handle back navigation for all levels
-              if (data.startsWith('back_to_level_')) {
-                const parts = data.split('_');
-                const level = parseInt(parts[3]);
-                const parentId = parts[4];
-                
-                if (level === 0) {
-                  // Back to main menu
-                  const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => !btn.level || btn.level === 0);
-                  const keyboard = this.createInlineKeyboard(mainMenuButtons);
-                  
-                  await bot.editMessageText(autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:", {
-                    chat_id: chatId,
-                    message_id: msg.message_id,
-                    reply_markup: keyboard
-                  });
-                } else {
-                  // Back to specific level
-                  const parentButton = autoBot.keyboardConfig?.find(btn => btn.id === parentId);
-                  const menuItems = (autoBot.keyboardConfig || []).filter(btn => 
-                    btn.level === level && btn.parentId === parentId
-                  );
-                  
-                  if (menuItems.length > 0) {
-                    // Determine back button callback based on level
-                    let backCallback = 'back_to_main';
-                    if (level === 1) {
-                      backCallback = 'back_to_main';
-                    } else if (level >= 2) {
-                      backCallback = `back_to_level_${level - 1}_${parentButton?.parentId}`;
-                    }
-                    
-                    // Create navigation buttons for current level
-                    const navigationButtons = [];
-                    
-                    // Add back button
-                    navigationButtons.push({
-                      id: `back_button_level_${level}`,
-                      text: '⬅️ Kembali',
-                      callbackData: backCallback,
-                      level: level
-                    });
-                    
-                    // Add "Menu Utama" button for level 2 and above
-                    if (level >= 2) {
-                      navigationButtons.push({
-                        id: `main_menu_button_level_${level}`,
-                        text: '🏠 Menu Utama',
-                        callbackData: 'back_to_main',
-                        level: level
-                      });
-                    }
-                    
-                    const menuItemsWithBack = [
-                      ...menuItems,
-                      ...navigationButtons
-                    ];
-                    
-                    const menuKeyboard = this.createInlineKeyboard(menuItemsWithBack);
-                    const levelName = level === 1 ? 'Menu' : level === 2 ? 'Sub Menu' : level === 3 ? 'Sub Sub Menu' : level === 4 ? 'Level 4 Menu' : 'Level 5 Menu';
-                    
-                    await bot.editMessageText(`📋 ${levelName} ${parentButton?.text}:`, {
-                      chat_id: chatId,
-                      message_id: msg.message_id,
-                      reply_markup: menuKeyboard
-                    });
-                  }
-                }
-                return;
-              }
+            }
+            return;
+          }
+          
+          if (pressedButton) {
+            try {
               
               // Legacy support for old back commands
               if (data.startsWith('back_to_submenu_')) {
@@ -317,8 +342,14 @@ export class AutoBotManager {
                   // Determine appropriate back callback based on current level
                   if (currentLevel === 1) {
                     backCallback = 'back_to_main';
-                  } else if (currentLevel >= 2) {
-                    backCallback = `back_to_level_${currentLevel - 1}_${pressedButton.parentId}`;
+                  } else if (currentLevel >= 2 && pressedButton.parentId) {
+                    // Find the parent button to get its parentId for proper navigation
+                    const parentButton = autoBot.keyboardConfig?.find(btn => btn.id === pressedButton.parentId);
+                    if (parentButton) {
+                      backCallback = `back_to_level_${currentLevel - 1}_${parentButton.parentId || 'main'}`;
+                    } else {
+                      backCallback = 'back_to_main';
+                    }
                   }
                   
                   // Create navigation buttons array
