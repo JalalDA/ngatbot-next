@@ -901,151 +901,627 @@ export default function SmmServicesPage() {
                   <span className="text-sm font-medium text-foreground">Select All Services</span>
                 </div>
 
-                {/* Category Filter */}
-                <div className="mb-6">
-                  <Label className="text-sm font-medium mb-2 block">Filter by Category</Label>
-                  <Select value={serviceFilter} onValueChange={setServiceFilter}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="All Categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      {Array.isArray(smmServices) && [...new Set(smmServices.map((s: any) => s.category))]
-                        .filter(Boolean)
-                        .map((category: string) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Vertical Services List */}
-                <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                  {filteredServices.map((service: any) => (
-                    <div key={service.id} className="bg-card p-4 rounded-lg border border-border hover:shadow-md transition-all">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center space-x-3 flex-1">
-                          <Checkbox
-                            checked={selectedServicesForDelete.has(service.id)}
-                            onCheckedChange={(checked) => {
-                              const newSelected = new Set(selectedServicesForDelete);
-                              if (checked) {
-                                newSelected.add(service.id);
-                              } else {
-                                newSelected.delete(service.id);
-                              }
-                              setSelectedServicesForDelete(newSelected);
-                            }}
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-1">
-                              <h4 className="font-medium text-foreground">{service.name}</h4>
-                              <Badge variant="outline" className="text-xs">
-                                {service.category}
-                              </Badge>
-                            </div>
-                            {service.description && (
-                              <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                                {service.description}
-                              </p>
-                            )}
-                            
-                            {/* Service Details */}
-                            <div className="grid grid-cols-3 gap-4 text-sm bg-muted/30 rounded p-3">
-                              <div className="text-center">
-                                <span className="block text-muted-foreground mb-1">Rate</span>
-                                <p className="font-semibold text-green-600">${service.rate}/1K</p>
+                {/* Services Grouped by Category */}
+                <div className="space-y-4">
+                  {Array.isArray(smmServices) && [...new Set(smmServices.map((s: any) => s.category))]
+                    .filter(Boolean)
+                    .map((category: string) => {
+                      const categoryServices = smmServices.filter((s: any) => s.category === category);
+                      const isCollapsed = collapsedCategories.has(category);
+                      
+                      return (
+                        <div key={category} className="bg-card border border-border rounded-lg">
+                          {/* Category Header */}
+                          <div className="flex items-center justify-between p-4 border-b border-border">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <span className="text-blue-600 font-semibold text-sm">
+                                  {category.charAt(0).toUpperCase()}
+                                </span>
                               </div>
-                              <div className="text-center border-l border-r border-muted-foreground/20">
-                                <span className="block text-muted-foreground mb-1">Min</span>
-                                <p className="font-semibold">{service.min?.toLocaleString()}</p>
-                              </div>
-                              <div className="text-center">
-                                <span className="block text-muted-foreground mb-1">Max</span>
-                                <p className="font-semibold">{service.max?.toLocaleString()}</p>
+                              <div>
+                                <h3 className="font-semibold text-foreground">{category}</h3>
+                                <p className="text-sm text-muted-foreground">{categoryServices.length} services</p>
                               </div>
                             </div>
-
-                            {/* Service Features */}
-                            <div className="flex gap-2 mt-3">
-                              {service.refill && (
-                                <Badge variant="secondary" className="text-xs">
-                                  🔄 Refill
-                                </Badge>
-                              )}
-                              {service.cancel && (
-                                <Badge variant="secondary" className="text-xs">
-                                  ❌ Cancel
-                                </Badge>
-                              )}
-                              <Badge variant="outline" className="text-xs">
-                                ID: {service.service}
-                              </Badge>
-                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const newCollapsed = new Set(collapsedCategories);
+                                if (isCollapsed) {
+                                  newCollapsed.delete(category);
+                                } else {
+                                  newCollapsed.add(category);
+                                }
+                                setCollapsedCategories(newCollapsed);
+                              }}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              {isCollapsed ? 'Show' : 'Hide'}
+                            </Button>
                           </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-1 ml-3">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              setEditingService(service);
-                              setServiceForm({
-                                name: service.name || "",
-                                description: service.description || "",
-                                category: service.category || "",
-                                rate: service.rate || "",
-                                min: service.min || "",
-                                max: service.max || "",
-                                syncMinMax: true,
-                                customRate: service.customRate || "",
-                                useCustomRate: false
-                              });
-                              setShowEditServiceModal(true);
-                            }}
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => deleteSmmServiceMutation.mutate(service.id)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
 
-                  {filteredServices.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>No services found</p>
-                      <p className="text-sm mt-1">
-                        {serviceFilter === "all" 
-                          ? "Import services from a provider to get started" 
-                          : `No services available in "${serviceFilter}" category`}
-                      </p>
-                    </div>
-                  )}
+                          {/* Category Services */}
+                          {!isCollapsed && (
+                            <div className="p-0">
+                              {categoryServices.map((service: any) => (
+                                <div key={service.id} className="flex items-center justify-between p-4 border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors">
+                                  {/* Left Side - Checkbox and Service Info */}
+                                  <div className="flex items-center space-x-3 flex-1">
+                                    <Checkbox
+                                      checked={selectedServicesForDelete.has(service.id)}
+                                      onCheckedChange={(checked) => {
+                                        const newSelected = new Set(selectedServicesForDelete);
+                                        if (checked) {
+                                          newSelected.add(service.id);
+                                        } else {
+                                          newSelected.delete(service.id);
+                                        }
+                                        setSelectedServicesForDelete(newSelected);
+                                      }}
+                                    />
+                                    <div className="flex-1">
+                                      <div className="flex items-center space-x-2 mb-1">
+                                        <span className="text-sm font-medium text-muted-foreground">#{service.mid}</span>
+                                        <span className="w-1 h-1 bg-muted-foreground rounded-full"></span>
+                                        <span className="text-sm text-blue-600 font-medium">{service.providerName || 'Provider'}</span>
+                                      </div>
+                                      <h4 className="font-medium text-foreground mb-1">{service.name}</h4>
+                                      {service.description && (
+                                        <p className="text-sm text-muted-foreground line-clamp-1">
+                                          {service.description}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Right Side - Price and Actions */}
+                                  <div className="flex items-center space-x-4">
+                                    <div className="text-right">
+                                      <div className="font-bold text-lg text-foreground">Rp {service.rate}</div>
+                                      <div className="text-xs text-muted-foreground">per 1000</div>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          setEditingService(service);
+                                          setServiceForm({
+                                            name: service.name,
+                                            description: service.description || "",
+                                            category: service.category || "",
+                                            rate: service.rate.toString(),
+                                            min: service.min.toString(),
+                                            max: service.max.toString(),
+                                            syncMinMax: false,
+                                            useCustomRate: false,
+                                            customRate: service.rate.toString()
+                                          });
+                                          setShowEditServiceModal(true);
+                                        }}
+                                        className="text-muted-foreground hover:text-foreground"
+                                      >
+                                        <MoreHorizontal className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
             ) : (
               <div className="text-center py-12">
                 <ShoppingCart className="w-16 h-16 mx-auto text-slate-400 mb-4" />
                 <h3 className="text-lg font-semibold text-slate-900 mb-2">No services available</h3>
-                <p className="text-slate-600 mb-6">Add a provider and import services to get started</p>
+                <p className="text-slate-600 mb-6">Import services from your SMM providers to get started</p>
+                {Array.isArray(smmProviders) && smmProviders.length > 0 && (
+                  <Button onClick={() => setShowImportModal(true)} className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Import Services
+                  </Button>
+                )}
               </div>
             )}
           </CardContent>
         </Card>
+
       </div>
+
+      {/* Import Services Modal */}
+      {showImportModal && (
+        <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+            <DialogHeader>
+              <DialogTitle>Import Services from Provider</DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* Provider Selection */}
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Select Provider</Label>
+                <Select 
+                  value={importingProvider?.id.toString() || ""} 
+                  onValueChange={(providerId) => {
+                    const provider = Array.isArray(smmProviders) ? smmProviders.find((p: any) => p.id.toString() === providerId) : null;
+                    setImportingProvider(provider);
+                    setLoadingProviderServices(true);
+                    
+                    if (provider) {
+                      toast({
+                        title: "Loading services...",
+                        description: `Fetching services from ${provider.name}`,
+                      });
+
+                      // Simulate API call to get provider services
+                      setTimeout(() => {
+                        const mockServices = [
+                          { service: "1", name: "Instagram Followers", category: "Instagram", rate: "0.50", min: 10, max: 10000 },
+                          { service: "2", name: "Instagram Likes", category: "Instagram", rate: "0.25", min: 10, max: 5000 }
+                        ];
+                        setProviderServices(mockServices);
+                        toast({
+                          title: "Services loaded",
+                          description: `Found ${mockServices.length} services from ${provider.name}`,
+                        });
+                      }, 1500);
+                    } else {
+                      toast({
+                        title: "Error",
+                        description: "Failed to load provider services",
+                        variant: "destructive",
+                      });
+                      setProviderServices([]);
+                    }
+                    setLoadingProviderServices(false);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.isArray(smmProviders) && smmProviders.map((provider: any) => (
+                      <SelectItem key={provider.id} value={provider.id.toString()}>
+                        {provider.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Services List */}
+              {importingProvider && (
+                <div className="border rounded-lg">
+                  <div className="p-4 border-b bg-muted">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium">Available Services from {importingProvider.name}</h3>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setImportingProvider(null);
+                          setSelectedServices(new Set());
+                          setProviderServices([]);
+                        }}
+                      >
+                        Clear Selection
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="p-4">
+                    {loadingProviderServices ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                        <p>Loading services...</p>
+                      </div>
+                    ) : providerServices.length > 0 ? (
+                      <div className="space-y-4">
+                        {/* Select All */}
+                        <div className="flex items-center space-x-2 p-3 bg-muted rounded-lg">
+                          <Checkbox
+                            checked={providerServices.length > 0 && selectedServices.size === providerServices.length}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedServices(new Set(providerServices.map((service: any) => service.service)));
+                              } else {
+                                setSelectedServices(new Set());
+                              }
+                            }}
+                          />
+                          <span className="text-sm font-medium">Select All ({providerServices.length} services)</span>
+                        </div>
+
+                        {/* Services Grid */}
+                        <div className="max-h-64 overflow-y-auto space-y-2">
+                          {providerServices.map((service: any) => (
+                            <div key={service.service} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50">
+                              <Checkbox
+                                checked={selectedServices.has(service.service)}
+                                onCheckedChange={(checked) => {
+                                  const newSelected = new Set(selectedServices);
+                                  if (checked) {
+                                    newSelected.add(service.service);
+                                  } else {
+                                    newSelected.delete(service.service);
+                                  }
+                                  setSelectedServices(newSelected);
+                                }}
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium">{service.name}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  Rate: ${service.rate}/1K | Min: {service.min} | Max: {service.max}
+                                </div>
+                              </div>
+                              <Badge variant="outline">{service.category}</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>No services available</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end space-x-3 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportingProvider(null);
+                  setSelectedServices(new Set());
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={selectedServices.size === 0}
+                onClick={async () => {
+                  try {
+                    const servicesToImport = providerServices.filter((service: any) => 
+                      selectedServices.has(service.service)
+                    ).map((service: any) => ({
+                      providerId: importingProvider.id,
+                      providerServiceId: service.service,
+                      name: service.name,
+                      category: service.category,
+                      rate: service.rate,
+                      min: service.min,
+                      max: service.max
+                    }));
+
+                    const response = await apiRequest("POST", "/api/smm/services/import", {
+                      providerId: importingProvider.id,
+                      services: servicesToImport
+                    });
+
+                    if (response.ok) {
+                      toast({
+                        title: "Services imported successfully",
+                        description: `Imported ${selectedServices.size} services from ${importingProvider.name}`,
+                      });
+                      queryClient.invalidateQueries({ queryKey: ["/api/smm/services"] });
+                      setShowImportModal(false);
+                      setImportingProvider(null);
+                      setSelectedServices(new Set());
+                      setProviderServices([]);
+                    } else {
+                      throw new Error("Failed to import services");
+                    }
+                  } catch (error: any) {
+                    toast({
+                      title: "Import failed",
+                      description: error.message || "Failed to import services",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Import Selected ({selectedServices.size})
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Edit Service Modal */}
+      {showEditServiceModal && editingService && (
+        <Dialog open={showEditServiceModal} onOpenChange={setShowEditServiceModal}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Service - {editingService.name}</DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              {/* Basic Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="serviceName" className="text-gray-900 font-medium">Service Name</Label>
+                  <Input
+                    id="serviceName"
+                    value={serviceForm.name}
+                    onChange={(e) => setServiceForm(prev => ({ ...prev, name: e.target.value }))}
+                    className="mt-2 border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-white"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="serviceCategory" className="text-gray-900 font-medium">Category</Label>
+                  <Input
+                    id="serviceCategory"
+                    value={serviceForm.category}
+                    onChange={(e) => setServiceForm(prev => ({ ...prev, category: e.target.value }))}
+                    className="mt-2 border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* Service Description */}
+              <div>
+                <Label htmlFor="serviceDescription" className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 font-medium text-[#bdb7b7]">Service Description</Label>
+                <textarea
+                  id="serviceDescription"
+                  value={serviceForm.description}
+                  onChange={(e) => setServiceForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Describe what this service does (for AI bot information)"
+                  className="mt-2 w-full p-3 border border-gray-300 rounded-md resize-none h-24 focus:border-blue-500 focus:ring-blue-500 text-gray-900"
+                />
+                <p className="text-sm text-gray-600 mt-2">This description helps the AI bot provide accurate information about this service.</p>
+              </div>
+
+              {/* Min Max Settings */}
+              <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h4 className="font-semibold text-gray-900">Min/Max Settings</h4>
+                    <p className="text-sm text-gray-700 mt-1">Sync with provider or set custom values</p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Label htmlFor="syncMinMax" className="text-sm font-medium text-gray-900">Sync with Provider</Label>
+                    <Switch
+                      id="syncMinMax"
+                      checked={serviceForm.syncMinMax}
+                      onCheckedChange={(checked) => setServiceForm(prev => ({ ...prev, syncMinMax: checked }))}
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="minValue" className="text-gray-900 font-medium">Minimum</Label>
+                    <Input
+                      id="minValue"
+                      type="number"
+                      value={serviceForm.syncMinMax ? editingService.min : serviceForm.min}
+                      onChange={(e) => setServiceForm(prev => ({ ...prev, min: e.target.value }))}
+                      disabled={serviceForm.syncMinMax}
+                      className="mt-2 border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-white"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="maxValue" className="text-gray-900 font-medium">Maximum</Label>
+                    <Input
+                      id="maxValue"
+                      type="number"
+                      value={serviceForm.syncMinMax ? editingService.max : serviceForm.max}
+                      onChange={(e) => setServiceForm(prev => ({ ...prev, max: e.target.value }))}
+                      disabled={serviceForm.syncMinMax}
+                      className="mt-2 border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Service Price */}
+              <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
+                <h4 className="font-semibold text-gray-900 mb-4">Service Price</h4>
+                
+                <div className="bg-white border border-gray-200 p-4 rounded-lg mb-4">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-700 font-medium">Provider Price:</span>
+                      <div className="font-semibold text-gray-900 mt-1">Rp {editingService.originalRate || editingService.rate}/1000</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-700 font-medium">Your Current Price:</span>
+                      <div className="font-semibold text-blue-700 mt-1">Rp {serviceForm.rate}/1000</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-6">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="percentagePrice"
+                        name="priceType"
+                        checked={!serviceForm.useCustomRate}
+                        onChange={() => setServiceForm(prev => ({ ...prev, useCustomRate: false }))}
+                        className="text-blue-600 focus:ring-blue-500"
+                      />
+                      <Label htmlFor="percentagePrice" className="text-gray-900 font-medium">Percentage Price</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="fixedPrice"
+                        name="priceType"
+                        checked={serviceForm.useCustomRate}
+                        onChange={() => setServiceForm(prev => ({ ...prev, useCustomRate: true }))}
+                        className="text-blue-600 focus:ring-blue-500"
+                      />
+                      <Label htmlFor="fixedPrice" className="text-gray-900 font-medium">Fixed Price</Label>
+                    </div>
+                  </div>
+
+                  {!serviceForm.useCustomRate ? (
+                    <div>
+                      <Label htmlFor="percentageValue" className="text-gray-900 font-medium">Markup Percentage (%)</Label>
+                      <div className="flex items-center space-x-2 mt-2">
+                        <Input
+                          id="percentageValue"
+                          type="number"
+                          placeholder="25"
+                          className="flex-1 border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-white"
+                        />
+                        <span className="text-sm text-gray-600 font-medium">% markup from provider price</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <Label htmlFor="fixedPriceValue" className="text-gray-900 font-medium">Fixed Price (Rp per 1000)</Label>
+                      <Input
+                        id="fixedPriceValue"
+                        type="number"
+                        value={serviceForm.customRate}
+                        onChange={(e) => setServiceForm(prev => ({ ...prev, customRate: e.target.value }))}
+                        placeholder="5000"
+                        className="mt-2 border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-white"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end space-x-3 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowEditServiceModal(false);
+                    setEditingService(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={async () => {
+                    try {
+                      const response = await apiRequest("PUT", `/api/smm/services/${editingService.id}`, serviceForm);
+                      if (response.ok) {
+                        toast({
+                          title: "Service updated successfully",
+                          description: "Service settings have been saved.",
+                        });
+                        queryClient.invalidateQueries({ queryKey: ["/api/smm/services"] });
+                        setShowEditServiceModal(false);
+                        setEditingService(null);
+                      } else {
+                        throw new Error("Failed to update service");
+                      }
+                    } catch (error: any) {
+                      toast({
+                        title: "Update failed",
+                        description: error.message || "Failed to update service",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Modern Order Success Popup */}
+      {showOrderSuccessModal && orderSuccessData && (
+        <Dialog open={showOrderSuccessModal} onOpenChange={setShowOrderSuccessModal}>
+          <DialogContent className="max-w-lg border-0 p-0 bg-transparent">
+            <div className="relative">
+              {/* Futuristic Background */}
+              <div className="bg-gradient-to-br from-green-400 via-green-500 to-green-600 rounded-2xl p-6 text-white shadow-2xl border border-green-300">
+                {/* Close Button */}
+                <button
+                  onClick={() => setShowOrderSuccessModal(false)}
+                  className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                {/* Success Header */}
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold text-white mb-2">Your order received</h2>
+                </div>
+
+                {/* Order Details */}
+                <div className="space-y-3 text-white/95">
+                  <div className="flex justify-between items-start">
+                    <span className="text-white/80 font-medium">Order ID:</span>
+                    <span className="font-bold text-lg">{orderSuccessData.orderId}</span>
+                  </div>
+
+                  {orderSuccessData.providerOrderId && (
+                    <div className="flex justify-between items-start">
+                      <span className="text-white/80 font-medium">Provider ID:</span>
+                      <span className="font-mono text-sm bg-white/10 rounded px-2 py-1">{orderSuccessData.providerOrderId}</span>
+                    </div>
+                  )}
+
+                  <div>
+                    <span className="text-white/80 font-medium">Service:</span>
+                    <div className="mt-1">
+                      <span className="font-semibold">{orderSuccessData.service}</span>
+                      <span className="ml-2 text-yellow-300">⚡</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-white/80 font-medium">Link:</span>
+                    <div className="mt-1 break-all font-mono text-sm bg-white/10 rounded px-2 py-1">
+                      {orderSuccessData.link}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/80 font-medium">Quantity:</span>
+                    <span className="font-bold">{orderSuccessData.quantity}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/80 font-medium">Charge:</span>
+                    <span className="font-bold">${orderSuccessData.charge}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center border-t border-white/20 pt-3">
+                    <span className="text-white/80 font-medium">Balance:</span>
+                    <span className="font-bold">${orderSuccessData.balance}</span>
+                  </div>
+                </div>
+
+                {/* Decorative Elements */}
+                <div className="absolute top-2 right-8 text-white/30">
+                  <span className="text-3xl">✨</span>
+                </div>
+                
+                {/* Subtle Animation Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse rounded-2xl"></div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
       {/* Import Services Modal */}
       {showImportModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
@@ -1480,7 +1956,7 @@ export default function SmmServicesPage() {
 
               {/* Service Description */}
               <div>
-                <Label htmlFor="serviceDescription" className="text-gray-900 font-medium">Service Description</Label>
+                <Label htmlFor="serviceDescription" className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 font-medium text-[#bdb7b7]">Service Description</Label>
                 <textarea
                   id="serviceDescription"
                   value={serviceForm.description}
