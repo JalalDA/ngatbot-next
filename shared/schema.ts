@@ -202,6 +202,7 @@ export const autoBots = pgTable("auto_bots", {
     url?: string;
     level?: number;
     parentId?: string;
+    responseText?: string; // Teks respons yang dikirim ketika tombol diklik
   }[]>(),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),

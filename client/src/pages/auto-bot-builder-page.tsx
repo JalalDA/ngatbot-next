@@ -32,6 +32,7 @@ interface InlineKeyboard {
   url?: string;
   parentId?: string; // untuk sub-menu
   level?: number; // 0 = menu utama, 1 = sub-menu
+  responseText?: string; // teks respons yang dikirim ketika tombol diklik
 }
 
 export default function AutoBotBuilderPage() {
@@ -539,6 +540,16 @@ export default function AutoBotBuilderPage() {
                             placeholder="https://example.com (kosongkan jika tidak perlu)"
                             value={button.url || ""}
                             onChange={(e) => updateKeyboardButton(button.id, "url", e.target.value)}
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label htmlFor={`response-${button.id}`} className="text-xs">Text</Label>
+                          <Input
+                            id={`response-${button.id}`}
+                            placeholder="Pesan yang akan dikirim ketika tombol diklik"
+                            value={button.responseText || ""}
+                            onChange={(e) => updateKeyboardButton(button.id, "responseText", e.target.value)}
                           />
                         </div>
                       </div>

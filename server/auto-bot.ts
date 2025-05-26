@@ -26,6 +26,7 @@ interface InlineKeyboard {
   url?: string;
   level?: number;
   parentId?: string;
+  responseText?: string;
 }
 
 export class AutoBotManager {
@@ -170,14 +171,16 @@ export class AutoBotManager {
                     reply_markup: subMenuKeyboard
                   });
                 } else {
-                  // No sub-menus, just send confirmation
-                  await bot.sendMessage(chatId, `✅ Anda telah memilih: *${pressedButton.text}*`, {
+                  // No sub-menus, send response text if available
+                  const responseMessage = pressedButton.responseText || `✅ Anda telah memilih: *${pressedButton.text}*`;
+                  await bot.sendMessage(chatId, responseMessage, {
                     parse_mode: 'Markdown'
                   });
                 }
               } else {
-                // This is a sub-menu button, send confirmation
-                await bot.sendMessage(chatId, `✅ Anda telah memilih: *${pressedButton.text}*`, {
+                // This is a sub-menu button, send response text if available
+                const responseMessage = pressedButton.responseText || `✅ Anda telah memilih: *${pressedButton.text}*`;
+                await bot.sendMessage(chatId, responseMessage, {
                   parse_mode: 'Markdown'
                 });
               }
