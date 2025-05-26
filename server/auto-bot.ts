@@ -27,6 +27,7 @@ interface InlineKeyboard {
   level?: number;
   parentId?: string;
   responseText?: string;
+  responseImage?: string; // URL gambar yang dikirim ketika tombol diklik
   isAllShow?: boolean; // New property for All Show button
 }
 
@@ -275,8 +276,8 @@ export class AutoBotManager {
                     reply_markup: subMenuKeyboard
                   });
                 } else {
-                  // No sub-menus, send response text if available
-                  const responseMessage = pressedButton.responseText || `✅ Anda telah memilih: *${pressedButton.text}*`;
+                  // No sub-menus, send response text and/or image if available
+                  await this.sendResponseMessage(bot, chatId, pressedButton);
                   await bot.sendMessage(chatId, responseMessage, {
                     parse_mode: 'Markdown'
                   });

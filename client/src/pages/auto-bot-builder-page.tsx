@@ -34,6 +34,7 @@ interface InlineKeyboard {
   parentId?: string; // untuk sub-menu
   level?: number; // 0 = menu utama, 1 = sub-menu
   responseText?: string; // teks respons yang dikirim ketika tombol diklik
+  responseImage?: string; // URL gambar yang dikirim ketika tombol diklik
   isAllShow?: boolean; // untuk tombol All Show
 }
 
@@ -747,6 +748,15 @@ export default function AutoBotBuilderPage() {
                               className="h-9 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
                             />
                           </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">URL Gambar (Opsional)</Label>
+                            <Input
+                              placeholder="https://example.com/image.jpg"
+                              value={mainMenu.responseImage || ""}
+                              onChange={(e) => updateKeyboardButton(mainMenu.id, "responseImage", e.target.value)}
+                              className="h-9 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -823,6 +833,12 @@ export default function AutoBotBuilderPage() {
                                       value={child.responseText || ""}
                                       onChange={(e) => updateKeyboardButton(child.id, "responseText", e.target.value)}
                                       className="min-h-[50px] text-xs resize-none border-slate-300 dark:border-slate-600"
+                                    />
+                                    <Input
+                                      placeholder="URL gambar (opsional)"
+                                      value={child.responseImage || ""}
+                                      onChange={(e) => updateKeyboardButton(child.id, "responseImage", e.target.value)}
+                                      className="h-8 text-xs border-slate-300 dark:border-slate-600"
                                     />
                                   </CardContent>
                                 </Card>
