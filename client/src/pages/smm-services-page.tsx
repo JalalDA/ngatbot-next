@@ -702,8 +702,8 @@ export default function SmmServicesPage() {
                     </div>
                   )}
                   
-                  {/* Pagination */}
-                  {smmOrders.length === ordersPerPage && (
+                  {/* Pagination - Always show if there are orders */}
+                  {smmOrders.length > 0 && (
                     <div className="flex justify-end mt-6">
                       <div className="flex items-center space-x-2">
                         <Button
