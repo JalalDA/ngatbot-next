@@ -560,7 +560,7 @@ export default function AutoBotBuilderPage() {
                         description: "Tombol untuk menampilkan semua menu telah ditambahkan.",
                       });
                     }}
-                    className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 border-blue-200"
+                    className="flex items-center gap-2 hover:bg-blue-100 border-blue-200 bg-[#02080f]"
                   >
                     <Grid3X3 className="w-4 h-4" />
                     Tambah Tombol All Show
@@ -838,8 +838,8 @@ export default function AutoBotBuilderPage() {
                                 </p>
                                 <div className="flex flex-wrap gap-1">
                                   {buttonsAtLevel.map((btn, idx) => (
-                                    <Badge key={idx} variant="outline" className="text-xs">
-                                      {btn.text || 'Untitled'}
+                                    <Badge key={idx} variant="outline" className={`text-xs ${btn.isAllShow ? 'bg-blue-100 text-blue-800 border-blue-200' : ''}`}>
+                                      {btn.isAllShow ? '📋 All Show' : btn.text || 'Untitled'}
                                       {btn.parentId && level > 0 && (
                                         <span className="ml-1 text-muted-foreground">
                                           ← {bot.keyboardConfig.find(b => b.id === btn.parentId)?.text}

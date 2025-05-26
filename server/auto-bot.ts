@@ -221,9 +221,11 @@ export class AutoBotManager {
                 );
                 
                 if (subMenus.length > 0) {
-                  // Add only "Menu Utama" button for level 1
-                  const subMenusWithMainMenu = [
-                    ...subMenus,
+                  // Find All Show button from config
+                  const allShowButton = (autoBot.keyboardConfig || []).find(btn => btn.isAllShow);
+                  
+                  // Add "Menu Utama" and "All Show" buttons for level 1
+                  const navigationButtons = [
                     {
                       id: 'main_menu_button_level_1',
                       text: '🏠 Menu Utama',
@@ -232,8 +234,23 @@ export class AutoBotManager {
                     }
                   ];
                   
+                  // Add All Show button if it exists in config
+                  if (allShowButton) {
+                    navigationButtons.push({
+                      id: 'all_show_sub_level',
+                      text: allShowButton.text || '📋 Lihat Semua Menu',
+                      callbackData: 'show_all_menus',
+                      level: 1
+                    });
+                  }
+                  
+                  const subMenusWithNavigation = [
+                    ...subMenus,
+                    ...navigationButtons
+                  ];
+                  
                   // Replace main menu with sub-menus by editing the message
-                  const subMenuKeyboard = this.createInlineKeyboard(subMenusWithMainMenu);
+                  const subMenuKeyboard = this.createInlineKeyboard(subMenusWithNavigation);
                   
                   await bot.editMessageText(`📋 Menu ${pressedButton.text}:`, {
                     chat_id: chatId,
@@ -255,9 +272,11 @@ export class AutoBotManager {
                 );
                 
                 if (childMenus.length > 0) {
-                  // This button has child menus, show them with only "Menu Utama" button
-                  const childMenusWithMainMenu = [
-                    ...childMenus,
+                  // Find All Show button from config
+                  const allShowButton = (autoBot.keyboardConfig || []).find(btn => btn.isAllShow);
+                  
+                  // This button has child menus, show them with navigation buttons
+                  const navigationButtons = [
                     {
                       id: `main_menu_button_level_${currentLevel + 1}`,
                       text: '🏠 Menu Utama',
@@ -266,7 +285,22 @@ export class AutoBotManager {
                     }
                   ];
                   
-                  const childMenuKeyboard = this.createInlineKeyboard(childMenusWithMainMenu);
+                  // Add All Show button if it exists in config
+                  if (allShowButton) {
+                    navigationButtons.push({
+                      id: `all_show_level_${currentLevel + 1}`,
+                      text: allShowButton.text || '📋 Lihat Semua Menu',
+                      callbackData: 'show_all_menus',
+                      level: currentLevel + 1
+                    });
+                  }
+                  
+                  const childMenusWithNavigation = [
+                    ...childMenus,
+                    ...navigationButtons
+                  ];
+                  
+                  const childMenuKeyboard = this.createInlineKeyboard(childMenusWithNavigation);
                   const levelNames = ['Menu', 'Sub Menu', 'Sub Sub Menu', 'Level 4 Menu', 'Level 5 Menu', 'Level 6 Menu'];
                   const levelName = levelNames[currentLevel] || `Level ${currentLevel + 1} Menu`;
                   
