@@ -84,6 +84,8 @@ export default function SmmServicesPage() {
   const [orderSearchTerm, setOrderSearchTerm] = useState("");
   const [selectedOrderService, setSelectedOrderService] = useState<any>(null);
   const [orderCharge, setOrderCharge] = useState("");
+  const [showOrderSuccessModal, setShowOrderSuccessModal] = useState(false);
+  const [orderSuccessData, setOrderSuccessData] = useState<any>(null);
 
   // State untuk mengkalkulasi charge berdasarkan quantity
   const calculateCharge = (service: any, quantity: number) => {
@@ -211,8 +213,20 @@ export default function SmmServicesPage() {
       const res = await apiRequest("POST", "/api/smm/orders", orderData);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/smm/orders"] });
+      
+      // Set data untuk popup success
+      setOrderSuccessData({
+        orderId: data.orderId || data.id || `${Date.now()}`,
+        service: selectedOrderService?.name || "Unknown Service",
+        link: orderForm.link,
+        quantity: orderForm.quantity,
+        charge: orderCharge,
+        balance: user?.credits?.toString() || "0.00"
+      });
+      
+      // Reset form
       setOrderForm({
         serviceId: "",
         link: "",
@@ -220,10 +234,9 @@ export default function SmmServicesPage() {
       });
       setSelectedOrderService(null);
       setOrderCharge("");
-      toast({
-        title: "Order Created",
-        description: "Your SMM order has been placed successfully.",
-      });
+      
+      // Show success popup
+      setShowOrderSuccessModal(true);
     },
     onError: (error: any) => {
       toast({
@@ -1605,6 +1618,77 @@ export default function SmmServicesPage() {
                 >
                   Save Changes
                 </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Modern Order Success Popup */}
+      {showOrderSuccessModal && orderSuccessData && (
+        <Dialog open={showOrderSuccessModal} onOpenChange={setShowOrderSuccessModal}>
+          <DialogContent className="max-w-lg border-0 p-0 bg-transparent">
+            <div className="relative">
+              {/* Futuristic Background */}
+              <div className="bg-gradient-to-br from-green-400 via-green-500 to-green-600 rounded-2xl p-6 text-white shadow-2xl border border-green-300">
+                {/* Close Button */}
+                <button
+                  onClick={() => setShowOrderSuccessModal(false)}
+                  className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                {/* Success Header */}
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold text-white mb-2">Your order received</h2>
+                </div>
+
+                {/* Order Details */}
+                <div className="space-y-3 text-white/95">
+                  <div className="flex justify-between items-start">
+                    <span className="text-white/80 font-medium">ID:</span>
+                    <span className="font-bold text-lg">{orderSuccessData.orderId}</span>
+                  </div>
+
+                  <div>
+                    <span className="text-white/80 font-medium">Service:</span>
+                    <div className="mt-1">
+                      <span className="font-semibold">{orderSuccessData.service}</span>
+                      <span className="ml-2 text-yellow-300">⚡</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-white/80 font-medium">Link:</span>
+                    <div className="mt-1 break-all font-mono text-sm bg-white/10 rounded px-2 py-1">
+                      {orderSuccessData.link}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/80 font-medium">Quantity:</span>
+                    <span className="font-bold">{orderSuccessData.quantity}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/80 font-medium">Charge:</span>
+                    <span className="font-bold">${orderSuccessData.charge}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center border-t border-white/20 pt-3">
+                    <span className="text-white/80 font-medium">Balance:</span>
+                    <span className="font-bold">${orderSuccessData.balance}</span>
+                  </div>
+                </div>
+
+                {/* Decorative Elements */}
+                <div className="absolute top-2 right-8 text-white/30">
+                  <span className="text-3xl">✨</span>
+                </div>
+                
+                {/* Subtle Animation Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse rounded-2xl"></div>
               </div>
             </div>
           </DialogContent>
