@@ -18,8 +18,8 @@ import {
   Server,
   Globe,
   Coins,
-  Edit,
   RefreshCw,
+  Edit,
   Plus,
   Trash2,
   Eye,
@@ -86,6 +86,7 @@ export default function SmmServicesPage() {
   const [orderCharge, setOrderCharge] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [ordersPerPage] = useState(20);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // State untuk mengkalkulasi charge berdasarkan quantity
   const calculateCharge = (service: any, quantity: number) => {
@@ -104,14 +105,16 @@ export default function SmmServicesPage() {
     queryKey: ["/api/smm/services"],
   });
 
-  // Fetch SMM orders with pagination
-  const { data: smmOrders = [], isLoading: ordersLoading } = useQuery({
+  // Fetch SMM orders with pagination and auto sync status
+  const { data: smmOrders = [], isLoading: ordersLoading, refetch: refetchOrders } = useQuery({
     queryKey: ["/api/smm/orders", currentPage],
     queryFn: async () => {
       const response = await fetch(`/api/smm/orders?page=${currentPage}&limit=${ordersPerPage}`);
       if (!response.ok) throw new Error('Failed to fetch orders');
       return response.json();
-    }
+    },
+    refetchOnWindowFocus: true, // Auto refetch saat window focus
+    refetchInterval: 30000, // Auto refetch setiap 30 detik
   });
 
   // Create SMM Provider mutation
@@ -211,6 +214,30 @@ export default function SmmServicesPage() {
       });
     },
   });
+
+  // Manual sync status mutation
+  const syncOrderStatusMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/smm/orders/sync", { method: "POST" });
+      if (!response.ok) throw new Error("Failed to sync orders");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "✅ Status order berhasil disinkronisasi!" });
+      queryClient.invalidateQueries({ queryKey: ["/api/smm/orders"] });
+      setIsSyncing(false);
+    },
+    onError: () => {
+      toast({ title: "❌ Gagal sinkronisasi status order!", variant: "destructive" });
+      setIsSyncing(false);
+    }
+  });
+
+  // Handle manual sync
+  const handleManualSync = () => {
+    setIsSyncing(true);
+    syncOrderStatusMutation.mutate();
+  };
 
   // Create order mutation
   const createOrderMutation = useMutation({
@@ -613,9 +640,30 @@ export default function SmmServicesPage() {
             <TabsContent value="order-history" className="mt-6">
               <Card className="bg-card border-border">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="h-5 w-5" />
-                    Order History
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Package className="h-5 w-5" />
+                      Order History
+                    </div>
+                    <Button
+                      onClick={handleManualSync}
+                      disabled={isSyncing || syncOrderStatusMutation.isPending}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      {isSyncing || syncOrderStatusMutation.isPending ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          Sinkronisasi...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="h-4 w-4" />
+                          Sync Status
+                        </>
+                      )}
+                    </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

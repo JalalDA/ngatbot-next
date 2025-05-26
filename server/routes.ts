@@ -1110,7 +1110,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Get SMM orders for current user with pagination
+  // Get SMM orders for current user with pagination and auto sync status
   app.get("/api/smm/orders", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
@@ -1118,13 +1118,138 @@ export function registerRoutes(app: Express): Server {
       const limit = parseInt(req.query.limit as string) || 20;
       const offset = (page - 1) * limit;
       
+      // Fetch orders from database
       const orders = await storage.getSmmOrdersByUserId(user.id, limit, offset);
-      res.json(orders);
+      
+      // Auto sync status untuk orders yang belum complete
+      const ordersToSync = orders.filter(order => 
+        order.status !== 'completed' && 
+        order.status !== 'cancelled' && 
+        order.status !== 'refunded' &&
+        order.providerOrderId
+      );
+
+      // Sync status dengan provider untuk setiap order yang perlu di-sync
+      for (const order of ordersToSync) {
+        try {
+          // Get provider info
+          const provider = await storage.getSmmProvider(order.providerId);
+          if (!provider) continue;
+
+          // Check status dari provider
+          const statusResponse = await fetch(`${provider.apiEndpoint}?key=${provider.apiKey}&action=status&order=${order.providerOrderId}`);
+          if (statusResponse.ok) {
+            const statusData = await statusResponse.json();
+            
+            if (statusData && statusData.status) {
+              // Map provider status ke system status
+              const systemStatus = mapProviderStatus(statusData.status);
+              
+              // Update status jika berbeda
+              if (systemStatus !== order.status) {
+                await storage.updateSmmOrder(order.id, {
+                  status: systemStatus,
+                  startCount: statusData.start_count || order.startCount,
+                  remains: statusData.remains || order.remains
+                });
+                
+                console.log(`✅ Updated order ${order.id} status: ${order.status} -> ${systemStatus}`);
+              }
+            }
+          }
+        } catch (syncError) {
+          console.error(`❌ Failed to sync order ${order.id}:`, syncError);
+        }
+      }
+      
+      // Fetch updated orders setelah sync
+      const updatedOrders = await storage.getSmmOrdersByUserId(user.id, limit, offset);
+      res.json(updatedOrders);
     } catch (error) {
       console.error("Get SMM orders error:", error);
       res.status(500).json({ message: "Failed to fetch SMM orders" });
     }
   });
+
+  // Manual sync orders status endpoint
+  app.post("/api/smm/orders/sync", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      
+      // Get all pending orders for the user
+      const allOrders = await storage.getSmmOrdersByUserId(user.id, 1000, 0); // Get lots of orders for sync
+      
+      const ordersToSync = allOrders.filter(order => 
+        order.status !== 'completed' && 
+        order.status !== 'cancelled' && 
+        order.status !== 'refunded' &&
+        order.providerOrderId
+      );
+
+      let syncedCount = 0;
+      let updatedCount = 0;
+
+      for (const order of ordersToSync) {
+        try {
+          // Get provider info
+          const provider = await storage.getSmmProvider(order.providerId);
+          if (!provider) continue;
+
+          // Check status dari provider
+          const statusResponse = await fetch(`${provider.apiEndpoint}?key=${provider.apiKey}&action=status&order=${order.providerOrderId}`);
+          if (statusResponse.ok) {
+            const statusData = await statusResponse.json();
+            
+            if (statusData && statusData.status) {
+              // Map provider status ke system status
+              const systemStatus = mapProviderStatus(statusData.status);
+              
+              // Update status jika berbeda
+              if (systemStatus !== order.status) {
+                await storage.updateSmmOrder(order.id, {
+                  status: systemStatus,
+                  startCount: statusData.start_count || order.startCount,
+                  remains: statusData.remains || order.remains
+                });
+                
+                updatedCount++;
+                console.log(`✅ Manual sync updated order ${order.id}: ${order.status} -> ${systemStatus}`);
+              }
+              syncedCount++;
+            }
+          }
+        } catch (syncError) {
+          console.error(`❌ Failed to manually sync order ${order.id}:`, syncError);
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        message: `Berhasil sinkronisasi ${syncedCount} order, ${updatedCount} order diperbarui`,
+        syncedCount,
+        updatedCount
+      });
+    } catch (error) {
+      console.error("Manual sync orders error:", error);
+      res.status(500).json({ message: "Failed to sync orders" });
+    }
+  });
+
+  // Helper function untuk mapping status provider ke system status
+  function mapProviderStatus(providerStatus: string): string {
+    const statusMap: { [key: string]: string } = {
+      'pending': 'pending',
+      'in progress': 'processing',
+      'processing': 'processing',
+      'partial': 'partial',
+      'completed': 'completed',
+      'canceled': 'cancelled',
+      'cancelled': 'cancelled',
+      'refunded': 'refunded'
+    };
+    
+    return statusMap[providerStatus.toLowerCase()] || providerStatus.toLowerCase();
+  }
 
   // Create new SMM order
   app.post("/api/smm/orders", requireAuth, async (req, res) => {
