@@ -103,9 +103,9 @@ export default function AutoBotBuilderPage() {
     const levelConfig = {
       0: { name: "Menu Utama", color: "bg-blue-100 text-blue-800 border-blue-200", icon: Menu },
       1: { name: "Sub Menu", color: "bg-green-100 text-green-800 border-green-200", icon: Layers },
-      2: { name: "Sub-Sub Menu", color: "bg-purple-100 text-purple-800 border-purple-200", icon: Layers2 },
-      3: { name: "Level 4", color: "bg-orange-100 text-orange-800 border-orange-200", icon: Grid3X3 },
-      4: { name: "Level 5", color: "bg-red-100 text-red-800 border-red-200", icon: Settings }
+      2: { name: "Sub Level 1", color: "bg-purple-100 text-purple-800 border-purple-200", icon: Layers2 },
+      3: { name: "Sub Level 2", color: "bg-orange-100 text-orange-800 border-orange-200", icon: Grid3X3 },
+      4: { name: "Sub Level 3", color: "bg-red-100 text-red-800 border-red-200", icon: Settings }
     };
     return levelConfig[level as keyof typeof levelConfig] || levelConfig[0];
   };
@@ -690,9 +690,9 @@ export default function AutoBotBuilderPage() {
                               
                               const levelName = 
                                 (child.level || 0) === 1 ? 'Sub Menu' :
-                                (child.level || 0) === 2 ? 'Sub-Sub Menu' :
-                                (child.level || 0) === 3 ? 'Level 4' :
-                                'Level 5';
+                                (child.level || 0) === 2 ? 'Sub Level 1' :
+                                (child.level || 0) === 3 ? 'Sub Level 2' :
+                                'Sub Level 3';
 
                               return (
                                 <Card key={child.id} className={`border-l-4 ${levelColor} bg-slate-50 dark:bg-slate-800/50`}>
@@ -773,7 +773,7 @@ export default function AutoBotBuilderPage() {
                               className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-900"
                             >
                               <Plus className="w-3 h-3" />
-                              Sub Menu
+                              +Sub Menu
                             </Button>
 
                             {/* Add All Show Button for this group */}
@@ -799,7 +799,7 @@ export default function AutoBotBuilderPage() {
                               All Show
                             </Button>
 
-                            {/* Add Sub-Sub Menu if there are level 1 children */}
+                            {/* Add Sub Level 1 if there are level 1 children */}
                             {allChildren.some(child => (child.level || 0) === 1) && (
                               <Button
                                 variant="outline"
@@ -808,11 +808,11 @@ export default function AutoBotBuilderPage() {
                                 className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-900"
                               >
                                 <Layers2 className="w-3 h-3" />
-                                Sub-Sub Menu
+                                +Sub Level 1
                               </Button>
                             )}
 
-                            {/* Add Level 4 if there are level 2 children */}
+                            {/* Add Sub Level 2 if there are level 2 children */}
                             {allChildren.some(child => (child.level || 0) === 2) && (
                               <Button
                                 variant="outline"
@@ -821,11 +821,11 @@ export default function AutoBotBuilderPage() {
                                 className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-900"
                               >
                                 <Grid3X3 className="w-3 h-3" />
-                                Level 4
+                                +Sub Level 2
                               </Button>
                             )}
 
-                            {/* Add Level 5 if there are level 3 children */}
+                            {/* Add Sub Level 3 if there are level 3 children */}
                             {allChildren.some(child => (child.level || 0) === 3) && (
                               <Button
                                 variant="outline"
@@ -834,7 +834,7 @@ export default function AutoBotBuilderPage() {
                                 className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-900"
                               >
                                 <Layers className="w-3 h-3" />
-                                Level 5
+                                +Sub Level 3
                               </Button>
                             )}
 
