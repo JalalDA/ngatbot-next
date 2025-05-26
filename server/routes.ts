@@ -1122,6 +1122,81 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Create new SMM order
+  app.post("/api/smm/orders", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { serviceId, link, quantity } = req.body;
+
+      // Validate required fields
+      if (!serviceId || !link || !quantity) {
+        return res.status(400).json({ message: "Service ID, link, and quantity are required" });
+      }
+
+      // Get service details
+      const service = await storage.getSmmService(parseInt(serviceId));
+      if (!service || service.userId !== user.id) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      // Validate quantity limits
+      const qty = parseInt(quantity);
+      if (qty < service.min || qty > service.max) {
+        return res.status(400).json({ 
+          message: `Quantity must be between ${service.min} and ${service.max}` 
+        });
+      }
+
+      // Calculate order amount
+      const rate = parseFloat(service.rate);
+      const amount = ((rate * qty) / 1000);
+
+      // Generate order ID
+      const orderId = generateSmmOrderId(user.id);
+
+      // Get provider details
+      const provider = await storage.getSmmProvider(service.providerId);
+      if (!provider) {
+        return res.status(404).json({ message: "Provider not found" });
+      }
+
+      // Create order with SMM provider
+      try {
+        const smmAPI = new SmmPanelAPI(provider.apiKey, provider.apiEndpoint);
+        const orderResponse = await smmAPI.createOrder(service.serviceId, link, qty);
+
+        if (orderResponse.error) {
+          return res.status(400).json({ message: orderResponse.error });
+        }
+
+        // Create order in database
+        const order = await storage.createSmmOrder({
+          userId: user.id,
+          serviceId: service.id,
+          providerId: provider.id,
+          orderId,
+          providerOrderId: orderResponse.order,
+          link,
+          quantity: qty,
+          amount: amount.toString(),
+          status: 'pending',
+          serviceName: service.name
+        });
+
+        res.status(201).json(order);
+      } catch (apiError) {
+        console.error("SMM API error:", apiError);
+        return res.status(500).json({ 
+          message: "Failed to create order with SMM provider" 
+        });
+      }
+
+    } catch (error) {
+      console.error("Create SMM order error:", error);
+      res.status(500).json({ message: "Failed to create SMM order" });
+    }
+  });
+
   // Auto Bot Routes
   
   // Validate bot token
