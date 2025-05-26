@@ -22,7 +22,15 @@ import {
   Search,
   ExternalLink,
   Filter,
-  Loader2
+  Loader2,
+  Download,
+  Edit,
+  Trash2,
+  X,
+  ArrowLeft,
+  RefreshCw,
+  Eye,
+  Activity
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -33,6 +41,7 @@ export default function SmmServicesPage() {
 
   // State management
   const [showSmmProviderModal, setShowSmmProviderModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [activeTab, setActiveTab] = useState("new-order");
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -477,6 +486,7 @@ export default function SmmServicesPage() {
 
           {/* Services Management Tab */}
           <TabsContent value="services">
+            {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <Card className="bg-card border-border">
                 <CardContent className="p-6">
@@ -527,14 +537,161 @@ export default function SmmServicesPage() {
               </Card>
             </div>
 
-            <Card className="bg-card border-border">
+            {/* SMM Providers Table */}
+            <Card className="bg-card border-border mb-6">
               <CardHeader>
-                <CardTitle>SMM Services Management</CardTitle>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <CardTitle>SMM Providers</CardTitle>
+                  <Button 
+                    onClick={() => setShowSmmProviderModal(true)}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Provider
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">Services management interface will be displayed here</p>
+                {providersLoading ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
+                    <p className="text-muted-foreground mt-2">Loading providers...</p>
+                  </div>
+                ) : Array.isArray(smmProviders) && smmProviders.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Provider Name</TableHead>
+                          <TableHead>API Endpoint</TableHead>
+                          <TableHead>Balance</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {smmProviders.map((provider: any) => (
+                          <TableRow key={provider.id}>
+                            <TableCell className="font-medium">{provider.name}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {provider.apiEndpoint}
+                            </TableCell>
+                            <TableCell>
+                              {provider.balance ? `$${provider.balance}` : 'Unknown'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={provider.isActive ? "default" : "secondary"}>
+                                {provider.isActive ? "Active" : "Inactive"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => {/* Test connection */}}
+                                >
+                                  Test
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="destructive"
+                                  onClick={() => {/* Delete provider */}}
+                                >
+                                  Delete
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Server className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold text-foreground mb-2">No providers found</h3>
+                    <p className="text-muted-foreground mb-6">Add your first SMM provider to get started</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* SMM Services Table */}
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <CardTitle>SMM Services</CardTitle>
+                  <div className="flex items-center space-x-2">
+                    <Input 
+                      placeholder="Search services..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-64"
+                    />
+                  </div>
                 </div>
+              </CardHeader>
+              <CardContent>
+                {servicesLoading ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
+                    <p className="text-muted-foreground mt-2">Loading services...</p>
+                  </div>
+                ) : Array.isArray(smmServices) && smmServices.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>ID</TableHead>
+                          <TableHead>Service Name</TableHead>
+                          <TableHead>Category</TableHead>
+                          <TableHead>Rate</TableHead>
+                          <TableHead>Min/Max</TableHead>
+                          <TableHead>Provider</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {smmServices
+                          .filter((service: any) => 
+                            searchTerm === "" || 
+                            service.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            service.category?.toLowerCase().includes(searchTerm.toLowerCase())
+                          )
+                          .map((service: any) => (
+                            <TableRow key={service.id}>
+                              <TableCell className="font-mono text-sm">{service.mid}</TableCell>
+                              <TableCell className="font-medium">{service.name}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline">{service.category}</Badge>
+                              </TableCell>
+                              <TableCell>${service.rate}</TableCell>
+                              <TableCell className="text-sm">
+                                {service.min?.toLocaleString()} - {service.max?.toLocaleString()}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {/* Show provider name */}
+                                Provider
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={service.isActive ? "default" : "secondary"}>
+                                  {service.isActive ? "Active" : "Inactive"}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Globe className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold text-foreground mb-2">No services available</h3>
+                    <p className="text-muted-foreground mb-6">Add a provider and import services to get started</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
