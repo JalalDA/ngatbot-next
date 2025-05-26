@@ -62,6 +62,8 @@ export default function AutoBotBuilderPage() {
   const [newSubSubMenuUrl, setNewSubSubMenuUrl] = useState("");
   const [newSubSubMenuResponse, setNewSubSubMenuResponse] = useState("");
   const [selectedParentForNewSubSub, setSelectedParentForNewSubSub] = useState<string>("");
+  const [showSubSubMenuSelector, setShowSubSubMenuSelector] = useState(false);
+  const [selectedSubMenuForSubSub, setSelectedSubMenuForSubSub] = useState<string>("");
 
   // Fetch auto bots
   const { data: autoBots = [], isLoading } = useQuery({
@@ -301,6 +303,26 @@ export default function AutoBotBuilderPage() {
     });
   };
 
+  const addSubSubMenuToParent = () => {
+    if (!selectedSubMenuForSubSub) {
+      toast({
+        title: "Pilih Sub Menu",
+        description: "Silakan pilih sub menu terlebih dahulu",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    addKeyboardButton(2, selectedSubMenuForSubSub);
+    setShowSubSubMenuSelector(false);
+    setSelectedSubMenuForSubSub("");
+    
+    toast({
+      title: "Sub-Sub Menu Ditambahkan!",
+      description: "Sub-sub menu baru berhasil ditambahkan ke sub menu yang dipilih",
+    });
+  };
+
   const updateKeyboardButton = (id: string, field: keyof InlineKeyboard, value: string) => {
     setKeyboardButtons(buttons =>
       buttons.map(button =>
@@ -473,20 +495,23 @@ export default function AutoBotBuilderPage() {
                   </Button>
                 )}
                 
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addHierarchicalTemplate}
-                  className="flex items-center gap-2"
-                >
-                  <Layers className="w-4 h-4" />
-                  Template Menu Hierarkis
-                </Button>
+                {/* Show "Add Sub-Sub Menu" button only if there are sub menu buttons */}
+                {keyboardButtons.some(btn => (btn.level || 0) === 1) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSubSubMenuSelector(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Layers2 className="w-4 h-4" />
+                    Tambah Sub-Sub Menu
+                  </Button>
+                )}
               </div>
 
               {/* Grouping buttons by level for better visualization */}
-              {[0, 1].map(level => {
+              {[0, 1, 2].map(level => {
                 const buttonsAtLevel = keyboardButtons.filter(btn => (btn.level || 0) === level);
                 if (buttonsAtLevel.length === 0) return null;
 
@@ -749,6 +774,53 @@ export default function AutoBotBuilderPage() {
             </Button>
             <Button onClick={addSubMenuToParent} disabled={!selectedParentId}>
               Tambah Sub Menu
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sub-Sub Menu Selector Dialog */}
+      <Dialog open={showSubSubMenuSelector} onOpenChange={setShowSubSubMenuSelector}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Layers2 className="w-5 h-5" />
+              Tambah Sub-Sub Menu
+            </DialogTitle>
+            <DialogDescription>
+              Pilih sub menu untuk menambahkan sub-sub menu baru
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Pilih Sub Menu</Label>
+              <Select value={selectedSubMenuForSubSub} onValueChange={setSelectedSubMenuForSubSub}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih sub menu..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {keyboardButtons
+                    .filter(btn => (btn.level || 0) === 1)
+                    .map(btn => (
+                      <SelectItem key={btn.id} value={btn.id}>
+                        {btn.text || 'Sub menu tanpa nama'}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowSubSubMenuSelector(false);
+              setSelectedSubMenuForSubSub("");
+            }}>
+              Batal
+            </Button>
+            <Button onClick={addSubSubMenuToParent} disabled={!selectedSubMenuForSubSub}>
+              Tambah Sub-Sub Menu
             </Button>
           </DialogFooter>
         </DialogContent>
