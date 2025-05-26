@@ -310,8 +310,21 @@ export default function SmmServicesPage() {
         console.log(`Processing client batch ${batchIndex + 1}/${batches.length} with ${batch.length} services`);
 
         try {
+          // Send only essential data to minimize request size
+          const minimalBatch = batch.map(service => ({
+            service: service.service || service.id,
+            name: service.name?.substring(0, 100) || "Unknown Service", // Truncate long names
+            category: service.category?.substring(0, 50) || "General",
+            rate: service.rate,
+            min: service.min,
+            max: service.max,
+            type: service.type || "Default",
+            refill: service.refill || false,
+            cancel: service.cancel || false
+          }));
+
           const response = await apiRequest("POST", `/api/smm/providers/${importingProvider.id}/import-services`, {
-            services: batch,
+            services: minimalBatch,
             batchSize: BATCH_SIZE
           });
 
