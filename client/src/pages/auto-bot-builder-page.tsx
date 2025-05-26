@@ -134,7 +134,7 @@ export default function AutoBotBuilderPage() {
   };
 
   // Fetch auto bots
-  const { data: autoBots = [], isLoading } = useQuery({
+  const { data: autoBots = [], isLoading } = useQuery<AutoBot[]>({
     queryKey: ["/api/autobots"],
   });
 
@@ -303,6 +303,42 @@ export default function AutoBotBuilderPage() {
     } finally {
       setIsValidatingToken(false);
     }
+  };
+
+  // Quick action functions for Management Keyboard tab
+  const addMenuUtama = () => {
+    const newButton: InlineKeyboard = {
+      id: crypto.randomUUID(),
+      text: "",
+      callbackData: "",
+      level: 0,
+      responseText: ""
+    };
+    setKeyboardButtons(prev => [...prev, newButton]);
+  };
+
+  const addAllShow = () => {
+    const newButton: InlineKeyboard = {
+      id: crypto.randomUUID(),
+      text: "📋 All Show",
+      callbackData: "all_show",
+      level: 0,
+      responseText: "",
+      isAllShow: true
+    };
+    setKeyboardButtons(prev => [...prev, newButton]);
+  };
+
+  const addSubmenuToParent = (parentId: string) => {
+    const newButton: InlineKeyboard = {
+      id: crypto.randomUUID(),
+      text: "",
+      callbackData: "",
+      level: 1,
+      parentId: parentId,
+      responseText: ""
+    };
+    setKeyboardButtons(prev => [...prev, newButton]);
   };
 
   const addKeyboardButton = (level: number = 0, parentId?: string) => {
@@ -1317,18 +1353,14 @@ export default function AutoBotBuilderPage() {
                     Quick Actions
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {getQuickActions().map((action, index) => (
-                      <Button
-                        key={index}
-                        onClick={action.onClick}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-1"
-                      >
-                        <action.icon className="w-3 h-3" />
-                        {action.label}
-                      </Button>
-                    ))}
+                    <Button onClick={addMenuUtama} variant="outline" size="sm">
+                      <Plus className="w-3 h-3 mr-1" />
+                      +Menu Utama
+                    </Button>
+                    <Button onClick={addAllShow} variant="outline" size="sm">
+                      <Grid3X3 className="w-3 h-3 mr-1" />
+                      📋 All Show
+                    </Button>
                   </div>
                 </div>
 
@@ -1379,20 +1411,21 @@ export default function AutoBotBuilderPage() {
                                 </div>
                                 
                                 <div className="flex gap-1">
-                                  {!mainButton.isAllShow && getContextualActions(0, mainButton.id).map((action, index) => (
+                                  {!mainButton.isAllShow && (
                                     <Button
-                                      key={index}
-                                      onClick={action.onClick}
+                                      onClick={() => addSubmenuToParent(mainButton.id)}
                                       variant="outline"
                                       size="sm"
+                                      title="Tambah Sub Menu"
                                     >
-                                      <action.icon className="w-3 h-3" />
+                                      <Plus className="w-3 h-3" />
                                     </Button>
-                                  ))}
+                                  )}
                                   <Button
                                     onClick={() => removeKeyboardButton(mainButton.id)}
                                     variant="outline"
                                     size="sm"
+                                    title="Hapus Menu"
                                   >
                                     <Trash2 className="w-3 h-3" />
                                   </Button>
@@ -1429,8 +1462,52 @@ export default function AutoBotBuilderPage() {
                                     </div>
                                   </div>
 
-                                  {/* Child menus recursively */}
-                                  {renderChildMenus(mainButton.id, 1)}
+                                  {/* Sub menus */}
+                                  {keyboardButtons
+                                    .filter(btn => btn.parentId === mainButton.id)
+                                    .map(subButton => (
+                                      <div key={subButton.id} className="ml-6 border-l-2 border-gray-200 pl-4 mt-3">
+                                        <div className="flex items-center justify-between mb-2">
+                                          <span className="text-sm font-medium flex items-center gap-1">
+                                            <Layers className="w-3 h-3" />
+                                            +Sub Menu
+                                          </span>
+                                          <Button
+                                            onClick={() => removeKeyboardButton(subButton.id)}
+                                            variant="outline"
+                                            size="sm"
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </Button>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-3 bg-gray-50 rounded-lg">
+                                          <div>
+                                            <Label>Text Tombol</Label>
+                                            <Input
+                                              value={subButton.text || ''}
+                                              onChange={(e) => updateKeyboardButton(subButton.id, 'text', e.target.value)}
+                                              placeholder="Teks sub menu"
+                                            />
+                                          </div>
+                                          <div>
+                                            <Label>Callback Data</Label>
+                                            <Input
+                                              value={subButton.callbackData || ''}
+                                              onChange={(e) => updateKeyboardButton(subButton.id, 'callbackData', e.target.value)}
+                                              placeholder="callback_data"
+                                            />
+                                          </div>
+                                          <div>
+                                            <Label>Response Text</Label>
+                                            <Input
+                                              value={subButton.responseText || ''}
+                                              onChange={(e) => updateKeyboardButton(subButton.id, 'responseText', e.target.value)}
+                                              placeholder="Teks respons"
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
                                 </div>
                               )}
                             </div>
