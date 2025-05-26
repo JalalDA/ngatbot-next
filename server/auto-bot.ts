@@ -121,24 +121,12 @@ export class AutoBotManager {
         const chatId = msg.chat.id;
         const welcomeMessage = autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:";
         
-        // Show main menu buttons (level 0) and check for All Show button
-        const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => !btn.level || btn.level === 0);
+        // Show main menu buttons (level 0) only - exclude All Show buttons from main menu
+        const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => 
+          (!btn.level || btn.level === 0) && !btn.isAllShow
+        );
         
-        // Check if there's an All Show button configured
-        const allShowButton = (autoBot.keyboardConfig || []).find(btn => btn.isAllShow);
-        const buttonsToShow = [...mainMenuButtons];
-        
-        // Add All Show button if configured
-        if (allShowButton) {
-          buttonsToShow.push({
-            id: 'all_show_button',
-            text: allShowButton.text || '📋 Lihat Semua Menu',
-            callbackData: 'show_all_menus',
-            level: 0
-          });
-        }
-        
-        const keyboard = this.createInlineKeyboard(buttonsToShow);
+        const keyboard = this.createInlineKeyboard(mainMenuButtons);
         
         const options: any = {
           reply_markup: keyboard
@@ -183,8 +171,10 @@ export class AutoBotManager {
           
           // Handle special navigation callbacks first (they might not be in pressedButton)
           if (data === 'back_to_main') {
-            // Show main menu again
-            const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => !btn.level || btn.level === 0);
+            // Show main menu again - exclude All Show buttons
+            const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => 
+              (!btn.level || btn.level === 0) && !btn.isAllShow
+            );
             const keyboard = this.createInlineKeyboard(mainMenuButtons);
             
             await bot.editMessageText(autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:", {
