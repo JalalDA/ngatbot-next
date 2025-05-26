@@ -1409,58 +1409,58 @@ export default function SmmServicesPage() {
             
             <div className="space-y-6">
               {/* Service Type (Provider Info) */}
-              <div className="bg-slate-50 p-4 rounded-lg">
-                <h4 className="font-medium text-slate-900 mb-2">Service Type</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Provider:</span>
-                    <span className="font-medium">{editingService.provider?.name || 'N/A'}</span>
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-4 rounded-lg">
+                <h4 className="font-semibold text-blue-900 mb-3">Service Type</h4>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-blue-700 font-medium">Provider:</span>
+                    <span className="font-semibold text-blue-900 bg-white px-2 py-1 rounded">{editingService.provider?.name || 'N/A'}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Provider Service ID:</span>
-                    <span className="font-medium">{editingService.serviceId || editingService.mid}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-blue-700 font-medium">Provider Service ID:</span>
+                    <span className="font-mono text-blue-900 bg-white px-2 py-1 rounded">{editingService.serviceId || editingService.mid}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Original Rate:</span>
-                    <span className="font-medium">Rp {editingService.originalRate || editingService.rate}/1000</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-blue-700 font-medium">Original Rate:</span>
+                    <span className="font-semibold text-green-700 bg-white px-2 py-1 rounded">Rp {editingService.originalRate || editingService.rate}/1000</span>
                   </div>
                 </div>
               </div>
 
               {/* Service Name */}
               <div>
-                <Label htmlFor="serviceName">Service Name</Label>
+                <Label htmlFor="serviceName" className="text-gray-900 font-medium">Service Name</Label>
                 <Input
                   id="serviceName"
                   value={serviceForm.name}
                   onChange={(e) => setServiceForm(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="Enter custom service name"
-                  className="mt-1"
+                  className="mt-2 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
 
               {/* Service Description */}
               <div>
-                <Label htmlFor="serviceDescription">Service Description</Label>
+                <Label htmlFor="serviceDescription" className="text-gray-900 font-medium">Service Description</Label>
                 <textarea
                   id="serviceDescription"
                   value={serviceForm.description}
                   onChange={(e) => setServiceForm(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Describe what this service does (for AI bot information)"
-                  className="mt-1 w-full p-3 border border-gray-300 rounded-md resize-none h-24"
+                  className="mt-2 w-full p-3 border border-gray-300 rounded-md resize-none h-24 focus:border-blue-500 focus:ring-blue-500 text-gray-900"
                 />
-                <p className="text-xs text-slate-500 mt-1">This description helps the AI bot provide accurate information about this service.</p>
+                <p className="text-sm text-gray-600 mt-2">This description helps the AI bot provide accurate information about this service.</p>
               </div>
 
               {/* Min Max Settings */}
-              <div className="border border-slate-200 rounded-lg p-4">
+              <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h4 className="font-medium text-slate-900">Min/Max Settings</h4>
-                    <p className="text-sm text-slate-500">Sync with provider or set custom values</p>
+                    <h4 className="font-semibold text-gray-900">Min/Max Settings</h4>
+                    <p className="text-sm text-gray-700 mt-1">Sync with provider or set custom values</p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Label htmlFor="syncMinMax" className="text-sm">Sync with Provider</Label>
+                  <div className="flex items-center space-x-3">
+                    <Label htmlFor="syncMinMax" className="text-sm font-medium text-gray-900">Sync with Provider</Label>
                     <Switch
                       id="syncMinMax"
                       checked={serviceForm.syncMinMax}
@@ -1471,49 +1471,49 @@ export default function SmmServicesPage() {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="minValue">Minimum</Label>
+                    <Label htmlFor="minValue" className="text-gray-900 font-medium">Minimum</Label>
                     <Input
                       id="minValue"
                       type="number"
                       value={serviceForm.syncMinMax ? editingService.min : serviceForm.min}
                       onChange={(e) => setServiceForm(prev => ({ ...prev, min: e.target.value }))}
                       disabled={serviceForm.syncMinMax}
-                      className="mt-1"
+                      className="mt-2 border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-white"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="maxValue">Maximum</Label>
+                    <Label htmlFor="maxValue" className="text-gray-900 font-medium">Maximum</Label>
                     <Input
                       id="maxValue"
                       type="number"
                       value={serviceForm.syncMinMax ? editingService.max : serviceForm.max}
                       onChange={(e) => setServiceForm(prev => ({ ...prev, max: e.target.value }))}
                       disabled={serviceForm.syncMinMax}
-                      className="mt-1"
+                      className="mt-2 border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-white"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Service Price */}
-              <div className="border border-slate-200 rounded-lg p-4">
-                <h4 className="font-medium text-slate-900 mb-4">Service Price</h4>
+              <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
+                <h4 className="font-semibold text-gray-900 mb-4">Service Price</h4>
                 
-                <div className="bg-slate-50 p-3 rounded-lg mb-4">
+                <div className="bg-white border border-gray-200 p-4 rounded-lg mb-4">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-slate-600">Provider Price:</span>
-                      <div className="font-medium">Rp {editingService.originalRate || editingService.rate}/1000</div>
+                      <span className="text-gray-700 font-medium">Provider Price:</span>
+                      <div className="font-semibold text-gray-900 mt-1">Rp {editingService.originalRate || editingService.rate}/1000</div>
                     </div>
                     <div>
-                      <span className="text-slate-600">Your Current Price:</span>
-                      <div className="font-medium text-blue-600">Rp {serviceForm.rate}/1000</div>
+                      <span className="text-gray-700 font-medium">Your Current Price:</span>
+                      <div className="font-semibold text-blue-700 mt-1">Rp {serviceForm.rate}/1000</div>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-6">
                     <div className="flex items-center space-x-2">
                       <input
                         type="radio"
@@ -1521,9 +1521,9 @@ export default function SmmServicesPage() {
                         name="priceType"
                         checked={!serviceForm.useCustomRate}
                         onChange={() => setServiceForm(prev => ({ ...prev, useCustomRate: false }))}
-                        className="text-blue-600"
+                        className="text-blue-600 focus:ring-blue-500"
                       />
-                      <Label htmlFor="percentagePrice">Percentage Price</Label>
+                      <Label htmlFor="percentagePrice" className="text-gray-900 font-medium">Percentage Price</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <input
@@ -1532,35 +1532,35 @@ export default function SmmServicesPage() {
                         name="priceType"
                         checked={serviceForm.useCustomRate}
                         onChange={() => setServiceForm(prev => ({ ...prev, useCustomRate: true }))}
-                        className="text-blue-600"
+                        className="text-blue-600 focus:ring-blue-500"
                       />
-                      <Label htmlFor="fixedPrice">Fixed Price</Label>
+                      <Label htmlFor="fixedPrice" className="text-gray-900 font-medium">Fixed Price</Label>
                     </div>
                   </div>
 
                   {!serviceForm.useCustomRate ? (
                     <div>
-                      <Label htmlFor="percentageValue">Markup Percentage (%)</Label>
-                      <div className="flex items-center space-x-2 mt-1">
+                      <Label htmlFor="percentageValue" className="text-gray-900 font-medium">Markup Percentage (%)</Label>
+                      <div className="flex items-center space-x-2 mt-2">
                         <Input
                           id="percentageValue"
                           type="number"
                           placeholder="25"
-                          className="flex-1"
+                          className="flex-1 border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-white"
                         />
-                        <span className="text-sm text-slate-500">% markup from provider price</span>
+                        <span className="text-sm text-gray-600 font-medium">% markup from provider price</span>
                       </div>
                     </div>
                   ) : (
                     <div>
-                      <Label htmlFor="fixedPriceValue">Fixed Price (Rp per 1000)</Label>
+                      <Label htmlFor="fixedPriceValue" className="text-gray-900 font-medium">Fixed Price (Rp per 1000)</Label>
                       <Input
                         id="fixedPriceValue"
                         type="number"
                         value={serviceForm.customRate}
                         onChange={(e) => setServiceForm(prev => ({ ...prev, customRate: e.target.value }))}
                         placeholder="5000"
-                        className="mt-1"
+                        className="mt-2 border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-white"
                       />
                     </div>
                   )}
