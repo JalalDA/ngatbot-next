@@ -554,7 +554,7 @@ export default function AutoBotBuilderPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Quick Actions Bar */}
+              {/* Main Quick Actions Bar - Only for adding main menu */}
               <div className="flex flex-wrap gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
                   <Keyboard className="w-5 h-5" />
@@ -571,122 +571,6 @@ export default function AutoBotBuilderPage() {
                   <Plus className="w-4 h-4" />
                   Menu Utama
                 </Button>
-                
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => {
-                    const newButton: InlineKeyboard = {
-                      id: 'all_show_' + Date.now().toString(),
-                      text: '📋 Lihat Semua Menu',
-                      callbackData: 'show_all_menus',
-                      level: 0,
-                      isAllShow: true
-                    };
-                    setKeyboardButtons([...keyboardButtons, newButton]);
-                    toast({
-                      title: "Tombol All Show Ditambahkan!",
-                      description: "Tombol untuk menampilkan semua menu telah ditambahkan.",
-                    });
-                  }}
-                  className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 border-0"
-                >
-                  <Grid3X3 className="w-4 h-4" />
-                  All Show
-                </Button>
-
-                {keyboardButtons.some(btn => (btn.level || 0) === 0 && !btn.isAllShow) && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowSubMenuSelector(true)}
-                    className="flex items-center gap-2 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
-                  >
-                    <Layers className="w-4 h-4" />
-                    Sub Menu
-                  </Button>
-                )}
-                
-                {keyboardButtons.some(btn => (btn.level || 0) === 1) && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowSubSubMenuSelector(true)}
-                    className="flex items-center gap-2 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
-                  >
-                    <Layers2 className="w-4 h-4" />
-                    Sub-Sub Menu
-                  </Button>
-                )}
-                
-                {keyboardButtons.some(btn => (btn.level || 0) === 2) && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowLevel4Selector(true)}
-                    className="flex items-center gap-2 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
-                  >
-                    <Grid3X3 className="w-4 h-4" />
-                    Level 4
-                  </Button>
-                )}
-                
-                {keyboardButtons.some(btn => (btn.level || 0) === 3) && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowLevel5Selector(true)}
-                    className="flex items-center gap-2 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
-                  >
-                    <Layers className="w-4 h-4" />
-                    Level 5
-                  </Button>
-                )}
-
-                {keyboardButtons.length > 0 && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => {
-                      // Add template hierarchy buttons
-                      const templateButtons: InlineKeyboard[] = [
-                        {
-                          id: 'template_' + Date.now(),
-                          text: '🏪 Produk',
-                          callbackData: 'produk',
-                          level: 0
-                        },
-                        {
-                          id: 'template_' + (Date.now() + 1),
-                          text: '📱 Sosial Media',
-                          callbackData: 'sosmed',
-                          level: 1,
-                          parentId: 'template_' + Date.now()
-                        },
-                        {
-                          id: 'template_' + (Date.now() + 2),
-                          text: '💬 Chat',
-                          callbackData: 'chat',
-                          level: 1,
-                          parentId: 'template_' + Date.now()
-                        }
-                      ];
-                      setKeyboardButtons([...keyboardButtons, ...templateButtons]);
-                      toast({
-                        title: "Template Menu Ditambahkan!",
-                        description: "Template menu hierarkis telah ditambahkan ke konfigurasi Anda.",
-                      });
-                    }}
-                    className="flex items-center gap-2 bg-emerald-600 text-white hover:bg-emerald-700 border-0"
-                  >
-                    <Settings className="w-4 h-4" />
-                    Template
-                  </Button>
-                )}
               </div>
 
               {/* Menu Groups Management */}
@@ -870,21 +754,130 @@ export default function AutoBotBuilderPage() {
                         </div>
                       )}
 
-                      {/* Add Sub-Menu Button */}
+                      {/* Quick Actions within each Menu Group */}
                       {!isCollapsed && !mainMenu.isAllShow && (
                         <div className="p-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedParentForNewSub(mainMenu.id);
-                              setShowSubMenuSelector(true);
-                            }}
-                            className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                          >
-                            <Plus className="w-4 h-4" />
-                            Tambah Sub-Menu ke grup ini
-                          </Button>
+                          <div className="flex items-center gap-2 mb-3">
+                            <Keyboard className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Quick Actions untuk grup ini:</span>
+                          </div>
+                          
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedParentForNewSub(mainMenu.id);
+                                setShowSubMenuSelector(true);
+                              }}
+                              className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-900"
+                            >
+                              <Plus className="w-3 h-3" />
+                              Sub Menu
+                            </Button>
+
+                            {/* Add All Show Button for this group */}
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                const newButton: InlineKeyboard = {
+                                  id: 'all_show_' + Date.now().toString(),
+                                  text: '📋 Lihat Semua Menu',
+                                  callbackData: 'show_all_menus',
+                                  level: 0,
+                                  isAllShow: true
+                                };
+                                setKeyboardButtons([...keyboardButtons, newButton]);
+                                toast({
+                                  title: "Tombol All Show Ditambahkan!",
+                                  description: "Tombol untuk menampilkan semua menu telah ditambahkan.",
+                                });
+                              }}
+                              className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 border-0"
+                            >
+                              <Grid3X3 className="w-3 h-3" />
+                              All Show
+                            </Button>
+
+                            {/* Add Sub-Sub Menu if there are level 1 children */}
+                            {allChildren.some(child => (child.level || 0) === 1) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowSubSubMenuSelector(true)}
+                                className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-900"
+                              >
+                                <Layers2 className="w-3 h-3" />
+                                Sub-Sub Menu
+                              </Button>
+                            )}
+
+                            {/* Add Level 4 if there are level 2 children */}
+                            {allChildren.some(child => (child.level || 0) === 2) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowLevel4Selector(true)}
+                                className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-900"
+                              >
+                                <Grid3X3 className="w-3 h-3" />
+                                Level 4
+                              </Button>
+                            )}
+
+                            {/* Add Level 5 if there are level 3 children */}
+                            {allChildren.some(child => (child.level || 0) === 3) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowLevel5Selector(true)}
+                                className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-900"
+                              >
+                                <Layers className="w-3 h-3" />
+                                Level 5
+                              </Button>
+                            )}
+
+                            {/* Add Template Button */}
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                // Add template hierarchy buttons to this specific main menu
+                                const templateButtons: InlineKeyboard[] = [
+                                  {
+                                    id: 'template_sub_' + Date.now(),
+                                    text: '📱 Instagram',
+                                    callbackData: 'instagram',
+                                    level: 1,
+                                    parentId: mainMenu.id
+                                  },
+                                  {
+                                    id: 'template_sub_' + (Date.now() + 1),
+                                    text: '🎥 TikTok',
+                                    callbackData: 'tiktok',
+                                    level: 1,
+                                    parentId: mainMenu.id
+                                  },
+                                  {
+                                    id: 'template_sub_' + (Date.now() + 2),
+                                    text: '📘 Facebook',
+                                    callbackData: 'facebook',
+                                    level: 1,
+                                    parentId: mainMenu.id
+                                  }
+                                ];
+                                setKeyboardButtons([...keyboardButtons, ...templateButtons]);
+                                toast({
+                                  title: "Template Sub-Menu Ditambahkan!",
+                                  description: "Template sub-menu sosial media telah ditambahkan ke grup ini.",
+                                });
+                              }}
+                              className="flex items-center gap-2 bg-emerald-600 text-white hover:bg-emerald-700 border-0"
+                            >
+                              <Settings className="w-3 h-3" />
+                              Template
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </div>
