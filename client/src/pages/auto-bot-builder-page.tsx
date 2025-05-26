@@ -1499,6 +1499,15 @@ export default function AutoBotBuilderPage() {
                                     className="h-9 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
                                   />
                                 </div>
+                                <div className="space-y-2">
+                                  <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">URL Gambar (Opsional)</Label>
+                                  <Input
+                                    placeholder="https://example.com/image.jpg"
+                                    value={mainMenu.responseImage || ""}
+                                    onChange={(e) => updateKeyboardButton(mainMenu.id, "responseImage", e.target.value)}
+                                    className="h-9 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
+                                  />
+                                </div>
                               </div>
                             </div>
 
