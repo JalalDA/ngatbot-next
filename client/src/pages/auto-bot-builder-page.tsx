@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Bot, Keyboard, Settings, Play, Square, Edit3, Layers, Layers2, Menu, Grid3X3 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -53,6 +54,7 @@ export default function AutoBotBuilderPage() {
   const [newMainMenuCallback, setNewMainMenuCallback] = useState("");
   const [newMainMenuUrl, setNewMainMenuUrl] = useState("");
   const [newMainMenuResponse, setNewMainMenuResponse] = useState("");
+  const [isAllShowButton, setIsAllShowButton] = useState(false);
   const [newSubMenuText, setNewSubMenuText] = useState("");
   const [newSubMenuCallback, setNewSubMenuCallback] = useState("");
   const [newSubMenuUrl, setNewSubMenuUrl] = useState("");
@@ -538,6 +540,33 @@ export default function AutoBotBuilderPage() {
                   Tambah Menu Utama
                 </Button>
                 
+                {/* Add All Show Button */}
+                {!keyboardButtons.some(btn => btn.isAllShow) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const newButton: InlineKeyboard = {
+                        id: 'all_show_' + Date.now().toString(),
+                        text: '📋 Lihat Semua Menu',
+                        callbackData: 'show_all_menus',
+                        level: 0,
+                        isAllShow: true
+                      };
+                      setKeyboardButtons([...keyboardButtons, newButton]);
+                      toast({
+                        title: "Tombol All Show Ditambahkan!",
+                        description: "Tombol untuk menampilkan semua menu telah ditambahkan.",
+                      });
+                    }}
+                    className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 border-blue-200"
+                  >
+                    <Grid3X3 className="w-4 h-4" />
+                    Tambah Tombol All Show
+                  </Button>
+                )}
+                
                 {/* Show "Add Sub Menu" button only if there are main menu buttons */}
                 {keyboardButtons.some(btn => (btn.level || 0) === 0) && (
                   <Button
@@ -618,14 +647,21 @@ export default function AutoBotBuilderPage() {
                     {buttonsAtLevel.map((button, index) => (
                       <div key={button.id} className={`p-4 border rounded-lg space-y-3 ${level > 0 ? 'ml-6 border-l-4 border-l-green-200' : ''}`}>
                         <div className="flex justify-between items-center">
-                          <Label className="text-sm font-medium">
-                            {level === 0 ? `Menu Utama ${index + 1}` : `Sub Menu ${index + 1}`}
-                            {button.parentId && (
-                              <span className="ml-2 text-xs text-muted-foreground">
-                                (Parent: {keyboardButtons.find(b => b.id === button.parentId)?.text || 'Unknown'})
-                              </span>
+                          <div className="flex items-center gap-2">
+                            <Label className="text-sm font-medium">
+                              {button.isAllShow ? '📋 Tombol All Show' : level === 0 ? `Menu Utama ${index + 1}` : `Sub Menu ${index + 1}`}
+                              {button.parentId && (
+                                <span className="ml-2 text-xs text-muted-foreground">
+                                  (Parent: {keyboardButtons.find(b => b.id === button.parentId)?.text || 'Unknown'})
+                                </span>
+                              )}
+                            </Label>
+                            {button.isAllShow && (
+                              <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200">
+                                Special Button
+                              </Badge>
                             )}
-                          </Label>
+                          </div>
                           <Button
                             variant="ghost"
                             size="sm"
