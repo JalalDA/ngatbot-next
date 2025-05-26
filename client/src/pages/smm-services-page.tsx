@@ -154,6 +154,46 @@ export default function SmmServicesPage() {
     return "0.0000";
   };
 
+  // Handle Create SMM Provider
+  const handleCreateSmmProvider = async () => {
+    if (!smmProviderForm.name || !smmProviderForm.apiKey || !smmProviderForm.apiEndpoint) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await apiRequest('/api/smm/providers', {
+        method: 'POST',
+        body: JSON.stringify(smmProviderForm)
+      });
+
+      toast({
+        title: "Success",
+        description: "SMM Provider added successfully",
+      });
+
+      setSmmProviderForm({
+        name: "",
+        apiKey: "",
+        apiEndpoint: "",
+        isActive: true,
+      });
+
+      setShowSmmProviderModal(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/smm/providers'] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add SMM provider",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
@@ -211,11 +251,10 @@ export default function SmmServicesPage() {
                   <Label htmlFor="isActive">Active</Label>
                 </div>
                 <Button 
-                  onClick={handleCreateProvider} 
-                  disabled={createSmmProviderMutation.isPending}
+                  onClick={handleCreateSmmProvider} 
                   className="w-full"
                 >
-                  {createSmmProviderMutation.isPending ? "Adding..." : "Add Provider"}
+                  Add Provider
                 </Button>
               </div>
             </DialogContent>
@@ -696,6 +735,99 @@ export default function SmmServicesPage() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* SMM Provider Modal */}
+        <Dialog open={showSmmProviderModal} onOpenChange={setShowSmmProviderModal}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Add SMM Provider</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="provider-name">Provider Name</Label>
+                <Input
+                  id="provider-name"
+                  value={smmProviderForm.name}
+                  onChange={(e) => setSmmProviderForm({...smmProviderForm, name: e.target.value})}
+                  placeholder="Enter provider name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="api-key">API Key</Label>
+                <Input
+                  id="api-key"
+                  type="password"
+                  value={smmProviderForm.apiKey}
+                  onChange={(e) => setSmmProviderForm({...smmProviderForm, apiKey: e.target.value})}
+                  placeholder="Enter API key"
+                />
+              </div>
+              <div>
+                <Label htmlFor="api-endpoint">API Endpoint</Label>
+                <Input
+                  id="api-endpoint"
+                  value={smmProviderForm.apiEndpoint}
+                  onChange={(e) => setSmmProviderForm({...smmProviderForm, apiEndpoint: e.target.value})}
+                  placeholder="https://example.com/api/v2"
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="is-active"
+                  checked={smmProviderForm.isActive}
+                  onCheckedChange={(checked) => setSmmProviderForm({...smmProviderForm, isActive: checked})}
+                />
+                <Label htmlFor="is-active">Active</Label>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2 mt-6">
+              <Button variant="outline" onClick={() => setShowSmmProviderModal(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateSmmProvider}>
+                Add Provider
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Import Services Modal */}
+        <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Import Services from Provider</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="select-provider">Select Provider</Label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.isArray(smmProviders) && smmProviders.map((provider: any) => (
+                      <SelectItem key={provider.id} value={provider.id.toString()}>
+                        {provider.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                This will fetch all available services from the selected provider and add them to your service list.
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2 mt-6">
+              <Button variant="outline" onClick={() => setShowImportModal(false)}>
+                Cancel
+              </Button>
+              <Button>
+                <Download className="w-4 h-4 mr-2" />
+                Import Services
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
