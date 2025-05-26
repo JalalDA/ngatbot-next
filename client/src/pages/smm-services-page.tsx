@@ -292,8 +292,8 @@ export default function SmmServicesPage() {
 
       console.log(`Starting client-side batch import of ${selectedServicesList.length} services`);
       
-      // Client-side batching with very small batches (5 services per request)
-      const BATCH_SIZE = 5;
+      // Client-side batching with ultra small batches (1 service per request)
+      const BATCH_SIZE = 1;
       const batches = [];
       for (let i = 0; i < selectedServicesList.length; i += BATCH_SIZE) {
         batches.push(selectedServicesList.slice(i, i + BATCH_SIZE));
@@ -332,9 +332,9 @@ export default function SmmServicesPage() {
             throw new Error(result.message || `Batch ${batchIndex + 1} failed`);
           }
 
-          // Add delay between batches to prevent overwhelming the server
+          // Add small delay between requests to prevent overwhelming the server
           if (batchIndex < batches.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 100));
           }
 
         } catch (error: any) {
