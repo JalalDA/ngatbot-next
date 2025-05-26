@@ -109,6 +109,7 @@ export default function SmmServicesPage() {
   });
   const [disabledCategories, setDisabledCategories] = useState<Set<string>>(new Set());
   const [categorySortSettings, setCategorySortSettings] = useState<{[key: string]: string}>({});
+  const [disabledServices, setDisabledServices] = useState<Set<number>>(new Set());
 
   // State untuk mengkalkulasi charge berdasarkan quantity
   const calculateCharge = (service: any, quantity: number) => {
@@ -212,6 +213,22 @@ export default function SmmServicesPage() {
     });
   };
 
+  // Fungsi untuk toggle service enable/disable
+  const handleToggleService = (serviceId: number, isEnabled: boolean) => {
+    const newDisabledServices = new Set(disabledServices);
+    if (isEnabled) {
+      newDisabledServices.delete(serviceId);
+    } else {
+      newDisabledServices.add(serviceId);
+    }
+    setDisabledServices(newDisabledServices);
+    
+    toast({
+      title: isEnabled ? "Service diaktifkan" : "Service dinonaktifkan",
+      description: `Service berhasil ${isEnabled ? "diaktifkan" : "dinonaktifkan"}.`,
+    });
+  };
+
   // Fungsi untuk sort services dalam kategori
   const sortServicesInCategory = (services: any[], sortBy: string) => {
     if (sortBy === "price-low") {
@@ -252,7 +269,8 @@ export default function SmmServicesPage() {
         const matchesSearch = service.name.toLowerCase().includes(serviceSearchTerm.toLowerCase()) ||
                             service.category.toLowerCase().includes(serviceSearchTerm.toLowerCase());
         const matchesCategory = selectedCategory === "all" || service.category === selectedCategory;
-        return matchesSearch && matchesCategory;
+        const isNotDisabled = !disabledServices.has(service.id); // Filter out disabled services
+        return matchesSearch && matchesCategory && isNotDisabled;
       })
     : [];
 
@@ -1372,75 +1390,107 @@ export default function SmmServicesPage() {
                       {/* Services List (Collapsible) */}
                       {!collapsedCategories.has(category) && (
                         <div className="space-y-1 p-2">
-                          {services.map((service: any) => (
-                            <div key={service.id} className="bg-card p-2 rounded border border-border hover:bg-muted/20 transition-colors">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3 flex-1">
-                                  <Checkbox
-                                    checked={selectedServicesForDelete.has(service.id)}
-                                    onCheckedChange={(checked) => {
-                                      const newSelected = new Set(selectedServicesForDelete);
-                                      if (checked) {
-                                        newSelected.add(service.id);
-                                      } else {
-                                        newSelected.delete(service.id);
-                                      }
-                                      setSelectedServicesForDelete(newSelected);
-                                    }}
-                                  />
-                                  <div className="flex-1">
-                                    <div className="flex items-center justify-between mb-1">
-                                      <h4 className="font-medium text-foreground text-sm truncate pr-2">{service.name}</h4>
-                                      <span className="text-xs text-muted-foreground">ID: {service.service}</span>
+                          {services.map((service: any) => {
+                            const isServiceDisabled = disabledServices.has(service.id);
+                            return (
+                              <div 
+                                key={service.id} 
+                                className={`bg-card p-2 rounded border border-border hover:bg-muted/20 transition-colors ${
+                                  isServiceDisabled ? 'opacity-50 bg-gray-100' : ''
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-3 flex-1">
+                                    <Checkbox
+                                      checked={selectedServicesForDelete.has(service.id)}
+                                      onCheckedChange={(checked) => {
+                                        const newSelected = new Set(selectedServicesForDelete);
+                                        if (checked) {
+                                          newSelected.add(service.id);
+                                        } else {
+                                          newSelected.delete(service.id);
+                                        }
+                                        setSelectedServicesForDelete(newSelected);
+                                      }}
+                                    />
+                                    
+                                    {/* Switch On/Off */}
+                                    <div className="flex items-center space-x-2">
+                                      <Switch
+                                        checked={!isServiceDisabled}
+                                        onCheckedChange={(checked) => handleToggleService(service.id, checked)}
+                                        className="scale-75"
+                                      />
+                                      <span className={`text-xs font-medium ${
+                                        isServiceDisabled ? 'text-red-600' : 'text-green-600'
+                                      }`}>
+                                        {isServiceDisabled ? 'OFF' : 'ON'}
+                                      </span>
                                     </div>
                                     
-                                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                      <div className="flex items-center space-x-4">
-                                        <span className="text-green-600 font-medium">${service.rate}/1K</span>
-                                        <span>Min: {service.min?.toLocaleString()}</span>
-                                        <span>Max: {service.max?.toLocaleString()}</span>
-                                        {service.refill && <span className="text-blue-600">♻️</span>}
-                                        {service.cancel && <span className="text-red-600">❌</span>}
+                                    <div className="flex-1">
+                                      <div className="flex items-center justify-between mb-1">
+                                        <h4 className={`font-medium text-sm truncate pr-2 ${
+                                          isServiceDisabled ? 'text-gray-500' : 'text-foreground'
+                                        }`}>
+                                          {service.name}
+                                        </h4>
+                                        <span className="text-xs text-muted-foreground">ID: {service.service}</span>
+                                      </div>
+                                      
+                                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                        <div className="flex items-center space-x-4">
+                                          <span className={`font-medium ${
+                                            isServiceDisabled ? 'text-gray-400' : 'text-green-600'
+                                          }`}>
+                                            ${service.rate}/1K
+                                          </span>
+                                          <span>Min: {service.min?.toLocaleString()}</span>
+                                          <span>Max: {service.max?.toLocaleString()}</span>
+                                          {service.refill && <span className="text-blue-600">♻️</span>}
+                                          {service.cancel && <span className="text-red-600">❌</span>}
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
-                                </div>
-                                
-                                <div className="flex items-center space-x-1 ml-3">
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => {
-                                      setEditingService(service);
-                                      setServiceForm({
-                                        name: service.name || "",
-                                        description: service.description || "",
-                                        category: service.category || "",
-                                        rate: service.rate || "",
-                                        min: service.min || "",
-                                        max: service.max || "",
-                                        syncMinMax: true,
-                                        customRate: service.customRate || "",
-                                        useCustomRate: false
-                                      });
-                                      setShowEditServiceModal(true);
-                                    }}
-                                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                  >
-                                    <Edit className="w-3 h-3" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => deleteSmmServiceMutation.mutate(service.id)}
-                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
+                                  
+                                  <div className="flex items-center space-x-1 ml-3">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => {
+                                        setEditingService(service);
+                                        setServiceForm({
+                                          name: service.name || "",
+                                          description: service.description || "",
+                                          category: service.category || "",
+                                          rate: service.rate || "",
+                                          min: service.min || "",
+                                          max: service.max || "",
+                                          syncMinMax: true,
+                                          customRate: service.customRate || "",
+                                          useCustomRate: false
+                                        });
+                                        setShowEditServiceModal(true);
+                                      }}
+                                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                      disabled={isServiceDisabled}
+                                    >
+                                      <Edit className="w-3 h-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => deleteSmmServiceMutation.mutate(service.id)}
+                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
