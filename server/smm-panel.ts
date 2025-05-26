@@ -260,3 +260,21 @@ export function parseRate(rate: string): number {
 export function calculateOrderAmount(rate: number, quantity: number): number {
   return (rate * quantity) / 1000; // Rate is usually per 1000
 }
+
+// Map provider status to our internal status
+export function mapProviderStatus(providerStatus: string): string {
+  const statusMap: { [key: string]: string } = {
+    'pending': 'pending',
+    'in_progress': 'processing',
+    'processing': 'processing',
+    'completed': 'completed',
+    'partial': 'partial',
+    'canceled': 'cancelled',
+    'cancelled': 'cancelled',
+    'failed': 'failed',
+    'refunded': 'cancelled',
+    'error': 'failed'
+  };
+  
+  return statusMap[providerStatus.toLowerCase()] || providerStatus;
+}

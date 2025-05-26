@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { telegramBotManager } from "./telegram";
 import { insertBotSchema, insertKnowledgeSchema, insertSettingSchema, insertSmmProviderSchema, insertSmmServiceSchema, insertSmmOrderSchema, insertAutoBotSchema } from "@shared/schema";
 import { createMidtransTransaction, generateOrderId, verifySignatureKey, getTransactionStatus, UPGRADE_PLANS, type PlanType } from "./midtrans";
-import { SmmPanelAPI, generateSmmOrderId, generateMid, parseRate, calculateOrderAmount } from "./smm-panel";
+import { SmmPanelAPI, generateSmmOrderId, generateMid, parseRate, calculateOrderAmount, mapProviderStatus } from "./smm-panel";
 import { autoBotManager } from "./auto-bot";
 import { z } from "zod";
 
@@ -1256,9 +1256,12 @@ export function registerRoutes(app: Express): Server {
         const smmApi = new SmmPanelAPI(provider.apiKey, provider.apiEndpoint);
         const statusResponse = await smmApi.getOrderStatus(order.providerOrderId);
 
+        // Map provider status to our internal status
+        const mappedStatus = mapProviderStatus(statusResponse.status);
+        
         // Update order with latest status
         const updatedOrder = await storage.updateSmmOrder(orderId, {
-          status: statusResponse.status,
+          status: mappedStatus,
           startCount: parseInt(statusResponse.start_count) || order.startCount,
           remains: parseInt(statusResponse.remains) || order.remains,
           updatedAt: new Date()

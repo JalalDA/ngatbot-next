@@ -367,8 +367,46 @@ export class DatabaseStorage implements IStorage {
     return order || undefined;
   }
 
-  async getSmmOrdersByUserId(userId: number): Promise<SmmOrder[]> {
-    return await db.select().from(smmOrders).where(eq(smmOrders.userId, userId));
+  async getSmmOrdersByUserId(userId: number): Promise<any[]> {
+    return await db
+      .select({
+        id: smmOrders.id,
+        userId: smmOrders.userId,
+        serviceId: smmOrders.serviceId,
+        providerId: smmOrders.providerId,
+        orderId: smmOrders.orderId,
+        providerOrderId: smmOrders.providerOrderId,
+        transactionId: smmOrders.transactionId,
+        link: smmOrders.link,
+        quantity: smmOrders.quantity,
+        amount: smmOrders.amount,
+        status: smmOrders.status,
+        paymentStatus: smmOrders.paymentStatus,
+        startCount: smmOrders.startCount,
+        remains: smmOrders.remains,
+        notes: smmOrders.notes,
+        errorMessage: smmOrders.errorMessage,
+        createdAt: smmOrders.createdAt,
+        updatedAt: smmOrders.updatedAt,
+        // Join service information
+        service: {
+          id: smmServices.id,
+          name: smmServices.name,
+          category: smmServices.category,
+          rate: smmServices.rate,
+          mid: smmServices.mid,
+        },
+        // Join provider information
+        provider: {
+          id: smmProviders.id,
+          name: smmProviders.name,
+        }
+      })
+      .from(smmOrders)
+      .leftJoin(smmServices, eq(smmOrders.serviceId, smmServices.id))
+      .leftJoin(smmProviders, eq(smmOrders.providerId, smmProviders.id))
+      .where(eq(smmOrders.userId, userId))
+      .orderBy(desc(smmOrders.createdAt));
   }
 
   async createSmmOrder(insertOrder: InsertSmmOrder): Promise<SmmOrder> {
