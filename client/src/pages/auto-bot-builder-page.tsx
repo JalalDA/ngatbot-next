@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,29 @@ export default function AutoBotBuilderPage() {
   const [welcomeMessage, setWelcomeMessage] = useState("Selamat datang! Silakan pilih opsi di bawah ini:");
   const [keyboardButtons, setKeyboardButtons] = useState<InlineKeyboard[]>([]);
   const [editingBot, setEditingBot] = useState<AutoBot | null>(null);
+
+  // Reset state when component mounts
+  useEffect(() => {
+    setNewBotToken("");
+    setBotName("");
+    setBotUsername("");
+    setWelcomeMessage("Selamat datang! Silakan pilih opsi di bawah ini:");
+    setKeyboardButtons([]);
+    setEditingBot(null);
+    setActiveTab("create");
+  }, []);
+
+  // Reset state when switching to create tab
+  useEffect(() => {
+    if (activeTab === "create") {
+      setNewBotToken("");
+      setBotName("");
+      setBotUsername("");
+      setWelcomeMessage("Selamat datang! Silakan pilih opsi di bawah ini:");
+      setKeyboardButtons([]);
+      setEditingBot(null);
+    }
+  }, [activeTab]);
   const [isValidatingToken, setIsValidatingToken] = useState(false);
   const [showSubMenuSelector, setShowSubMenuSelector] = useState(false);
   const [selectedParentId, setSelectedParentId] = useState<string>("");
@@ -472,7 +495,7 @@ export default function AutoBotBuilderPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="create">
             <Plus className="w-4 h-4 mr-2" />
             Buat Bot
@@ -480,6 +503,10 @@ export default function AutoBotBuilderPage() {
           <TabsTrigger value="manage">
             <Settings className="w-4 h-4 mr-2" />
             Kelola Bot
+          </TabsTrigger>
+          <TabsTrigger value="keyboard">
+            <Keyboard className="w-4 h-4 mr-2" />
+            Management Keyboard Inline
           </TabsTrigger>
         </TabsList>
 
