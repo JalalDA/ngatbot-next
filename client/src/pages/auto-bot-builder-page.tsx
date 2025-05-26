@@ -1364,9 +1364,8 @@ export default function AutoBotBuilderPage() {
                   </div>
                 </div>
 
-                {/* Keyboard Configuration - Same as Create Bot */}
+                {/* Menu Groups Management */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Konfigurasi Keyboard</h3>
                   {keyboardButtons.length === 0 ? (
                     <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
                       <Keyboard className="w-12 h-12 mx-auto mb-4 text-gray-400" />
@@ -1374,66 +1373,158 @@ export default function AutoBotBuilderPage() {
                       <p className="text-sm text-gray-400">Gunakan Quick Actions untuk menambah tombol</p>
                     </div>
                   ) : (
-                    <div className="space-y-6">
-                      {/* Group buttons by main menu with collapsible interface */}
-                      {keyboardButtons
-                        .filter(btn => btn.level === 0)
-                        .map(mainButton => {
-                          const isCollapsed = collapsedMenus.has(mainButton.id);
-                          const children = getMenuChildren(mainButton.id);
-                          const levelInfo = getLevelInfo(0);
-                          const IconComponent = levelInfo.icon;
-                          
-                          return (
-                            <div key={mainButton.id} className="border rounded-lg p-4 bg-white">
-                              <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => toggleMenuCollapse(mainButton.id)}
-                                    className="p-1 h-auto"
-                                  >
-                                    {isCollapsed ? 
-                                      <ChevronRight className="w-4 h-4" /> : 
-                                      <ChevronDown className="w-4 h-4" />
-                                    }
-                                  </Button>
-                                  <IconComponent className="w-4 h-4" />
-                                  <Badge variant="outline" className={levelInfo.color}>
-                                    {mainButton.isAllShow ? '📋 All Show' : (mainButton.text || 'Menu Utama')}
-                                  </Badge>
-                                  {children.length > 0 && (
-                                    <Badge variant="secondary" className="text-xs">
-                                      {children.length} item
-                                    </Badge>
+                    <>
+                      {/* Main Menus with Hierarchical Children */}
+                      {keyboardButtons.filter(btn => (btn.level || 0) === 0).map((mainMenu, index) => {
+                        const allChildren = getMenuChildren(mainMenu.id);
+                        const isCollapsed = collapsedMenus.has(mainMenu.id);
+                        const totalChildren = allChildren.length;
+
+                        return (
+                          <div key={mainMenu.id} className="border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 overflow-hidden">
+                            {/* Main Menu Header */}
+                            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-b border-slate-200 dark:border-slate-700">
+                              <div className="flex items-center gap-3">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => toggleMenuCollapse(mainMenu.id)}
+                                  className="h-8 w-8 p-0 hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                                >
+                                  {isCollapsed ? (
+                                    <ChevronRight className="w-4 h-4" />
+                                  ) : (
+                                    <ChevronDown className="w-4 h-4" />
                                   )}
+                                </Button>
+                                <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                                  <Menu className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                 </div>
-                                
-                                <div className="flex gap-1">
-                                  {!mainButton.isAllShow && (
-                                    <Button
-                                      onClick={() => addSubmenuToParent(mainButton.id)}
-                                      variant="outline"
-                                      size="sm"
-                                      title="Tambah Sub Menu"
-                                    >
-                                      <Plus className="w-3 h-3" />
-                                    </Button>
-                                  )}
-                                  <Button
-                                    onClick={() => removeKeyboardButton(mainButton.id)}
-                                    variant="outline"
-                                    size="sm"
-                                    title="Hapus Menu"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
+                                <div>
+                                  <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-200">
+                                    {mainMenu.isAllShow ? '📋 All Show Button' : `Menu Utama ${index + 1}`}
+                                  </h3>
+                                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                                    {mainMenu.text || 'Untitled Menu'} 
+                                    {totalChildren > 0 && (
+                                      <span className="ml-1">• {totalChildren} sub-menu</span>
+                                    )}
+                                  </p>
                                 </div>
                               </div>
-                              
-                              {!isCollapsed && (
-                                <div className="space-y-4">
+                              <div className="flex items-center gap-2">
+                                {mainMenu.isAllShow && (
+                                  <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-700">
+                                    Special
+                                  </Badge>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeKeyboardButton(mainMenu.id)}
+                                  className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+
+                            {/* Main Menu Configuration */}
+                            <div className="p-4 bg-blue-50/30 dark:bg-blue-950/10 border-b border-slate-200 dark:border-slate-700">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">Teks Tombol</Label>
+                                  <Input
+                                    placeholder="Nama menu utama"
+                                    value={mainMenu.text}
+                                    onChange={(e) => updateKeyboardButton(mainMenu.id, "text", e.target.value)}
+                                    className="h-9 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">Callback Data</Label>
+                                  <Input
+                                    placeholder="callback_data"
+                                    value={mainMenu.callbackData}
+                                    onChange={(e) => updateKeyboardButton(mainMenu.id, "callbackData", e.target.value)}
+                                    className="h-9 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">URL (Opsional)</Label>
+                                  <Input
+                                    placeholder="https://example.com"
+                                    value={mainMenu.url || ""}
+                                    onChange={(e) => updateKeyboardButton(mainMenu.id, "url", e.target.value)}
+                                    className="h-9 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">Pesan Respons</Label>
+                                  <Input
+                                    placeholder="Pesan saat tombol diklik"
+                                    value={mainMenu.responseText || ""}
+                                    onChange={(e) => updateKeyboardButton(mainMenu.id, "responseText", e.target.value)}
+                                    className="h-9 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Submenu Management */}
+                            {!isCollapsed && (
+                              <div className="p-4 space-y-4">
+                                {/* Quick Add Submenu */}
+                                {!mainMenu.isAllShow && (
+                                  <div className="flex justify-between items-center">
+                                    <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                      <Layers className="w-4 h-4" />
+                                      Sub Menu ({totalChildren})
+                                    </h4>
+                                    <Button
+                                      onClick={() => addSubmenuToParent(mainMenu.id)}
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-8 px-3 text-xs"
+                                    >
+                                      <Plus className="w-3 h-3 mr-1" />
+                                      +Sub Menu
+                                    </Button>
+                                  </div>
+                                )}
+
+                                {/* Render submenus */}
+                                {renderSubmenuTree(mainMenu.id, 1)}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+                </div>
+
+                {/* Save Button */}
+                <div className="flex justify-end gap-2">
+                  <Button onClick={() => setEditingBot(null)} variant="outline">
+                    Kembali
+                  </Button>
+                  <Button 
+                    onClick={handleSubmit} 
+                    disabled={updateBotMutation.isPending}
+                    className="min-w-[120px]"
+                  >
+                    {updateBotMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
                                   {/* Main button fields */}
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-3 bg-gray-50 rounded-lg">
                                     <div>
