@@ -239,15 +239,10 @@ export default function SmmServicesPage() {
     return services; // default order
   };
 
-  // Group services by category dengan sorting dan filtering
+  // Group services by category dengan sorting (tanpa filtering kategori disabled)
   const servicesByCategory = Array.isArray(smmServices) 
     ? smmServices.reduce((acc: any, service: any) => {
         const category = service.category || 'Uncategorized';
-        
-        // Skip jika kategori di-disable
-        if (disabledCategories.has(category)) {
-          return acc;
-        }
         
         if (!acc[category]) {
           acc[category] = [];
@@ -1335,26 +1330,38 @@ export default function SmmServicesPage() {
 
                 {/* Categorized Services List with Collapsible Categories */}
                 <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                  {Object.entries(servicesByCategory).map(([category, services]: [string, any]) => (
-                    <div key={category} className="border rounded-lg">
-                      {/* Category Header */}
+                  {Object.entries(servicesByCategory).map(([category, services]: [string, any]) => {
+                    const isCategoryDisabled = disabledCategories.has(category);
+                    return (
                       <div 
-                        className="flex items-center justify-between p-3 bg-muted/30 rounded-t-lg cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => toggleCategoryCollapse(category)}
+                        key={category} 
+                        className={`border rounded-lg ${isCategoryDisabled ? 'opacity-60 bg-gray-50' : ''}`}
                       >
-                        <div className="flex items-center space-x-3">
-                          <div className="flex items-center space-x-2">
-                            {collapsedCategories.has(category) ? (
-                              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                            )}
-                            <h3 className="font-medium text-foreground">{category}</h3>
+                        {/* Category Header */}
+                        <div 
+                          className={`flex items-center justify-between p-3 rounded-t-lg cursor-pointer transition-colors ${
+                            isCategoryDisabled 
+                              ? 'bg-gray-100 hover:bg-gray-200' 
+                              : 'bg-muted/30 hover:bg-muted/50'
+                          }`}
+                          onClick={() => toggleCategoryCollapse(category)}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="flex items-center space-x-2">
+                              {collapsedCategories.has(category) ? (
+                                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                              )}
+                              <h3 className={`font-medium ${isCategoryDisabled ? 'text-gray-500' : 'text-foreground'}`}>
+                                {category}
+                                {isCategoryDisabled && <span className="ml-2 text-xs text-red-600">(DISABLED)</span>}
+                              </h3>
+                            </div>
+                            <Badge variant="secondary" className="text-xs">
+                              {services.length} services
+                            </Badge>
                           </div>
-                          <Badge variant="secondary" className="text-xs">
-                            {services.length} services
-                          </Badge>
-                        </div>
                         
                         <div className="flex items-center space-x-2">
                           <Button
