@@ -832,8 +832,8 @@ export default function AutoBotBuilderPage() {
                         </div>
                       )}
 
-                      {/* Quick Actions within each Menu Group */}
-                      {!isCollapsed && !mainMenu.isAllShow && (
+                      {/* Removed Quick Actions for simplified "Menu utama saja" workflow */}
+                      {false && !isCollapsed && !mainMenu.isAllShow && (
                         <div className="p-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30">
                           <div className="flex items-center gap-2 mb-3">
                             <Keyboard className="w-4 h-4 text-slate-600 dark:text-slate-400" />
