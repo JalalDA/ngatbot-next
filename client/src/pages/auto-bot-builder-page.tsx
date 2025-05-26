@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Bot, Keyboard, Settings, Play, Square, Edit3, Layers, Layers2, Menu, Grid3X3, Wand2, ChevronDown, ChevronRight, ToggleLeft, ToggleRight } from "lucide-react";
+import { Plus, Trash2, Bot, Keyboard, Settings, Play, Square, Edit3, Layers, Layers2, Menu, Grid3X3, Wand2, ChevronDown, ChevronRight, ToggleLeft, ToggleRight, Info, ArrowLeft, Eye } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -613,15 +613,30 @@ export default function AutoBotBuilderPage() {
                 Keyboard Inline Bertingkat
               </CardTitle>
               <CardDescription>
-                Konfigurasi menu hierarkis dengan struktur Menu Utama → Sub Menu
+                Buat menu utama terlebih dahulu. Untuk konfigurasi sub menu yang lebih detail, gunakan tab "Management Keyboard Inline" setelah bot dibuat.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Main Quick Actions Bar - Only for adding main menu */}
+              {/* Info Banner */}
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <div className="p-1 bg-blue-100 rounded-full">
+                    <Info className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-blue-900 mb-1">Mode Pembuatan Bot - Menu Utama Saja</h4>
+                    <p className="text-sm text-blue-700">
+                      Pada tahap ini, Anda hanya dapat menambahkan menu utama. Setelah bot berhasil dibuat, gunakan tab <strong>"Management Keyboard Inline"</strong> untuk mengatur sub menu, All Show, dan konfigurasi keyboard yang lebih detail.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Simplified Quick Actions Bar - Only main menu */}
               <div className="flex flex-wrap gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                  <Keyboard className="w-5 h-5" />
-                  <span className="font-medium">Quick Actions:</span>
+                  <Plus className="w-4 h-4" />
+                  <span className="font-medium">Tambah Menu:</span>
                 </div>
                 
                 <Button
@@ -631,8 +646,8 @@ export default function AutoBotBuilderPage() {
                   onClick={() => addKeyboardButton(0)}
                   className="flex items-center gap-2 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                 >
-                  <Plus className="w-4 h-4" />
-                  Menu Utama
+                  <Menu className="w-4 h-4" />
+                  Menu Utama Saja
                 </Button>
               </div>
 
