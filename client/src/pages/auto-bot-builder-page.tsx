@@ -1011,6 +1011,12 @@ export default function AutoBotBuilderPage() {
                             → {keyboardButtons.find(b => b.id === button.parentId)?.text}
                           </span>
                         )}
+                        {button.level === 2 && button.parentId && (
+                          <span className="text-sm text-muted-foreground">
+                            → {keyboardButtons.find(b => b.id === button.parentId)?.text} 
+                            → {keyboardButtons.find(b => b.id === keyboardButtons.find(sb => sb.id === button.parentId)?.parentId)?.text}
+                          </span>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <Input
