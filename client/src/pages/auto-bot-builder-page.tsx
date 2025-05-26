@@ -69,6 +69,18 @@ export default function AutoBotBuilderPage() {
   const [showLevel5Selector, setShowLevel5Selector] = useState(false);
   const [selectedLevel4ForLevel5, setSelectedLevel4ForLevel5] = useState<string>("");
 
+  // Helper function to get level color and name
+  const getLevelInfo = (level: number) => {
+    const levelConfig = {
+      0: { name: "Menu Utama", color: "bg-blue-100 text-blue-800 border-blue-200", icon: Menu },
+      1: { name: "Sub Menu", color: "bg-green-100 text-green-800 border-green-200", icon: Layers },
+      2: { name: "Sub-Sub Menu", color: "bg-purple-100 text-purple-800 border-purple-200", icon: Layers2 },
+      3: { name: "Level 4", color: "bg-orange-100 text-orange-800 border-orange-200", icon: Grid3X3 },
+      4: { name: "Level 5", color: "bg-red-100 text-red-800 border-red-200", icon: Settings }
+    };
+    return levelConfig[level as keyof typeof levelConfig] || levelConfig[0];
+  };
+
   // Fetch auto bots
   const { data: autoBots = [], isLoading } = useQuery({
     queryKey: ["/api/autobots"],
@@ -587,13 +599,19 @@ export default function AutoBotBuilderPage() {
                 const buttonsAtLevel = keyboardButtons.filter(btn => (btn.level || 0) === level);
                 if (buttonsAtLevel.length === 0) return null;
 
+                const levelInfo = getLevelInfo(level);
+                const IconComponent = levelInfo.icon;
+
                 return (
                   <div key={level} className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${level === 0 ? 'bg-blue-500' : 'bg-green-500'}`}></div>
-                      <Label className="text-sm font-medium">
-                        {level === 0 ? 'Menu Utama' : 'Sub Menu'}
-                      </Label>
+                      <Badge variant="outline" className={levelInfo.color}>
+                        <IconComponent className="w-3 h-3 mr-1" />
+                        {levelInfo.name}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        ({buttonsAtLevel.length} menu)
+                      </span>
                     </div>
                     
                     {buttonsAtLevel.map((button, index) => (
@@ -893,6 +911,100 @@ export default function AutoBotBuilderPage() {
             </Button>
             <Button onClick={addSubSubMenuToParent} disabled={!selectedSubMenuForSubSub}>
               Tambah Sub-Sub Menu
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Level 4 Selector Dialog */}
+      <Dialog open={showLevel4Selector} onOpenChange={setShowLevel4Selector}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Grid3X3 className="w-5 h-5" />
+              Tambah Menu Level 4
+            </DialogTitle>
+            <DialogDescription>
+              Pilih sub-sub menu untuk menambahkan menu level 4 baru
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Pilih Sub-Sub Menu</Label>
+              <Select value={selectedLevel3ForLevel4} onValueChange={setSelectedLevel3ForLevel4}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih sub-sub menu..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {keyboardButtons
+                    .filter(btn => (btn.level || 0) === 2)
+                    .map(btn => (
+                      <SelectItem key={btn.id} value={btn.id}>
+                        {btn.text || 'Sub-sub menu tanpa nama'}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowLevel4Selector(false);
+              setSelectedLevel3ForLevel4("");
+            }}>
+              Batal
+            </Button>
+            <Button onClick={addLevel4ToParent} disabled={!selectedLevel3ForLevel4}>
+              Tambah Level 4
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Level 5 Selector Dialog */}
+      <Dialog open={showLevel5Selector} onOpenChange={setShowLevel5Selector}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Menu className="w-5 h-5" />
+              Tambah Menu Level 5
+            </DialogTitle>
+            <DialogDescription>
+              Pilih menu level 4 untuk menambahkan menu level 5 baru
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Pilih Menu Level 4</Label>
+              <Select value={selectedLevel4ForLevel5} onValueChange={setSelectedLevel4ForLevel5}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih menu level 4..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {keyboardButtons
+                    .filter(btn => (btn.level || 0) === 3)
+                    .map(btn => (
+                      <SelectItem key={btn.id} value={btn.id}>
+                        {btn.text || 'Menu level 4 tanpa nama'}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowLevel5Selector(false);
+              setSelectedLevel4ForLevel5("");
+            }}>
+              Batal
+            </Button>
+            <Button onClick={addLevel5ToParent} disabled={!selectedLevel4ForLevel5}>
+              Tambah Level 5
             </Button>
           </DialogFooter>
         </DialogContent>
