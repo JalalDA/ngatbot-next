@@ -1601,7 +1601,7 @@ export default function AutoBotBuilderPage() {
 
                                             <div className="flex gap-2">
                                               <Button
-                                                onClick={() => addLevel4(level2Button.id)}
+                                                onClick={() => addKeyboardButton(3, level2Button.id)}
                                                 size="sm"
                                                 variant="outline"
                                                 className="text-xs"
@@ -1660,7 +1660,7 @@ export default function AutoBotBuilderPage() {
 
                                                   <div className="flex gap-2">
                                                     <Button
-                                                      onClick={() => addLevel5(level3Button.id)}
+                                                      onClick={() => addKeyboardButton(4, level3Button.id)}
                                                       size="sm"
                                                       variant="outline"
                                                       className="text-xs"
