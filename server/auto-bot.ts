@@ -121,12 +121,30 @@ export class AutoBotManager {
         const chatId = msg.chat.id;
         const welcomeMessage = autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:";
         
-        // Show main menu buttons (level 0) only - exclude All Show buttons from main menu
+        // Show main menu buttons (level 0) and check for All Show button
         const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => 
           (!btn.level || btn.level === 0) && !btn.isAllShow
         );
         
-        const keyboard = this.createInlineKeyboard(mainMenuButtons);
+        // Check if there's an All Show button configured
+        const allShowButton = (autoBot.keyboardConfig || []).find(btn => btn.isAllShow);
+        const buttonsToShow = [...mainMenuButtons];
+        
+        // Add All Show button if configured (but avoid duplicates)
+        if (allShowButton) {
+          // Check if there's already a button with the same text to avoid duplication
+          const existingButton = mainMenuButtons.find(btn => btn.text === allShowButton.text);
+          if (!existingButton) {
+            buttonsToShow.push({
+              id: 'all_show_button',
+              text: allShowButton.text || '📋 Lihat Semua Menu',
+              callbackData: 'show_all_menus',
+              level: 0
+            });
+          }
+        }
+        
+        const keyboard = this.createInlineKeyboard(buttonsToShow);
         
         const options: any = {
           reply_markup: keyboard
