@@ -901,7 +901,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const user = req.user!;
       const providerId = parseInt(req.params.id);
-      const { services: selectedServices, batchSize = 50 } = req.body;
+      const { services: selectedServices, batchSize = 10 } = req.body;
 
       // Check if provider belongs to user
       const provider = await storage.getSmmProvider(providerId);

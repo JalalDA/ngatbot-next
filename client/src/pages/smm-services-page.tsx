@@ -296,7 +296,7 @@ export default function SmmServicesPage() {
       // Use the enhanced endpoint with batch processing
       const response = await apiRequest("POST", `/api/smm/providers/${importingProvider.id}/import-services`, {
         services: selectedServicesList,
-        batchSize: 50 // Process in batches of 50 to avoid request size limits
+        batchSize: 10 // Process in very small batches of 10 to avoid request size limits
       });
 
       const result = await response.json();
@@ -1641,9 +1641,9 @@ export default function SmmServicesPage() {
             <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
               <div className="text-sm text-gray-600">
                 Selected: <span className="font-semibold text-blue-600">{selectedServices.size}</span> services
-                {selectedServices.size > 100 && (
+                {selectedServices.size > 50 && (
                   <span className="ml-2 text-orange-600 font-medium">
-                    (Will be processed in batches)
+                    (Will be processed in batches of 10)
                   </span>
                 )}
               </div>
