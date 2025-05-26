@@ -1215,10 +1215,15 @@ export function registerRoutes(app: Express): Server {
 
           // Check status dari provider
           const statusUrl = `${provider.apiEndpoint}?key=${provider.apiKey}&action=status&order=${order.providerOrderId}`;
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+          
           const statusResponse = await fetch(statusUrl, {
             method: 'GET',
-            timeout: 10000 // 10 second timeout
+            signal: controller.signal
           });
+          
+          clearTimeout(timeoutId);
           
           if (statusResponse.ok) {
             const statusData = await statusResponse.json();

@@ -35,7 +35,9 @@ import {
   Clock,
   DollarSign,
   Link as LinkIcon,
-  Package
+  Package,
+  TrendingUp,
+  Target
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -731,6 +733,8 @@ export default function SmmServicesPage() {
                             <TableHead>Link</TableHead>
                             <TableHead>Quantity</TableHead>
                             <TableHead>Charge</TableHead>
+                            <TableHead>Start Count</TableHead>
+                            <TableHead>Remains</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Date</TableHead>
                           </TableRow>
@@ -748,6 +752,18 @@ export default function SmmServicesPage() {
                               </TableCell>
                               <TableCell>{order.quantity?.toLocaleString()}</TableCell>
                               <TableCell>${order.amount || '0.00'}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <TrendingUp className="h-4 w-4 text-blue-500" />
+                                  <span>{order.startCount ? order.startCount.toLocaleString() : '-'}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Target className="h-4 w-4 text-orange-500" />
+                                  <span>{order.remains !== null && order.remains !== undefined ? order.remains.toLocaleString() : '-'}</span>
+                                </div>
+                              </TableCell>
                               <TableCell>
                                 <Badge variant={getStatusBadgeVariant(order.status)}>
                                   {order.status}
