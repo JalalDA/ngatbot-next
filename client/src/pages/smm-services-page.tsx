@@ -89,6 +89,10 @@ export default function SmmServicesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [ordersPerPage] = useState(20);
   const [isSyncing, setIsSyncing] = useState(false);
+  
+  // State untuk filter service saat create order
+  const [serviceSearchTerm, setServiceSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   // State untuk mengkalkulasi charge berdasarkan quantity
   const calculateCharge = (service: any, quantity: number) => {
@@ -106,6 +110,21 @@ export default function SmmServicesPage() {
   const { data: smmServices = [], isLoading: servicesLoading } = useQuery({
     queryKey: ["/api/smm/services"],
   });
+
+  // Get unique categories from services
+  const categories = Array.isArray(smmServices) 
+    ? [...new Set(smmServices.map((service: any) => service.category).filter(Boolean))]
+    : [];
+
+  // Filter services based on search term and category for order form
+  const filteredOrderServices = Array.isArray(smmServices) 
+    ? smmServices.filter((service: any) => {
+        const matchesSearch = service.name.toLowerCase().includes(serviceSearchTerm.toLowerCase()) ||
+                            service.category.toLowerCase().includes(serviceSearchTerm.toLowerCase());
+        const matchesCategory = selectedCategory === "all" || service.category === selectedCategory;
+        return matchesSearch && matchesCategory;
+      })
+    : [];
 
   // Fetch SMM orders with pagination and auto sync status
   const { data: smmOrders = [], isLoading: ordersLoading, refetch: refetchOrders } = useQuery({
@@ -535,6 +554,42 @@ export default function SmmServicesPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  {/* Search and Filter Section */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Search Bar */}
+                    <div className="space-y-2">
+                      <Label htmlFor="service-search">Search</Label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="service-search"
+                          placeholder="Search services..."
+                          value={serviceSearchTerm}
+                          onChange={(e) => setServiceSearchTerm(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Category Filter */}
+                    <div className="space-y-2">
+                      <Label htmlFor="category-select">Category</Label>
+                      <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Categories</SelectItem>
+                          {categories.map((category: string) => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Service Selection */}
                     <div className="space-y-2">
@@ -544,7 +599,7 @@ export default function SmmServicesPage() {
                           <SelectValue placeholder="Choose a service..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {Array.isArray(smmServices) && smmServices.map((service: any) => (
+                          {filteredOrderServices.map((service: any) => (
                             <SelectItem key={service.id} value={service.id.toString()}>
                               <div className="flex flex-col">
                                 <span className="font-medium">{service.name}</span>
@@ -556,6 +611,11 @@ export default function SmmServicesPage() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {filteredOrderServices.length === 0 && serviceSearchTerm && (
+                        <p className="text-sm text-muted-foreground">
+                          No services found matching "{serviceSearchTerm}"
+                        </p>
+                      )}
                     </div>
 
                     {/* Link Input */}
