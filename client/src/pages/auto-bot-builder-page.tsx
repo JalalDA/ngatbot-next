@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Bot, Keyboard, Settings, Play, Square, Edit3, Layers, Layers2 } from "lucide-react";
+import { Plus, Trash2, Bot, Keyboard, Settings, Play, Square, Edit3, Layers, Layers2, Menu, Grid3X3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -64,6 +64,10 @@ export default function AutoBotBuilderPage() {
   const [selectedParentForNewSubSub, setSelectedParentForNewSubSub] = useState<string>("");
   const [showSubSubMenuSelector, setShowSubSubMenuSelector] = useState(false);
   const [selectedSubMenuForSubSub, setSelectedSubMenuForSubSub] = useState<string>("");
+  const [showLevel4Selector, setShowLevel4Selector] = useState(false);
+  const [selectedLevel3ForLevel4, setSelectedLevel3ForLevel4] = useState<string>("");
+  const [showLevel5Selector, setShowLevel5Selector] = useState(false);
+  const [selectedLevel4ForLevel5, setSelectedLevel4ForLevel5] = useState<string>("");
 
   // Fetch auto bots
   const { data: autoBots = [], isLoading } = useQuery({
@@ -323,6 +327,46 @@ export default function AutoBotBuilderPage() {
     });
   };
 
+  const addLevel4ToParent = () => {
+    if (!selectedLevel3ForLevel4) {
+      toast({
+        title: "Pilih Sub-Sub Menu",
+        description: "Silakan pilih sub-sub menu terlebih dahulu",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    addKeyboardButton(3, selectedLevel3ForLevel4);
+    setShowLevel4Selector(false);
+    setSelectedLevel3ForLevel4("");
+    
+    toast({
+      title: "Menu Level 4 Ditambahkan!",
+      description: "Menu level 4 baru berhasil ditambahkan ke sub-sub menu yang dipilih",
+    });
+  };
+
+  const addLevel5ToParent = () => {
+    if (!selectedLevel4ForLevel5) {
+      toast({
+        title: "Pilih Menu Level 4",
+        description: "Silakan pilih menu level 4 terlebih dahulu",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    addKeyboardButton(4, selectedLevel4ForLevel5);
+    setShowLevel5Selector(false);
+    setSelectedLevel4ForLevel5("");
+    
+    toast({
+      title: "Menu Level 5 Ditambahkan!",
+      description: "Menu level 5 baru berhasil ditambahkan ke menu level 4 yang dipilih",
+    });
+  };
+
   const updateKeyboardButton = (id: string, field: keyof InlineKeyboard, value: string) => {
     setKeyboardButtons(buttons =>
       buttons.map(button =>
@@ -508,10 +552,38 @@ export default function AutoBotBuilderPage() {
                     Tambah Sub-Sub Menu
                   </Button>
                 )}
+                
+                {/* Show "Add Level 4 Menu" button only if there are level 2 buttons */}
+                {keyboardButtons.some(btn => (btn.level || 0) === 2) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowLevel4Selector(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Grid3X3 className="w-4 h-4" />
+                    Tambah Level 4
+                  </Button>
+                )}
+                
+                {/* Show "Add Level 5 Menu" button only if there are level 3 buttons */}
+                {keyboardButtons.some(btn => (btn.level || 0) === 3) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowLevel5Selector(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Layers className="w-4 h-4" />
+                    Tambah Level 5
+                  </Button>
+                )}
               </div>
 
               {/* Grouping buttons by level for better visualization */}
-              {[0, 1, 2].map(level => {
+              {[0, 1, 2, 3, 4].map(level => {
                 const buttonsAtLevel = keyboardButtons.filter(btn => (btn.level || 0) === level);
                 if (buttonsAtLevel.length === 0) return null;
 
