@@ -154,6 +154,20 @@ export class AutoBotManager {
                 show_alert: false
               });
               
+              // Handle special "back_to_main" callback
+              if (data === 'back_to_main') {
+                // Show main menu again
+                const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => !btn.level || btn.level === 0);
+                const keyboard = this.createInlineKeyboard(mainMenuButtons);
+                
+                await bot.editMessageText(autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:", {
+                  chat_id: chatId,
+                  message_id: callbackQuery.message.message_id,
+                  reply_markup: keyboard
+                });
+                return;
+              }
+              
               // Check if this is a main menu button (level 0) that has sub-menus
               if (!pressedButton.level || pressedButton.level === 0) {
                 // Find sub-menus for this main menu
@@ -162,8 +176,19 @@ export class AutoBotManager {
                 );
                 
                 if (subMenus.length > 0) {
+                  // Add back button to sub-menus
+                  const subMenusWithBack = [
+                    ...subMenus,
+                    {
+                      id: 'back_button',
+                      text: '⬅️ Kembali',
+                      callbackData: 'back_to_main',
+                      level: 1
+                    }
+                  ];
+                  
                   // Replace main menu with sub-menus by editing the message
-                  const subMenuKeyboard = this.createInlineKeyboard(subMenus);
+                  const subMenuKeyboard = this.createInlineKeyboard(subMenusWithBack);
                   
                   await bot.editMessageText(`📋 Menu ${pressedButton.text}:`, {
                     chat_id: chatId,
