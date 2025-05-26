@@ -701,6 +701,44 @@ export default function SmmServicesPage() {
                       </Table>
                     </div>
                   )}
+                  
+                  {/* Pagination */}
+                  {smmOrders.length === ordersPerPage && (
+                    <div className="flex justify-end mt-6">
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          disabled={currentPage === 1}
+                        >
+                          Sebelumnya
+                        </Button>
+                        
+                        {/* Page Numbers */}
+                        {[1, 2, 3, 4, 5].map((pageNum) => (
+                          <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(pageNum)}
+                            className="min-w-[40px]"
+                          >
+                            {pageNum}
+                          </Button>
+                        ))}
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => prev + 1)}
+                          disabled={smmOrders.length < ordersPerPage}
+                        >
+                          Selanjutnya
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
