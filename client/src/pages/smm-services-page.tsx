@@ -453,6 +453,242 @@ export default function SmmServicesPage() {
           </Card>
         </div>
 
+        {/* Order Management Tabs */}
+        <div className="mb-8">
+          <Tabs defaultValue="new-order" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="new-order" className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                New Order
+              </TabsTrigger>
+              <TabsTrigger value="order-history" className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Riwayat Order
+              </TabsTrigger>
+            </TabsList>
+
+            {/* New Order Tab */}
+            <TabsContent value="new-order" className="mt-6">
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShoppingCart className="h-5 w-5" />
+                    Create New Order
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Service Selection */}
+                    <div className="space-y-2">
+                      <Label htmlFor="service-select">Select Service</Label>
+                      <Select value={orderForm.serviceId} onValueChange={handleServiceSelect}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose a service..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {smmServices.map((service: any) => (
+                            <SelectItem key={service.id} value={service.id.toString()}>
+                              {service.name} - ${service.rate}/1K
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Link Input */}
+                    <div className="space-y-2">
+                      <Label htmlFor="link">Link</Label>
+                      <Input
+                        id="link"
+                        placeholder="Enter target link..."
+                        value={orderForm.link}
+                        onChange={(e) => setOrderForm({ ...orderForm, link: e.target.value })}
+                      />
+                    </div>
+
+                    {/* Quantity Input */}
+                    <div className="space-y-2">
+                      <Label htmlFor="quantity">Quantity</Label>
+                      <Input
+                        id="quantity"
+                        type="number"
+                        placeholder="Enter quantity..."
+                        value={orderForm.quantity}
+                        onChange={(e) => handleQuantityChange(e.target.value)}
+                        min={selectedOrderService?.min || 1}
+                        max={selectedOrderService?.max || 10000}
+                      />
+                      {selectedOrderService && (
+                        <p className="text-sm text-muted-foreground">
+                          Min: {selectedOrderService.min} - Max: {selectedOrderService.max}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Charge Display */}
+                    <div className="space-y-2">
+                      <Label>Total Charge</Label>
+                      <div className="p-3 bg-muted rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="h-4 w-4 text-green-500" />
+                          <span className="font-medium text-lg">
+                            ${orderCharge || "0.00"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Service Details */}
+                  {selectedOrderService && (
+                    <div className="p-4 bg-muted/50 rounded-lg">
+                      <h4 className="font-medium mb-2">Service Details</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Category:</span>
+                          <p className="font-medium">{selectedOrderService.category}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Rate:</span>
+                          <p className="font-medium">${selectedOrderService.rate}/1K</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Min:</span>
+                          <p className="font-medium">{selectedOrderService.min}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Max:</span>
+                          <p className="font-medium">{selectedOrderService.max}</p>
+                        </div>
+                      </div>
+                      {selectedOrderService.description && (
+                        <div className="mt-3">
+                          <span className="text-muted-foreground">Description:</span>
+                          <p className="text-sm mt-1">{selectedOrderService.description}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <Button 
+                    onClick={handleCreateOrder}
+                    disabled={createOrderMutation.isPending || !orderForm.serviceId || !orderForm.link || !orderForm.quantity}
+                    className="w-full"
+                  >
+                    {createOrderMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating Order...
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="mr-2 h-4 w-4" />
+                        Create Order
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Order History Tab */}
+            <TabsContent value="order-history" className="mt-6">
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="h-5 w-5" />
+                    Order History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {/* Filters */}
+                  <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                    <div className="flex-1">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search by Order ID, Link, or Service..."
+                          value={orderSearchTerm}
+                          onChange={(e) => setOrderSearchTerm(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+                    <Select value={orderStatusFilter} onValueChange={setOrderStatusFilter}>
+                      <SelectTrigger className="w-full sm:w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="processing">Processing</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="partial">Partial</SelectItem>
+                        <SelectItem value="canceled">Canceled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Orders Table */}
+                  {ordersLoading ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                  ) : filteredOrders.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No orders found</p>
+                    </div>
+                  ) : (
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Order ID</TableHead>
+                            <TableHead>Service</TableHead>
+                            <TableHead>Link</TableHead>
+                            <TableHead>Quantity</TableHead>
+                            <TableHead>Charge</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Date</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredOrders.map((order: any) => (
+                            <TableRow key={order.id}>
+                              <TableCell className="font-medium">{order.id}</TableCell>
+                              <TableCell>{order.service?.name || 'N/A'}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <LinkIcon className="h-4 w-4 text-muted-foreground" />
+                                  <span className="truncate max-w-32">{order.link}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>{order.quantity?.toLocaleString()}</TableCell>
+                              <TableCell>${order.charge}</TableCell>
+                              <TableCell>
+                                <Badge variant={getStatusBadgeVariant(order.status)}>
+                                  {order.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                                  {new Date(order.createdAt).toLocaleDateString()}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+
         {/* Providers Section */}
         <Card className="mb-8 bg-card border-border">
           <CardHeader>
