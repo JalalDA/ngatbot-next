@@ -181,35 +181,7 @@ export class AutoBotManager {
           if (pressedButton) {
             try {
               
-              // Legacy support for old back commands
-              if (data.startsWith('back_to_submenu_')) {
-                const parentId = data.replace('back_to_submenu_', '');
-                const parentButton = autoBot.keyboardConfig?.find(btn => btn.id === parentId);
-                const subMenus = (autoBot.keyboardConfig || []).filter(btn => 
-                  btn.level === 1 && btn.parentId === parentId
-                );
-                
-                if (subMenus.length > 0) {
-                  const subMenusWithBack = [
-                    ...subMenus,
-                    {
-                      id: 'back_button',
-                      text: '⬅️ Kembali',
-                      callbackData: 'back_to_main',
-                      level: 1
-                    }
-                  ];
-                  
-                  const subMenuKeyboard = this.createInlineKeyboard(subMenusWithBack);
-                  
-                  await bot.editMessageText(`📋 Menu ${parentButton?.text}:`, {
-                    chat_id: chatId,
-                    message_id: msg.message_id,
-                    reply_markup: subMenuKeyboard
-                  });
-                }
-                return;
-              }
+
               
               // Check if this is a main menu button (level 0) that has sub-menus
               if (!pressedButton.level || pressedButton.level === 0) {
@@ -219,19 +191,19 @@ export class AutoBotManager {
                 );
                 
                 if (subMenus.length > 0) {
-                  // Add navigation buttons for sub-menus (level 1)
-                  const subMenusWithBack = [
+                  // Add only "Menu Utama" button for level 1
+                  const subMenusWithMainMenu = [
                     ...subMenus,
                     {
-                      id: 'back_button_level_1',
-                      text: '⬅️ Kembali',
+                      id: 'main_menu_button_level_1',
+                      text: '🏠 Menu Utama',
                       callbackData: 'back_to_main',
                       level: 1
                     }
                   ];
                   
                   // Replace main menu with sub-menus by editing the message
-                  const subMenuKeyboard = this.createInlineKeyboard(subMenusWithBack);
+                  const subMenuKeyboard = this.createInlineKeyboard(subMenusWithMainMenu);
                   
                   await bot.editMessageText(`📋 Menu ${pressedButton.text}:`, {
                     chat_id: chatId,
@@ -253,49 +225,18 @@ export class AutoBotManager {
                 );
                 
                 if (childMenus.length > 0) {
-                  // This button has child menus, show them
-                  let backCallback = 'back_to_main';
-                  
-                  // Determine appropriate back callback based on current level
-                  if (currentLevel === 1) {
-                    backCallback = 'back_to_main';
-                  } else if (currentLevel >= 2 && pressedButton.parentId) {
-                    // Find the parent button to get its parentId for proper navigation
-                    const parentButton = autoBot.keyboardConfig?.find(btn => btn.id === pressedButton.parentId);
-                    if (parentButton) {
-                      backCallback = `back_to_level_${currentLevel - 1}_${parentButton.parentId || 'main'}`;
-                    } else {
-                      backCallback = 'back_to_main';
-                    }
-                  }
-                  
-                  // Create navigation buttons array
-                  const navigationButtons = [];
-                  
-                  // Add back button
-                  navigationButtons.push({
-                    id: `back_button_level_${currentLevel + 1}`,
-                    text: '⬅️ Kembali',
-                    callbackData: backCallback,
-                    level: currentLevel + 1
-                  });
-                  
-                  // Add "Menu Utama" button for level 2 and above
-                  if (currentLevel >= 1) {
-                    navigationButtons.push({
+                  // This button has child menus, show them with only "Menu Utama" button
+                  const childMenusWithMainMenu = [
+                    ...childMenus,
+                    {
                       id: `main_menu_button_level_${currentLevel + 1}`,
                       text: '🏠 Menu Utama',
                       callbackData: 'back_to_main',
                       level: currentLevel + 1
-                    });
-                  }
-                  
-                  const childMenusWithBack = [
-                    ...childMenus,
-                    ...navigationButtons
+                    }
                   ];
                   
-                  const childMenuKeyboard = this.createInlineKeyboard(childMenusWithBack);
+                  const childMenuKeyboard = this.createInlineKeyboard(childMenusWithMainMenu);
                   const levelNames = ['Menu', 'Sub Menu', 'Sub Sub Menu', 'Level 4 Menu', 'Level 5 Menu', 'Level 6 Menu'];
                   const levelName = levelNames[currentLevel] || `Level ${currentLevel + 1} Menu`;
                   
