@@ -1187,11 +1187,11 @@ export default function SmmServicesPage() {
                   </Select>
                 </div>
 
-                {/* Vertical Services List */}
-                <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                {/* Simplified Services List */}
+                <div className="space-y-2 max-h-[600px] overflow-y-auto">
                   {filteredServices.map((service: any) => (
-                    <div key={service.id} className="bg-card p-4 rounded-lg border border-border hover:shadow-md transition-all">
-                      <div className="flex items-start justify-between mb-3">
+                    <div key={service.id} className="bg-card p-3 rounded border border-border hover:bg-muted/20 transition-colors">
+                      <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3 flex-1">
                           <Checkbox
                             checked={selectedServicesForDelete.has(service.id)}
@@ -1207,48 +1207,22 @@ export default function SmmServicesPage() {
                           />
                           <div className="flex-1">
                             <div className="flex items-center justify-between mb-1">
-                              <h4 className="font-medium text-foreground">{service.name}</h4>
-                              <Badge variant="outline" className="text-xs">
+                              <h4 className="font-medium text-foreground text-sm truncate pr-2">{service.name}</h4>
+                              <span className="text-xs text-muted-foreground">ID: {service.service}</span>
+                            </div>
+                            
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <Badge variant="outline" className="text-xs px-2 py-0.5">
                                 {service.category}
                               </Badge>
-                            </div>
-                            {service.description && (
-                              <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                                {service.description}
-                              </p>
-                            )}
-                            
-                            {/* Service Details */}
-                            <div className="grid grid-cols-3 gap-4 text-sm bg-muted/30 rounded p-3">
-                              <div className="text-center">
-                                <span className="block text-muted-foreground mb-1">Rate</span>
-                                <p className="font-semibold text-green-600">${service.rate}/1K</p>
+                              
+                              <div className="flex items-center space-x-4">
+                                <span className="text-green-600 font-medium">${service.rate}/1K</span>
+                                <span>Min: {service.min?.toLocaleString()}</span>
+                                <span>Max: {service.max?.toLocaleString()}</span>
+                                {service.refill && <span className="text-blue-600">♻️</span>}
+                                {service.cancel && <span className="text-red-600">❌</span>}
                               </div>
-                              <div className="text-center border-l border-r border-muted-foreground/20">
-                                <span className="block text-muted-foreground mb-1">Min</span>
-                                <p className="font-semibold">{service.min?.toLocaleString()}</p>
-                              </div>
-                              <div className="text-center">
-                                <span className="block text-muted-foreground mb-1">Max</span>
-                                <p className="font-semibold">{service.max?.toLocaleString()}</p>
-                              </div>
-                            </div>
-
-                            {/* Service Features */}
-                            <div className="flex gap-2 mt-3">
-                              {service.refill && (
-                                <Badge variant="secondary" className="text-xs">
-                                  🔄 Refill
-                                </Badge>
-                              )}
-                              {service.cancel && (
-                                <Badge variant="secondary" className="text-xs">
-                                  ❌ Cancel
-                                </Badge>
-                              )}
-                              <Badge variant="outline" className="text-xs">
-                                ID: {service.service}
-                              </Badge>
                             </div>
                           </div>
                         </div>
