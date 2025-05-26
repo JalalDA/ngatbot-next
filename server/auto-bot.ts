@@ -194,19 +194,36 @@ export class AutoBotManager {
                   if (menuItems.length > 0) {
                     // Determine back button callback based on level
                     let backCallback = 'back_to_main';
-                    if (level > 1) {
-                      const grandParent = autoBot.keyboardConfig?.find(btn => btn.id === parentButton?.parentId);
+                    if (level === 1) {
+                      backCallback = 'back_to_main';
+                    } else if (level >= 2) {
                       backCallback = `back_to_level_${level - 1}_${parentButton?.parentId}`;
+                    }
+                    
+                    // Create navigation buttons for current level
+                    const navigationButtons = [];
+                    
+                    // Add back button
+                    navigationButtons.push({
+                      id: `back_button_level_${level}`,
+                      text: '⬅️ Kembali',
+                      callbackData: backCallback,
+                      level: level
+                    });
+                    
+                    // Add "Menu Utama" button for level 2 and above
+                    if (level >= 2) {
+                      navigationButtons.push({
+                        id: `main_menu_button_level_${level}`,
+                        text: '🏠 Menu Utama',
+                        callbackData: 'back_to_main',
+                        level: level
+                      });
                     }
                     
                     const menuItemsWithBack = [
                       ...menuItems,
-                      {
-                        id: `back_button_level_${level}`,
-                        text: '⬅️ Kembali',
-                        callbackData: backCallback,
-                        level: level
-                      }
+                      ...navigationButtons
                     ];
                     
                     const menuKeyboard = this.createInlineKeyboard(menuItemsWithBack);
@@ -260,11 +277,11 @@ export class AutoBotManager {
                 );
                 
                 if (subMenus.length > 0) {
-                  // Add back button to sub-menus
+                  // Add navigation buttons for sub-menus (level 1)
                   const subMenusWithBack = [
                     ...subMenus,
                     {
-                      id: 'back_button',
+                      id: 'back_button_level_1',
                       text: '⬅️ Kembali',
                       callbackData: 'back_to_main',
                       level: 1
@@ -304,14 +321,30 @@ export class AutoBotManager {
                     backCallback = `back_to_level_${currentLevel - 1}_${pressedButton.parentId}`;
                   }
                   
+                  // Create navigation buttons array
+                  const navigationButtons = [];
+                  
+                  // Add back button
+                  navigationButtons.push({
+                    id: `back_button_level_${currentLevel + 1}`,
+                    text: '⬅️ Kembali',
+                    callbackData: backCallback,
+                    level: currentLevel + 1
+                  });
+                  
+                  // Add "Menu Utama" button for level 2 and above
+                  if (currentLevel >= 1) {
+                    navigationButtons.push({
+                      id: `main_menu_button_level_${currentLevel + 1}`,
+                      text: '🏠 Menu Utama',
+                      callbackData: 'back_to_main',
+                      level: currentLevel + 1
+                    });
+                  }
+                  
                   const childMenusWithBack = [
                     ...childMenus,
-                    {
-                      id: `back_button_level_${currentLevel + 1}`,
-                      text: '⬅️ Kembali',
-                      callbackData: backCallback,
-                      level: currentLevel + 1
-                    }
+                    ...navigationButtons
                   ];
                   
                   const childMenuKeyboard = this.createInlineKeyboard(childMenusWithBack);
