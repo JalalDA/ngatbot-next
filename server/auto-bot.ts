@@ -166,6 +166,9 @@ export class AutoBotManager {
           const pressedButton = autoBot.keyboardConfig?.find(btn => btn.callbackData === data);
           
           console.log(`Found pressed button: ${pressedButton ? pressedButton.text : 'Not found'}`);
+          if (pressedButton) {
+            console.log('🔍 Button details:', { level: pressedButton.level, hasSubMenus: false });
+          }
           
           try {
             // Answer the callback query to remove loading state
@@ -215,10 +218,12 @@ export class AutoBotManager {
               
               // Check if this is a main menu button (level 0) that has sub-menus
               if (!pressedButton.level || pressedButton.level === 0) {
+                console.log('🔍 Checking for sub menus of button:', pressedButton.text, 'with ID:', pressedButton.id);
                 // Find sub-menus for this main menu
                 const subMenus = (autoBot.keyboardConfig || []).filter(btn => 
                   btn.level === 1 && btn.parentId === pressedButton.id
                 );
+                console.log('🔍 Found sub menus:', subMenus.length, subMenus.map(btn => btn.text));
                 
                 if (subMenus.length > 0) {
                   // Find All Show button from config
