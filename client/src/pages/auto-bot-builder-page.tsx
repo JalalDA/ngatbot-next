@@ -50,8 +50,12 @@ export default function AutoBotBuilderPage() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [newMainMenuText, setNewMainMenuText] = useState("");
   const [newMainMenuCallback, setNewMainMenuCallback] = useState("");
+  const [newMainMenuUrl, setNewMainMenuUrl] = useState("");
+  const [newMainMenuResponse, setNewMainMenuResponse] = useState("");
   const [newSubMenuText, setNewSubMenuText] = useState("");
   const [newSubMenuCallback, setNewSubMenuCallback] = useState("");
+  const [newSubMenuUrl, setNewSubMenuUrl] = useState("");
+  const [newSubMenuResponse, setNewSubMenuResponse] = useState("");
   const [selectedParentForNewSub, setSelectedParentForNewSub] = useState<string>("");
 
   // Fetch auto bots
@@ -788,11 +792,15 @@ export default function AutoBotBuilderPage() {
                           id: Date.now().toString(),
                           text: newMainMenuText,
                           callbackData: newMainMenuCallback,
-                          level: 0
+                          level: 0,
+                          url: newMainMenuUrl || undefined,
+                          responseText: newMainMenuResponse || undefined
                         };
                         setKeyboardButtons([...keyboardButtons, newButton]);
                         setNewMainMenuText("");
                         setNewMainMenuCallback("");
+                        setNewMainMenuUrl("");
+                        setNewMainMenuResponse("");
                       }
                     }}
                     disabled={!newMainMenuText || !newMainMenuCallback}
@@ -810,11 +818,15 @@ export default function AutoBotBuilderPage() {
                           text: newSubMenuText,
                           callbackData: newSubMenuCallback,
                           level: 1,
-                          parentId: selectedParentForNewSub
+                          parentId: selectedParentForNewSub,
+                          url: newSubMenuUrl || undefined,
+                          responseText: newSubMenuResponse || undefined
                         };
                         setKeyboardButtons([...keyboardButtons, newButton]);
                         setNewSubMenuText("");
                         setNewSubMenuCallback("");
+                        setNewSubMenuUrl("");
+                        setNewSubMenuResponse("");
                         setSelectedParentForNewSub("");
                       }
                     }}
@@ -841,6 +853,18 @@ export default function AutoBotBuilderPage() {
                         placeholder="Callback data"
                         value={newMainMenuCallback}
                         onChange={(e) => setNewMainMenuCallback(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <Input
+                        placeholder="URL (Opsional)"
+                        value={newMainMenuUrl}
+                        onChange={(e) => setNewMainMenuUrl(e.target.value)}
+                      />
+                      <Input
+                        placeholder="Text - Pesan yang akan dikirim ketika tombol diklik"
+                        value={newMainMenuResponse}
+                        onChange={(e) => setNewMainMenuResponse(e.target.value)}
                       />
                     </div>
                   </div>
@@ -876,6 +900,18 @@ export default function AutoBotBuilderPage() {
                         placeholder="Callback data"
                         value={newSubMenuCallback}
                         onChange={(e) => setNewSubMenuCallback(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <Input
+                        placeholder="URL (Opsional)"
+                        value={newSubMenuUrl}
+                        onChange={(e) => setNewSubMenuUrl(e.target.value)}
+                      />
+                      <Input
+                        placeholder="Text - Pesan yang akan dikirim ketika tombol diklik"
+                        value={newSubMenuResponse}
+                        onChange={(e) => setNewSubMenuResponse(e.target.value)}
                       />
                     </div>
                   </div>
