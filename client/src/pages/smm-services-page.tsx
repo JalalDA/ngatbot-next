@@ -53,6 +53,7 @@ export default function SmmServicesPage() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [providerServices, setProviderServices] = useState<any[]>([]);
   const [loadingProviderServices, setLoadingProviderServices] = useState(false);
+  const [serviceFilter, setServiceFilter] = useState("all");
 
   const [smmProviderForm, setSmmProviderForm] = useState({
     name: "",
@@ -302,6 +303,11 @@ export default function SmmServicesPage() {
       order.service?.name.toLowerCase().includes(orderSearchTerm.toLowerCase());
     
     return matchesStatus && matchesSearch;
+  }) : [];
+
+  // Filter services berdasarkan kategori
+  const filteredServices = Array.isArray(smmServices) ? smmServices.filter((service: any) => {
+    return serviceFilter === "all" || service.category === serviceFilter;
   }) : [];
 
   const getStatusBadgeVariant = (status: string) => {
@@ -743,7 +749,7 @@ export default function SmmServicesPage() {
                       </div>
                       <div className="mt-1">
                         {provider.balance !== undefined && provider.balance !== null ? (
-                          <span className="text-xl font-bold text-slate-900">
+                          <span className="text-xl font-bold text-[#00c237]">
                             {provider.currency === 'IDR' && 'Rp '}
                             {provider.currency === 'USD' && '$'}
                             {provider.currency === 'EUR' && '€'}
@@ -856,12 +862,32 @@ export default function SmmServicesPage() {
                   <span className="text-sm font-medium text-foreground">Select All Services</span>
                 </div>
 
-                {/* Services Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {smmServices.map((service: any) => (
-                    <div key={service.id} className="bg-card p-4 rounded-lg border border-border hover:shadow-md transition-shadow">
+                {/* Category Filter */}
+                <div className="mb-6">
+                  <Label className="text-sm font-medium mb-2 block">Filter by Category</Label>
+                  <Select value={serviceFilter} onValueChange={setServiceFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {Array.isArray(smmServices) && [...new Set(smmServices.map((s: any) => s.category))]
+                        .filter(Boolean)
+                        .map((category: string) => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Vertical Services List */}
+                <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                  {filteredServices.map((service: any) => (
+                    <div key={service.id} className="bg-card p-4 rounded-lg border border-border hover:shadow-md transition-all">
                       <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-3 flex-1">
                           <Checkbox
                             checked={selectedServicesForDelete.has(service.id)}
                             onCheckedChange={(checked) => {
@@ -874,12 +900,55 @@ export default function SmmServicesPage() {
                               setSelectedServicesForDelete(newSelected);
                             }}
                           />
-                          <div>
-                            <h4 className="font-medium text-foreground">{service.name}</h4>
-                            <p className="text-sm text-muted-foreground">{service.category}</p>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <h4 className="font-medium text-foreground">{service.name}</h4>
+                              <Badge variant="outline" className="text-xs">
+                                {service.category}
+                              </Badge>
+                            </div>
+                            {service.description && (
+                              <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                                {service.description}
+                              </p>
+                            )}
+                            
+                            {/* Service Details */}
+                            <div className="grid grid-cols-3 gap-4 text-sm bg-muted/30 rounded p-3">
+                              <div className="text-center">
+                                <span className="block text-muted-foreground mb-1">Rate</span>
+                                <p className="font-semibold text-green-600">${service.rate}/1K</p>
+                              </div>
+                              <div className="text-center border-l border-r border-muted-foreground/20">
+                                <span className="block text-muted-foreground mb-1">Min</span>
+                                <p className="font-semibold">{service.min?.toLocaleString()}</p>
+                              </div>
+                              <div className="text-center">
+                                <span className="block text-muted-foreground mb-1">Max</span>
+                                <p className="font-semibold">{service.max?.toLocaleString()}</p>
+                              </div>
+                            </div>
+
+                            {/* Service Features */}
+                            <div className="flex gap-2 mt-3">
+                              {service.refill && (
+                                <Badge variant="secondary" className="text-xs">
+                                  🔄 Refill
+                                </Badge>
+                              )}
+                              {service.cancel && (
+                                <Badge variant="secondary" className="text-xs">
+                                  ❌ Cancel
+                                </Badge>
+                              )}
+                              <Badge variant="outline" className="text-xs">
+                                ID: {service.service}
+                              </Badge>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-1">
+                        
+                        <div className="flex items-center space-x-1 ml-3">
                           <Button
                             size="sm"
                             variant="ghost"
@@ -912,22 +981,20 @@ export default function SmmServicesPage() {
                           </Button>
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-slate-600">Rate:</span>
-                          <span className="font-medium">${service.rate}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-slate-600">Min:</span>
-                          <span className="font-medium">{service.min}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-slate-600">Max:</span>
-                          <span className="font-medium">{service.max}</span>
-                        </div>
-                      </div>
                     </div>
                   ))}
+
+                  {filteredServices.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>No services found</p>
+                      <p className="text-sm mt-1">
+                        {serviceFilter === "all" 
+                          ? "Import services from a provider to get started" 
+                          : `No services available in "${serviceFilter}" category`}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -940,7 +1007,6 @@ export default function SmmServicesPage() {
           </CardContent>
         </Card>
       </div>
-
       {/* Import Services Modal */}
       {showImportModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
@@ -962,7 +1028,7 @@ export default function SmmServicesPage() {
 
             {!importingProvider ? (
               // Step 1: Provider Selection
-              <div>
+              (<div>
                 <h4 className="text-base sm:text-lg font-medium mb-3 sm:mb-4 text-gray-700">Step 1: Select Provider</h4>
                 <div className="grid gap-3 sm:gap-4">
                   {Array.isArray(smmProviders) && smmProviders.length > 0 ? (
@@ -1039,10 +1105,10 @@ export default function SmmServicesPage() {
                     </div>
                   )}
                 </div>
-              </div>
+              </div>)
             ) : (
               // Step 2: Service Selection
-              <div>
+              (<div>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
                   <div>
                     <h4 className="text-base sm:text-lg font-medium text-gray-700">
@@ -1067,7 +1133,6 @@ export default function SmmServicesPage() {
                     <span className="sm:hidden">Back</span>
                   </Button>
                 </div>
-
                 <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex items-center space-x-3">
@@ -1085,7 +1150,6 @@ export default function SmmServicesPage() {
                     </div>
                   </div>
                 </div>
-
                 {loadingProviderServices ? (
                   <div className="mb-4 flex items-center justify-center py-8">
                     <Loader2 className="w-6 h-6 mr-2 animate-spin text-blue-600" />
@@ -1146,7 +1210,6 @@ export default function SmmServicesPage() {
                     )}
                   </div>
                 )}
-
                 {/* Services Table */}
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
                   {/* Desktop Header */}
@@ -1315,7 +1378,7 @@ export default function SmmServicesPage() {
                     )}
                   </div>
                 </div>
-              </div>
+              </div>)
             )}
 
             <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
@@ -1333,7 +1396,6 @@ export default function SmmServicesPage() {
           </div>
         </div>
       )}
-
       {/* Enhanced Edit Service Modal - MASALAH 3 */}
       {showEditServiceModal && editingService && (
         <Dialog open={showEditServiceModal} onOpenChange={setShowEditServiceModal}>
