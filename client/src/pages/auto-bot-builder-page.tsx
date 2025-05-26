@@ -1579,6 +1579,16 @@ export default function AutoBotBuilderPage() {
                                           className="h-7 text-xs"
                                         />
                                       </div>
+                                      
+                                      <div>
+                                        <Label className="text-xs">Image URL</Label>
+                                        <Input
+                                          value={subButton.responseImage || ''}
+                                          onChange={(e) => updateKeyboardButton(subButton.id, 'responseImage', e.target.value)}
+                                          placeholder="https://example.com/image.jpg"
+                                          className="h-7 text-xs"
+                                        />
+                                      </div>
 
                                       <div className="flex gap-2">
                                         <Button
@@ -1635,6 +1645,16 @@ export default function AutoBotBuilderPage() {
                                                 value={level2Button.responseText || ''}
                                                 onChange={(e) => updateKeyboardButton(level2Button.id, 'responseText', e.target.value)}
                                                 placeholder="Response text"
+                                                className="h-7 text-xs"
+                                              />
+                                            </div>
+                                            
+                                            <div>
+                                              <Label className="text-xs">Image URL</Label>
+                                              <Input
+                                                value={level2Button.responseImage || ''}
+                                                onChange={(e) => updateKeyboardButton(level2Button.id, 'responseImage', e.target.value)}
+                                                placeholder="https://example.com/image.jpg"
                                                 className="h-7 text-xs"
                                               />
                                             </div>
@@ -1697,6 +1717,16 @@ export default function AutoBotBuilderPage() {
                                                       className="h-7 text-xs"
                                                     />
                                                   </div>
+                                                  
+                                                  <div>
+                                                    <Label className="text-xs">Image URL</Label>
+                                                    <Input
+                                                      value={level3Button.responseImage || ''}
+                                                      onChange={(e) => updateKeyboardButton(level3Button.id, 'responseImage', e.target.value)}
+                                                      placeholder="https://example.com/image.jpg"
+                                                      className="h-7 text-xs"
+                                                    />
+                                                  </div>
 
                                                   <div className="flex gap-2">
                                                     <Button
@@ -1753,6 +1783,16 @@ export default function AutoBotBuilderPage() {
                                                             value={level4Button.responseText || ''}
                                                             onChange={(e) => updateKeyboardButton(level4Button.id, 'responseText', e.target.value)}
                                                             placeholder="Response text"
+                                                            className="h-7 text-xs"
+                                                          />
+                                                        </div>
+                                                        
+                                                        <div>
+                                                          <Label className="text-xs">Image URL</Label>
+                                                          <Input
+                                                            value={level4Button.responseImage || ''}
+                                                            onChange={(e) => updateKeyboardButton(level4Button.id, 'responseImage', e.target.value)}
+                                                            placeholder="https://example.com/image.jpg"
                                                             className="h-7 text-xs"
                                                           />
                                                         </div>
