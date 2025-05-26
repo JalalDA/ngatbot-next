@@ -1138,23 +1138,6 @@ export default function AutoBotBuilderPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          console.log("🔧 Starting to edit bot:", bot);
-                          setEditingBot(bot);
-                          setBotName(bot.botName);
-                          setBotUsername(bot.botUsername);
-                          setWelcomeMessage(bot.welcomeMessage);
-                          setKeyboardButtons(bot.keyboardConfig || []);
-                          setActiveTab("keyboard");
-                        }}
-                        title="Edit Keyboard Inline"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </Button>
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
                         onClick={() => toggleBotMutation.mutate({ id: bot.id, isActive: !bot.isActive })}
                         disabled={toggleBotMutation.isPending}
                         title={bot.isActive ? "Matikan Bot" : "Aktifkan Bot"}
@@ -1238,81 +1221,174 @@ export default function AutoBotBuilderPage() {
         </TabsContent>
 
         <TabsContent value="keyboard" className="space-y-6">
-          {editingBot ? (
+          {/* Bot Selector */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bot className="w-5 h-5" />
+                Pilih Bot untuk Management Keyboard
+              </CardTitle>
+              <CardDescription>
+                Pilih bot yang ingin Anda kelola keyboard inline-nya
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {isLoading ? (
+                  <div className="text-center py-4">Loading bots...</div>
+                ) : autoBots.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground">
+                    Belum ada bot yang dibuat. Silakan buat bot terlebih dahulu di tab "Buat Bot".
+                  </div>
+                ) : (
+                  <div className="grid gap-3">
+                    {autoBots.map((bot: AutoBot) => (
+                      <div 
+                        key={bot.id}
+                        className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                          editingBot?.id === bot.id 
+                            ? 'border-blue-500 bg-blue-50' 
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                        onClick={() => {
+                          setEditingBot(bot);
+                          setBotName(bot.botName);
+                          setBotUsername(bot.botUsername);
+                          setWelcomeMessage(bot.welcomeMessage);
+                          setKeyboardButtons(bot.keyboardConfig || []);
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium flex items-center gap-2">
+                              <Bot className="w-4 h-4" />
+                              {bot.botName}
+                              <Badge variant={bot.isActive ? "default" : "secondary"}>
+                                {bot.isActive ? "Aktif" : "Nonaktif"}
+                              </Badge>
+                            </h4>
+                            <p className="text-sm text-muted-foreground">@{bot.botUsername}</p>
+                          </div>
+                          {editingBot?.id === bot.id && (
+                            <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                              Dipilih
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Keyboard Management Interface - Same as Create Bot */}
+          {editingBot && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Keyboard className="w-5 h-5" />
-                  Management Keyboard - {editingBot.botName}
+                  Keyboard Inline Bertingkat - {editingBot.botName}
                 </CardTitle>
                 <CardDescription>
-                  Kelola konfigurasi keyboard inline untuk bot @{editingBot.botUsername}
+                  Kelola konfigurasi keyboard inline untuk @{editingBot.botUsername}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Existing keyboard management interface will be moved here */}
+                {/* Welcome Message */}
+                <div className="grid gap-4">
+                  <div>
+                    <Label htmlFor="welcomeMessageKeyboard">Pesan Sambutan</Label>
+                    <Textarea
+                      id="welcomeMessageKeyboard"
+                      placeholder="Pesan sambutan bot"
+                      value={welcomeMessage}
+                      onChange={(e) => setWelcomeMessage(e.target.value)}
+                      className="min-h-[100px]"
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Actions - Same as Create Bot */}
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <h3 className="font-medium mb-3 flex items-center gap-2">
+                    <Wand2 className="w-4 h-4" />
+                    Quick Actions
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {getQuickActions().map((action, index) => (
+                      <Button
+                        key={index}
+                        onClick={action.onClick}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-1"
+                      >
+                        <action.icon className="w-3 h-3" />
+                        {action.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Keyboard Configuration - Same as Create Bot */}
                 <div className="space-y-4">
-                  <div className="grid gap-4">
-                    <div>
-                      <Label htmlFor="welcomeMessage">Pesan Sambutan</Label>
-                      <Textarea
-                        id="welcomeMessage"
-                        placeholder="Pesan sambutan bot"
-                        value={welcomeMessage}
-                        onChange={(e) => setWelcomeMessage(e.target.value)}
-                        className="min-h-[100px]"
-                      />
+                  <h3 className="text-lg font-semibold">Konfigurasi Keyboard</h3>
+                  {keyboardButtons.length === 0 ? (
+                    <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
+                      <Keyboard className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                      <p className="text-gray-500">Belum ada tombol keyboard</p>
+                      <p className="text-sm text-gray-400">Gunakan Quick Actions untuk menambah tombol</p>
                     </div>
-                  </div>
-
-                  {/* Quick Actions */}
-                  <div className="border rounded-lg p-4 bg-gray-50">
-                    <h3 className="font-medium mb-3 flex items-center gap-2">
-                      <Wand2 className="w-4 h-4" />
-                      Quick Actions
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      <Button onClick={addMainMenu} variant="outline" size="sm">
-                        <Plus className="w-3 h-3 mr-1" />
-                        +Menu Utama
-                      </Button>
-                      <Button onClick={addAllShowButton} variant="outline" size="sm">
-                        <Grid3X3 className="w-3 h-3 mr-1" />
-                        📋 All Show
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Keyboard Layout Display */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Keyboard Layout</h3>
-                    {keyboardButtons.length === 0 ? (
-                      <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
-                        <Keyboard className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                        <p className="text-gray-500">Belum ada tombol keyboard</p>
-                        <p className="text-sm text-gray-400">Gunakan Quick Actions untuk menambah tombol</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        {/* Group buttons by main menu */}
-                        {keyboardButtons
-                          .filter(btn => btn.level === 0)
-                          .map(mainButton => (
-                            <div key={mainButton.id} className="border rounded-lg p-4">
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Group buttons by main menu with collapsible interface */}
+                      {keyboardButtons
+                        .filter(btn => btn.level === 0)
+                        .map(mainButton => {
+                          const isCollapsed = collapsedMenus.has(mainButton.id);
+                          const children = getMenuChildren(mainButton.id);
+                          const levelInfo = getLevelInfo(0);
+                          const IconComponent = levelInfo.icon;
+                          
+                          return (
+                            <div key={mainButton.id} className="border rounded-lg p-4 bg-white">
                               <div className="flex items-center justify-between mb-3">
-                                <h4 className="font-medium flex items-center gap-2">
-                                  <Menu className="w-4 h-4" />
-                                  {mainButton.isAllShow ? '📋 All Show' : mainButton.text || 'Menu Utama'}
-                                </h4>
-                                <div className="flex gap-1">
+                                <div className="flex items-center gap-2">
                                   <Button
-                                    onClick={() => addSubMenu(mainButton.id)}
-                                    variant="outline"
+                                    variant="ghost"
                                     size="sm"
+                                    onClick={() => toggleMenuCollapse(mainButton.id)}
+                                    className="p-1 h-auto"
                                   >
-                                    <Plus className="w-3 h-3 mr-1" />
-                                    +Sub Menu
+                                    {isCollapsed ? 
+                                      <ChevronRight className="w-4 h-4" /> : 
+                                      <ChevronDown className="w-4 h-4" />
+                                    }
                                   </Button>
+                                  <IconComponent className="w-4 h-4" />
+                                  <Badge variant="outline" className={levelInfo.color}>
+                                    {mainButton.isAllShow ? '📋 All Show' : (mainButton.text || 'Menu Utama')}
+                                  </Badge>
+                                  {children.length > 0 && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      {children.length} item
+                                    </Badge>
+                                  )}
+                                </div>
+                                
+                                <div className="flex gap-1">
+                                  {!mainButton.isAllShow && getContextualActions(0, mainButton.id).map((action, index) => (
+                                    <Button
+                                      key={index}
+                                      onClick={action.onClick}
+                                      variant="outline"
+                                      size="sm"
+                                    >
+                                      <action.icon className="w-3 h-3" />
+                                    </Button>
+                                  ))}
                                   <Button
                                     onClick={() => removeKeyboardButton(mainButton.id)}
                                     variant="outline"
@@ -1323,104 +1399,67 @@ export default function AutoBotBuilderPage() {
                                 </div>
                               </div>
                               
-                              {/* Main button fields */}
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                <div>
-                                  <Label>Text</Label>
-                                  <Input
-                                    value={mainButton.text || ''}
-                                    onChange={(e) => updateKeyboardButton(mainButton.id, 'text', e.target.value)}
-                                    placeholder="Teks tombol"
-                                  />
-                                </div>
-                                <div>
-                                  <Label>Callback Data</Label>
-                                  <Input
-                                    value={mainButton.callbackData || ''}
-                                    onChange={(e) => updateKeyboardButton(mainButton.id, 'callbackData', e.target.value)}
-                                    placeholder="callback_data"
-                                  />
-                                </div>
-                              </div>
-
-                              {/* Sub menus */}
-                              {keyboardButtons
-                                .filter(btn => btn.parentId === mainButton.id)
-                                .map(subButton => (
-                                  <div key={subButton.id} className="ml-6 border-l-2 border-gray-200 pl-4 mt-3">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <span className="text-sm font-medium flex items-center gap-1">
-                                        <Layers className="w-3 h-3" />
-                                        Sub Menu
-                                      </span>
-                                      <Button
-                                        onClick={() => removeKeyboardButton(subButton.id)}
-                                        variant="outline"
-                                        size="sm"
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </Button>
+                              {!isCollapsed && (
+                                <div className="space-y-4">
+                                  {/* Main button fields */}
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-3 bg-gray-50 rounded-lg">
+                                    <div>
+                                      <Label>Text Tombol</Label>
+                                      <Input
+                                        value={mainButton.text || ''}
+                                        onChange={(e) => updateKeyboardButton(mainButton.id, 'text', e.target.value)}
+                                        placeholder="Teks tombol"
+                                      />
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                      <div>
-                                        <Label>Text</Label>
-                                        <Input
-                                          value={subButton.text || ''}
-                                          onChange={(e) => updateKeyboardButton(subButton.id, 'text', e.target.value)}
-                                          placeholder="Teks sub menu"
-                                        />
-                                      </div>
-                                      <div>
-                                        <Label>Callback Data</Label>
-                                        <Input
-                                          value={subButton.callbackData || ''}
-                                          onChange={(e) => updateKeyboardButton(subButton.id, 'callbackData', e.target.value)}
-                                          placeholder="callback_data"
-                                        />
-                                      </div>
+                                    <div>
+                                      <Label>Callback Data</Label>
+                                      <Input
+                                        value={mainButton.callbackData || ''}
+                                        onChange={(e) => updateKeyboardButton(mainButton.id, 'callbackData', e.target.value)}
+                                        placeholder="callback_data"
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label>Response Text</Label>
+                                      <Input
+                                        value={mainButton.responseText || ''}
+                                        onChange={(e) => updateKeyboardButton(mainButton.id, 'responseText', e.target.value)}
+                                        placeholder="Teks respons"
+                                      />
                                     </div>
                                   </div>
-                                ))}
-                            </div>
-                          ))}
-                      </div>
-                    )}
-                  </div>
 
-                  {/* Action buttons */}
-                  <div className="flex gap-4 pt-4 border-t">
-                    <Button 
-                      onClick={handleSubmit} 
-                      disabled={createBotMutation.isPending || updateBotMutation.isPending}
-                      className="flex-1"
-                    >
-                      {updateBotMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        setEditingBot(null);
-                        setActiveTab("manage");
-                      }}
-                    >
-                      Kembali ke Kelola Bot
-                    </Button>
-                  </div>
+                                  {/* Child menus recursively */}
+                                  {renderChildMenus(mainButton.id, 1)}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="text-center py-8">
-                <Keyboard className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">Pilih bot dari tab "Kelola Bot" terlebih dahulu</p>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setActiveTab("manage")}
-                  className="mt-4"
-                >
-                  Pergi ke Kelola Bot
-                </Button>
+
+                {/* Action buttons */}
+                <div className="flex gap-4 pt-4 border-t">
+                  <Button 
+                    onClick={handleSubmit} 
+                    disabled={updateBotMutation.isPending}
+                    className="flex-1"
+                  >
+                    {updateBotMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setEditingBot(null);
+                      setKeyboardButtons([]);
+                      setWelcomeMessage("Selamat datang! Silakan pilih opsi di bawah ini:");
+                    }}
+                  >
+                    Reset
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
