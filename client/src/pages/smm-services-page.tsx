@@ -2053,26 +2053,6 @@ export default function SmmServicesPage() {
     </div>
   );
 }
-                              setProviderServices(services);
-                              toast({
-                                title: "Services loaded successfully",
-                                description: `Found ${services.length} services from ${provider.name}`,
-                              });
-                            } else {
-                              throw new Error("Invalid response format");
-                            }
-                            
-                          } catch (error: any) {
-                            toast({
-                              title: "Failed to load services",
-                              description: error.message || "Could not fetch services from provider",
-                              variant: "destructive",
-                            });
-                            setProviderServices([]);
-                          } finally {
-                            setLoadingProviderServices(false);
-                          }
-                        }}
                         className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-all duration-200"
                       >
                         <div className="flex items-center justify-between">
