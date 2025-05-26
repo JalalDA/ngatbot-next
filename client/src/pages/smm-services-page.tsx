@@ -223,7 +223,8 @@ export default function SmmServicesPage() {
         link: orderForm.link,
         quantity: orderForm.quantity,
         charge: orderCharge,
-        balance: user?.credits?.toString() || "0.00"
+        balance: user?.credits?.toString() || "0.00",
+        providerOrderId: data.providerOrderId || null
       });
       
       // Reset form
@@ -242,6 +243,28 @@ export default function SmmServicesPage() {
       toast({
         title: "Order Failed",
         description: error.message || "Failed to create order.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Sync order status mutation
+  const syncOrderStatusMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      const res = await apiRequest("POST", `/api/smm/orders/${orderId}/sync-status`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/smm/orders"] });
+      toast({
+        title: "Status Updated",
+        description: "Order status has been synchronized with provider.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Sync Failed",
+        description: error.message || "Failed to sync order status.",
         variant: "destructive",
       });
     },
@@ -1647,9 +1670,16 @@ export default function SmmServicesPage() {
                 {/* Order Details */}
                 <div className="space-y-3 text-white/95">
                   <div className="flex justify-between items-start">
-                    <span className="text-white/80 font-medium">ID:</span>
+                    <span className="text-white/80 font-medium">Order ID:</span>
                     <span className="font-bold text-lg">{orderSuccessData.orderId}</span>
                   </div>
+
+                  {orderSuccessData.providerOrderId && (
+                    <div className="flex justify-between items-start">
+                      <span className="text-white/80 font-medium">Provider ID:</span>
+                      <span className="font-mono text-sm bg-white/10 rounded px-2 py-1">{orderSuccessData.providerOrderId}</span>
+                    </div>
+                  )}
 
                   <div>
                     <span className="text-white/80 font-medium">Service:</span>

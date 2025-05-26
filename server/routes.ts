@@ -1128,6 +1128,11 @@ export function registerRoutes(app: Express): Server {
       const user = req.user!;
       const { serviceId, link, quantity } = req.body;
 
+      console.log(`📝 Creating new SMM order for user ${user.id}`);
+      console.log(`   - Service ID: ${serviceId}`);
+      console.log(`   - Link: ${link}`);
+      console.log(`   - Quantity: ${quantity}`);
+
       // Validate input
       if (!serviceId || !link || !quantity) {
         return res.status(400).json({ message: "Service, link, and quantity are required" });
@@ -1137,6 +1142,12 @@ export function registerRoutes(app: Express): Server {
       const service = await storage.getSmmService(serviceId);
       if (!service || service.userId !== user.id) {
         return res.status(404).json({ message: "Service not found" });
+      }
+
+      // Get provider details
+      const provider = await storage.getSmmProvider(service.providerId);
+      if (!provider || provider.userId !== user.id) {
+        return res.status(404).json({ message: "Provider not found" });
       }
 
       // Validate quantity
@@ -1149,29 +1160,172 @@ export function registerRoutes(app: Express): Server {
       // Calculate amount
       const rate = parseFloat(service.rate);
       const amount = (rate * quantity / 1000).toFixed(2);
+      const credits = parseFloat(amount);
+
+      // Check user credits
+      if (user.credits < credits) {
+        return res.status(400).json({ 
+          message: `Insufficient credits. Required: $${amount}, Available: $${user.credits}` 
+        });
+      }
 
       // Generate unique order ID
-      const orderId = `ORD_${user.id}_${Date.now()}`;
+      const localOrderId = `ORD_${user.id}_${Date.now()}`;
 
-      // Create order
+      // Create order in database first
       const orderData = {
         userId: user.id,
         serviceId: serviceId,
         providerId: service.providerId,
-        orderId: orderId,
+        orderId: localOrderId,
         link: link,
         quantity: quantity,
         amount: amount,
-        status: "pending",
-        paymentStatus: "pending"
+        status: "processing",
+        paymentStatus: "paid"
       };
 
       const newOrder = await storage.createSmmOrder(orderData);
-      res.json(newOrder);
+
+      try {
+        // Send order to external provider
+        console.log(`🚀 Sending order to provider: ${provider.name}`);
+        const smmApi = new SmmPanelAPI(provider.apiKey, provider.apiEndpoint);
+        const providerResponse = await smmApi.createOrder(
+          service.serviceIdApi, 
+          link, 
+          quantity
+        );
+
+        if (providerResponse.order) {
+          // Update order with provider order ID and status
+          await storage.updateSmmOrder(newOrder.id, {
+            providerOrderId: providerResponse.order,
+            status: "processing"
+          });
+
+          // Deduct credits from user
+          await storage.updateUser(user.id, {
+            credits: user.credits - credits
+          });
+
+          console.log(`✅ Order successfully sent to provider`);
+          console.log(`   - Provider Order ID: ${providerResponse.order}`);
+          console.log(`   - Credits deducted: $${amount}`);
+
+          res.json({
+            ...newOrder,
+            providerOrderId: providerResponse.order,
+            status: "processing"
+          });
+
+        } else {
+          // Provider order failed, update status
+          await storage.updateSmmOrder(newOrder.id, {
+            status: "failed"
+          });
+          
+          return res.status(500).json({ 
+            message: "Failed to create order with provider",
+            error: providerResponse.error || "Unknown error"
+          });
+        }
+
+      } catch (providerError: any) {
+        console.error(`❌ Provider error:`, providerError.message);
+        
+        // Update order status to failed
+        await storage.updateSmmOrder(newOrder.id, {
+          status: "failed"
+        });
+
+        return res.status(500).json({ 
+          message: "Failed to send order to provider",
+          error: providerError.message
+        });
+      }
 
     } catch (error) {
       console.error("Create SMM order error:", error);
       res.status(500).json({ message: "Failed to create order" });
+    }
+  });
+
+  // Update SMM order status (sync with provider)
+  app.post("/api/smm/orders/:id/sync-status", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const orderId = parseInt(req.params.id);
+
+      // Get order details
+      const order = await storage.getSmmOrder(orderId);
+      if (!order || order.userId !== user.id) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+
+      // Skip if no provider order ID
+      if (!order.providerOrderId) {
+        return res.json(order);
+      }
+
+      // Get provider details
+      const provider = await storage.getSmmProvider(order.providerId);
+      if (!provider) {
+        return res.status(404).json({ message: "Provider not found" });
+      }
+
+      try {
+        // Check status with provider
+        const smmApi = new SmmPanelAPI(provider.apiKey, provider.apiEndpoint);
+        const statusResponse = await smmApi.getOrderStatus(order.providerOrderId);
+
+        // Map provider status to our status
+        let newStatus = order.status;
+        if (statusResponse.status) {
+          switch (statusResponse.status.toLowerCase()) {
+            case 'completed':
+            case 'complete':
+              newStatus = 'completed';
+              break;
+            case 'in progress':
+            case 'processing':
+              newStatus = 'processing';
+              break;
+            case 'pending':
+              newStatus = 'pending';
+              break;
+            case 'partial':
+              newStatus = 'partial';
+              break;
+            case 'canceled':
+            case 'cancelled':
+              newStatus = 'cancelled';
+              break;
+            default:
+              newStatus = 'processing';
+          }
+        }
+
+        // Update order status if changed
+        if (newStatus !== order.status) {
+          const updatedOrder = await storage.updateSmmOrder(orderId, {
+            status: newStatus
+          });
+          
+          console.log(`📊 Order ${order.orderId} status updated: ${order.status} → ${newStatus}`);
+          res.json(updatedOrder);
+        } else {
+          res.json(order);
+        }
+
+      } catch (providerError: any) {
+        console.error(`❌ Error syncing order status:`, providerError.message);
+        res.json(order); // Return current order data if sync fails
+      }
+
+    } catch (error) {
+      console.error("Sync order status error:", error);
+      res.status(500).json({ message: "Failed to sync order status" });
     }
   });
 
