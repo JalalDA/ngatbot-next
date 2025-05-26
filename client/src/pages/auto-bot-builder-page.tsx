@@ -33,6 +33,7 @@ interface InlineKeyboard {
   parentId?: string; // untuk sub-menu
   level?: number; // 0 = menu utama, 1 = sub-menu
   responseText?: string; // teks respons yang dikirim ketika tombol diklik
+  isAllShow?: boolean; // untuk tombol All Show
 }
 
 export default function AutoBotBuilderPage() {

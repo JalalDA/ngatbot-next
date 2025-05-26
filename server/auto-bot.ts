@@ -27,6 +27,7 @@ interface InlineKeyboard {
   level?: number;
   parentId?: string;
   responseText?: string;
+  isAllShow?: boolean; // New property for All Show button
 }
 
 export class AutoBotManager {
@@ -120,9 +121,24 @@ export class AutoBotManager {
         const chatId = msg.chat.id;
         const welcomeMessage = autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:";
         
-        // Only show main menu buttons (level 0) for /start command
+        // Show main menu buttons (level 0) and check for All Show button
         const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => !btn.level || btn.level === 0);
-        const keyboard = this.createInlineKeyboard(mainMenuButtons);
+        
+        // Check if there's an All Show button configured
+        const allShowButton = (autoBot.keyboardConfig || []).find(btn => btn.isAllShow);
+        const buttonsToShow = [...mainMenuButtons];
+        
+        // Add All Show button if configured
+        if (allShowButton) {
+          buttonsToShow.push({
+            id: 'all_show_button',
+            text: allShowButton.text || '📋 Lihat Semua Menu',
+            callbackData: 'show_all_menus',
+            level: 0
+          });
+        }
+        
+        const keyboard = this.createInlineKeyboard(buttonsToShow);
         
         const options: any = {
           reply_markup: keyboard
@@ -172,6 +188,20 @@ export class AutoBotManager {
               chat_id: chatId,
               message_id: msg.message_id,
               reply_markup: keyboard
+            });
+            return;
+          }
+
+          // Handle All Show button
+          if (data === 'show_all_menus') {
+            const allShowMessage = this.createAllShowMessage(autoBot.keyboardConfig || []);
+            const keyboard = this.createAllShowKeyboard(autoBot.keyboardConfig || []);
+            
+            await bot.editMessageText(allShowMessage, {
+              chat_id: chatId,
+              message_id: msg.message_id,
+              reply_markup: keyboard,
+              parse_mode: 'Markdown'
             });
             return;
           }
@@ -296,6 +326,59 @@ export class AutoBotManager {
       console.error(`Failed to stop auto bot:`, error);
       return { success: false, error: error.message };
     }
+  }
+
+  /**
+   * Create All Show message with hierarchical menu structure
+   */
+  private createAllShowMessage(buttons: InlineKeyboard[]): string {
+    let message = "📋 *Semua Menu Tersedia:*\n\n";
+    
+    // Group buttons by level
+    const buttonsByLevel: { [key: number]: InlineKeyboard[] } = {};
+    buttons.forEach(btn => {
+      const level = btn.level || 0;
+      if (!buttonsByLevel[level]) buttonsByLevel[level] = [];
+      buttonsByLevel[level].push(btn);
+    });
+    
+    // Create hierarchical display
+    for (let level = 0; level <= 4; level++) {
+      const levelButtons = buttonsByLevel[level] || [];
+      if (levelButtons.length === 0) continue;
+      
+      const levelNames = ['📌 Menu Utama', '📂 Sub Menu', '📄 Sub Sub Menu', '📎 Level 4', '📊 Level 5'];
+      message += `${levelNames[level]}:\n`;
+      
+      levelButtons.forEach(btn => {
+        if (!btn.isAllShow) { // Don't show the All Show button itself
+          const indent = '  '.repeat(level);
+          message += `${indent}• ${btn.text}\n`;
+        }
+      });
+      message += '\n';
+    }
+    
+    message += "Pilih menu yang ingin Anda akses:";
+    return message;
+  }
+
+  /**
+   * Create All Show keyboard with all available buttons
+   */
+  private createAllShowKeyboard(buttons: InlineKeyboard[]): any {
+    const availableButtons = buttons.filter(btn => !btn.isAllShow);
+    const keyboardButtons = [
+      ...availableButtons,
+      {
+        id: 'main_menu_from_all_show',
+        text: '🏠 Menu Utama',
+        callbackData: 'back_to_main',
+        level: 0
+      }
+    ];
+    
+    return this.createInlineKeyboard(keyboardButtons);
   }
 
   /**

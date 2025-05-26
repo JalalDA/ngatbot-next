@@ -203,6 +203,7 @@ export const autoBots = pgTable("auto_bots", {
     level?: number;
     parentId?: string;
     responseText?: string; // Teks respons yang dikirim ketika tombol diklik
+    isAllShow?: boolean; // Property untuk tombol All Show
   }[]>(),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
