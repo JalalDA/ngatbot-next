@@ -218,17 +218,33 @@ export default function SmmServicesPage() {
   // Manual sync status mutation
   const syncOrderStatusMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/smm/orders/sync", { method: "POST" });
-      if (!response.ok) throw new Error("Failed to sync orders");
+      const response = await fetch("/api/smm/orders/sync", { 
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Failed to sync orders: ${errorData}`);
+      }
       return response.json();
     },
-    onSuccess: () => {
-      toast({ title: "✅ Status order berhasil disinkronisasi!" });
+    onSuccess: (data) => {
+      toast({ 
+        title: "✅ Sinkronisasi berhasil!", 
+        description: data.message || `${data.updatedCount || 0} order diperbarui`
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/smm/orders"] });
       setIsSyncing(false);
     },
-    onError: () => {
-      toast({ title: "❌ Gagal sinkronisasi status order!", variant: "destructive" });
+    onError: (error) => {
+      console.error("Sync error:", error);
+      toast({ 
+        title: "❌ Gagal sinkronisasi status order!", 
+        description: "Periksa koneksi provider atau coba lagi nanti",
+        variant: "destructive" 
+      });
       setIsSyncing(false);
     }
   });

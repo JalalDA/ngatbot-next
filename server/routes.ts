@@ -1176,29 +1176,53 @@ export function registerRoutes(app: Express): Server {
     try {
       const user = req.user!;
       
-      // Get all pending orders for the user
-      const allOrders = await storage.getSmmOrdersByUserId(user.id, 1000, 0); // Get lots of orders for sync
+      // Get all orders for the user that might need syncing
+      const allOrders = await storage.getSmmOrdersByUserId(user.id, 1000, 0);
       
+      if (!allOrders || allOrders.length === 0) {
+        return res.json({ 
+          success: true, 
+          message: "Tidak ada order untuk disinkronisasi",
+          syncedCount: 0,
+          updatedCount: 0
+        });
+      }
+
       const ordersToSync = allOrders.filter(order => 
         order.status !== 'completed' && 
         order.status !== 'cancelled' && 
         order.status !== 'refunded' &&
-        order.providerOrderId
+        order.providerOrderId &&
+        order.providerOrderId.trim() !== ''
       );
 
       let syncedCount = 0;
       let updatedCount = 0;
+      let errorCount = 0;
+
+      console.log(`🔄 Starting manual sync for ${ordersToSync.length} orders...`);
 
       for (const order of ordersToSync) {
         try {
           // Get provider info
           const provider = await storage.getSmmProvider(order.providerId);
-          if (!provider) continue;
+          if (!provider) {
+            console.warn(`⚠️ Provider not found for order ${order.id}`);
+            continue;
+          }
+
+          console.log(`🔍 Checking order ${order.id} with provider ${provider.name}...`);
 
           // Check status dari provider
-          const statusResponse = await fetch(`${provider.apiEndpoint}?key=${provider.apiKey}&action=status&order=${order.providerOrderId}`);
+          const statusUrl = `${provider.apiEndpoint}?key=${provider.apiKey}&action=status&order=${order.providerOrderId}`;
+          const statusResponse = await fetch(statusUrl, {
+            method: 'GET',
+            timeout: 10000 // 10 second timeout
+          });
+          
           if (statusResponse.ok) {
             const statusData = await statusResponse.json();
+            console.log(`📊 Provider response for order ${order.id}:`, statusData);
             
             if (statusData && statusData.status) {
               // Map provider status ke system status
@@ -1214,24 +1238,39 @@ export function registerRoutes(app: Express): Server {
                 
                 updatedCount++;
                 console.log(`✅ Manual sync updated order ${order.id}: ${order.status} -> ${systemStatus}`);
+              } else {
+                console.log(`ℹ️ Order ${order.id} status unchanged: ${order.status}`);
               }
               syncedCount++;
+            } else {
+              console.warn(`⚠️ Invalid response for order ${order.id}:`, statusData);
             }
+          } else {
+            console.error(`❌ HTTP error ${statusResponse.status} for order ${order.id}`);
+            errorCount++;
           }
         } catch (syncError) {
           console.error(`❌ Failed to manually sync order ${order.id}:`, syncError);
+          errorCount++;
         }
       }
       
+      console.log(`📊 Sync completed: ${syncedCount} checked, ${updatedCount} updated, ${errorCount} errors`);
+      
       res.json({ 
         success: true, 
-        message: `Berhasil sinkronisasi ${syncedCount} order, ${updatedCount} order diperbarui`,
+        message: `Berhasil sinkronisasi ${syncedCount} order, ${updatedCount} order diperbarui${errorCount > 0 ? `, ${errorCount} error` : ''}`,
         syncedCount,
-        updatedCount
+        updatedCount,
+        errorCount
       });
     } catch (error) {
       console.error("Manual sync orders error:", error);
-      res.status(500).json({ message: "Failed to sync orders" });
+      res.status(500).json({ 
+        success: false,
+        message: "Gagal melakukan sinkronisasi",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
