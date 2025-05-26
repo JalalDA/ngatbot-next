@@ -54,6 +54,9 @@ export default function SmmServicesPage() {
   const [providerServices, setProviderServices] = useState<any[]>([]);
   const [loadingProviderServices, setLoadingProviderServices] = useState(false);
   const [serviceFilter, setServiceFilter] = useState("all");
+  
+  // State untuk mengelola visibilitas kategori services
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
 
   const [smmProviderForm, setSmmProviderForm] = useState({
     name: "",
