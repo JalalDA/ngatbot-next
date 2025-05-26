@@ -140,7 +140,7 @@ export class AutoBotManager {
         const msg = callbackQuery.message;
         const data = callbackQuery.data;
         
-        if (msg) {
+        if (msg && data) {
           const chatId = msg.chat.id;
           
           // Find the button that was pressed
@@ -162,13 +162,67 @@ export class AutoBotManager {
                 
                 await bot.editMessageText(autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:", {
                   chat_id: chatId,
-                  message_id: callbackQuery.message.message_id,
+                  message_id: msg.message_id,
                   reply_markup: keyboard
                 });
                 return;
               }
               
-              // Handle "back_to_submenu" callback for sub-sub menus
+              // Handle back navigation for all levels
+              if (data.startsWith('back_to_level_')) {
+                const parts = data.split('_');
+                const level = parseInt(parts[3]);
+                const parentId = parts[4];
+                
+                if (level === 0) {
+                  // Back to main menu
+                  const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => !btn.level || btn.level === 0);
+                  const keyboard = this.createInlineKeyboard(mainMenuButtons);
+                  
+                  await bot.editMessageText(autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:", {
+                    chat_id: chatId,
+                    message_id: msg.message_id,
+                    reply_markup: keyboard
+                  });
+                } else {
+                  // Back to specific level
+                  const parentButton = autoBot.keyboardConfig?.find(btn => btn.id === parentId);
+                  const menuItems = (autoBot.keyboardConfig || []).filter(btn => 
+                    btn.level === level && btn.parentId === parentId
+                  );
+                  
+                  if (menuItems.length > 0) {
+                    // Determine back button callback based on level
+                    let backCallback = 'back_to_main';
+                    if (level > 1) {
+                      const grandParent = autoBot.keyboardConfig?.find(btn => btn.id === parentButton?.parentId);
+                      backCallback = `back_to_level_${level - 1}_${parentButton?.parentId}`;
+                    }
+                    
+                    const menuItemsWithBack = [
+                      ...menuItems,
+                      {
+                        id: `back_button_level_${level}`,
+                        text: '⬅️ Kembali',
+                        callbackData: backCallback,
+                        level: level
+                      }
+                    ];
+                    
+                    const menuKeyboard = this.createInlineKeyboard(menuItemsWithBack);
+                    const levelName = level === 1 ? 'Menu' : level === 2 ? 'Sub Menu' : level === 3 ? 'Sub Sub Menu' : level === 4 ? 'Level 4 Menu' : 'Level 5 Menu';
+                    
+                    await bot.editMessageText(`📋 ${levelName} ${parentButton?.text}:`, {
+                      chat_id: chatId,
+                      message_id: msg.message_id,
+                      reply_markup: menuKeyboard
+                    });
+                  }
+                }
+                return;
+              }
+              
+              // Legacy support for old back commands
               if (data.startsWith('back_to_submenu_')) {
                 const parentId = data.replace('back_to_submenu_', '');
                 const parentButton = autoBot.keyboardConfig?.find(btn => btn.id === parentId);
@@ -177,7 +231,6 @@ export class AutoBotManager {
                 );
                 
                 if (subMenus.length > 0) {
-                  // Add back button to sub-menus
                   const subMenusWithBack = [
                     ...subMenus,
                     {
@@ -192,7 +245,7 @@ export class AutoBotManager {
                   
                   await bot.editMessageText(`📋 Menu ${parentButton?.text}:`, {
                     chat_id: chatId,
-                    message_id: callbackQuery.message.message_id,
+                    message_id: msg.message_id,
                     reply_markup: subMenuKeyboard
                   });
                 }
@@ -233,45 +286,50 @@ export class AutoBotManager {
                     parse_mode: 'Markdown'
                   });
                 }
-              } else if (pressedButton.level === 1) {
-                // This is a sub-menu button (level 1) - check if it has sub-sub menus
-                const subSubMenus = (autoBot.keyboardConfig || []).filter(btn => 
-                  btn.level === 2 && btn.parentId === pressedButton.id
+              } else {
+                // Handle any level button (level 1, 2, 3, 4, 5)
+                const currentLevel = pressedButton.level || 0;
+                const childMenus = (autoBot.keyboardConfig || []).filter(btn => 
+                  btn.level === currentLevel + 1 && btn.parentId === pressedButton.id
                 );
                 
-                if (subSubMenus.length > 0) {
-                  // Add back button to sub-sub menus
-                  const subSubMenusWithBack = [
-                    ...subSubMenus,
+                if (childMenus.length > 0) {
+                  // This button has child menus, show them
+                  let backCallback = 'back_to_main';
+                  
+                  // Determine appropriate back callback based on current level
+                  if (currentLevel === 1) {
+                    backCallback = 'back_to_main';
+                  } else if (currentLevel >= 2) {
+                    backCallback = `back_to_level_${currentLevel - 1}_${pressedButton.parentId}`;
+                  }
+                  
+                  const childMenusWithBack = [
+                    ...childMenus,
                     {
-                      id: 'back_button_subsub',
+                      id: `back_button_level_${currentLevel + 1}`,
                       text: '⬅️ Kembali',
-                      callbackData: `back_to_submenu_${pressedButton.parentId}`,
-                      level: 2
+                      callbackData: backCallback,
+                      level: currentLevel + 1
                     }
                   ];
                   
-                  // Replace sub menu with sub-sub menus by editing the message
-                  const subSubMenuKeyboard = this.createInlineKeyboard(subSubMenusWithBack);
+                  const childMenuKeyboard = this.createInlineKeyboard(childMenusWithBack);
+                  const levelNames = ['Menu', 'Sub Menu', 'Sub Sub Menu', 'Level 4 Menu', 'Level 5 Menu', 'Level 6 Menu'];
+                  const levelName = levelNames[currentLevel] || `Level ${currentLevel + 1} Menu`;
                   
-                  await bot.editMessageText(`📋 Sub Menu ${pressedButton.text}:`, {
+                  await bot.editMessageText(`📋 ${levelName} ${pressedButton.text}:`, {
                     chat_id: chatId,
                     message_id: callbackQuery.message.message_id,
-                    reply_markup: subSubMenuKeyboard
+                    reply_markup: childMenuKeyboard
                   });
                 } else {
-                  // No sub-sub menus, send response text if available
+                  // No child menus, this is a final button - send response text
                   const responseMessage = pressedButton.responseText || `✅ Anda telah memilih: *${pressedButton.text}*`;
                   await bot.sendMessage(chatId, responseMessage, {
                     parse_mode: 'Markdown'
                   });
                 }
-              } else {
-                // This is a sub-sub menu button (level 2), send response text if available
-                const responseMessage = pressedButton.responseText || `✅ Anda telah memilih: *${pressedButton.text}*`;
-                await bot.sendMessage(chatId, responseMessage, {
-                  parse_mode: 'Markdown'
-                });
               }
             } catch (error) {
               console.error(`Error handling callback for bot ${autoBot.botName}:`, error);
