@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Bot, Keyboard, Settings, Play, Square, Edit3, Layers, Layers2, Menu, Grid3X3 } from "lucide-react";
+import { Plus, Trash2, Bot, Keyboard, Settings, Play, Square, Edit3, Layers, Layers2, Menu, Grid3X3, Wand2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -527,20 +527,25 @@ export default function AutoBotBuilderPage() {
                 Konfigurasi menu hierarkis dengan struktur Menu Utama → Sub Menu
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-2 mb-4">
+            <CardContent className="space-y-6">
+              {/* Quick Actions Bar */}
+              <div className="flex flex-wrap gap-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                  <Keyboard className="w-5 h-5" />
+                  <span className="font-medium">Quick Actions:</span>
+                </div>
+                
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => addKeyboardButton(0)}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900"
                 >
                   <Plus className="w-4 h-4" />
-                  Tambah Menu Utama
+                  Menu Utama
                 </Button>
                 
-                {/* Add All Show Button */}
                 <Button
                   type="button"
                   variant="outline"
@@ -559,169 +564,349 @@ export default function AutoBotBuilderPage() {
                       description: "Tombol untuk menampilkan semua menu telah ditambahkan.",
                     });
                   }}
-                  className="flex items-center gap-2 hover:bg-blue-100 border-blue-200 bg-[#02080f]"
+                  className="flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 border-indigo-600"
                 >
                   <Grid3X3 className="w-4 h-4" />
-                  Tambah Tombol All Show
+                  All Show
                 </Button>
-                
-                {/* Show "Add Sub Menu" button only if there are main menu buttons */}
-                {keyboardButtons.some(btn => (btn.level || 0) === 0) && (
+
+                {keyboardButtons.some(btn => (btn.level || 0) === 0 && !btn.isAllShow) && (
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => setShowSubMenuSelector(true)}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 bg-white dark:bg-gray-800 hover:bg-green-50 dark:hover:bg-green-900"
                   >
                     <Layers className="w-4 h-4" />
-                    Tambah Sub Menu
+                    Sub Menu
                   </Button>
                 )}
                 
-                {/* Show "Add Sub-Sub Menu" button only if there are sub menu buttons */}
                 {keyboardButtons.some(btn => (btn.level || 0) === 1) && (
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => setShowSubSubMenuSelector(true)}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 bg-white dark:bg-gray-800 hover:bg-orange-50 dark:hover:bg-orange-900"
                   >
                     <Layers2 className="w-4 h-4" />
-                    Tambah Sub-Sub Menu
+                    Sub-Sub Menu
                   </Button>
                 )}
                 
-                {/* Show "Add Level 4 Menu" button only if there are level 2 buttons */}
                 {keyboardButtons.some(btn => (btn.level || 0) === 2) && (
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => setShowLevel4Selector(true)}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-purple-900"
                   >
                     <Grid3X3 className="w-4 h-4" />
-                    Tambah Level 4
+                    Level 4
                   </Button>
                 )}
                 
-                {/* Show "Add Level 5 Menu" button only if there are level 3 buttons */}
                 {keyboardButtons.some(btn => (btn.level || 0) === 3) && (
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => setShowLevel5Selector(true)}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 bg-white dark:bg-gray-800 hover:bg-pink-50 dark:hover:bg-pink-900"
                   >
                     <Layers className="w-4 h-4" />
-                    Tambah Level 5
+                    Level 5
+                  </Button>
+                )}
+
+                {keyboardButtons.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Add template hierarchy buttons
+                      const templateButtons: InlineKeyboard[] = [
+                        {
+                          id: 'template_' + Date.now(),
+                          text: '🏪 Produk',
+                          callbackData: 'produk',
+                          level: 0
+                        },
+                        {
+                          id: 'template_' + (Date.now() + 1),
+                          text: '📱 Sosial Media',
+                          callbackData: 'sosmed',
+                          level: 1,
+                          parentId: 'template_' + Date.now()
+                        },
+                        {
+                          id: 'template_' + (Date.now() + 2),
+                          text: '💬 Chat',
+                          callbackData: 'chat',
+                          level: 1,
+                          parentId: 'template_' + Date.now()
+                        }
+                      ];
+                      setKeyboardButtons([...keyboardButtons, ...templateButtons]);
+                      toast({
+                        title: "Template Menu Ditambahkan!",
+                        description: "Template menu hierarkis telah ditambahkan ke konfigurasi Anda.",
+                      });
+                    }}
+                    className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 border-0"
+                  >
+                    <Settings className="w-4 h-4" />
+                    Template
                   </Button>
                 )}
               </div>
 
-              {/* Grouping buttons by level for better visualization */}
-              {[0, 1, 2, 3, 4].map(level => {
-                const buttonsAtLevel = keyboardButtons.filter(btn => (btn.level || 0) === level);
-                if (buttonsAtLevel.length === 0) return null;
+              {/* Visual Card-based Management */}
+              <div className="space-y-6">
+                {[0, 1, 2, 3, 4].map(level => {
+                  const buttonsAtLevel = keyboardButtons.filter(btn => (btn.level || 0) === level);
+                  if (buttonsAtLevel.length === 0) return null;
 
-                const levelInfo = getLevelInfo(level);
-                const IconComponent = levelInfo.icon;
+                  const levelInfo = getLevelInfo(level);
+                  const IconComponent = levelInfo.icon;
 
-                return (
-                  <div key={level} className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className={levelInfo.color}>
-                        <IconComponent className="w-3 h-3 mr-1" />
-                        {levelInfo.name}
-                      </Badge>
-                      <span className="text-sm text-muted-foreground">
-                        ({buttonsAtLevel.length} menu)
-                      </span>
-                    </div>
-                    
-                    {buttonsAtLevel.map((button, index) => (
-                      <div key={button.id} className={`p-4 border rounded-lg space-y-3 ${level > 0 ? 'ml-6 border-l-4 border-l-green-200' : ''}`}>
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-2">
-                            <Label className="text-sm font-medium">
-                              {button.isAllShow ? '📋 Tombol All Show' : level === 0 ? `Menu Utama ${index + 1}` : level === 1 ? `Sub Menu ${index + 1}` : level === 2 ? `Sub-Sub Menu ${index + 1}` : level === 3 ? `Level 4 Menu ${index + 1}` : level === 4 ? `Level 5 Menu ${index + 1}` : `Menu ${index + 1}`}
-                              {button.parentId && (
-                                <span className="ml-2 text-xs text-muted-foreground">
-                                  (Parent: {keyboardButtons.find(b => b.id === button.parentId)?.text || 'Unknown'})
-                                </span>
-                              )}
-                            </Label>
-                            {button.isAllShow && (
-                              <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200">
-                                Special Button
-                              </Badge>
-                            )}
+                  return (
+                    <div key={level} className="space-y-4">
+                      {/* Level Header */}
+                      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-lg border">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-full ${levelInfo.color} bg-opacity-20`}>
+                            <IconComponent className="w-5 h-5" />
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeKeyboardButton(button.id)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <Label htmlFor={`text-${button.id}`} className="text-xs">Teks Tombol</Label>
-                            <Input
-                              id={`text-${button.id}`}
-                              placeholder="Teks yang tampil di tombol"
-                              value={button.text}
-                              onChange={(e) => updateKeyboardButton(button.id, "text", e.target.value)}
-                            />
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <Label htmlFor={`callback-${button.id}`} className="text-xs">Callback Data</Label>
-                            <Input
-                              id={`callback-${button.id}`}
-                              placeholder="Data yang dikirim saat tombol ditekan"
-                              value={button.callbackData}
-                              onChange={(e) => updateKeyboardButton(button.id, "callbackData", e.target.value)}
-                            />
+                          <div>
+                            <h3 className="font-semibold text-lg">{levelInfo.name}</h3>
+                            <p className="text-sm text-muted-foreground">{buttonsAtLevel.length} tombol dikonfigurasi</p>
                           </div>
                         </div>
-
-                        <div className="space-y-1">
-                          <Label htmlFor={`url-${button.id}`} className="text-xs">URL (Opsional)</Label>
-                          <Input
-                            id={`url-${button.id}`}
-                            placeholder="https://example.com (kosongkan jika tidak perlu)"
-                            value={button.url || ""}
-                            onChange={(e) => updateKeyboardButton(button.id, "url", e.target.value)}
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label htmlFor={`response-${button.id}`} className="text-xs">Text</Label>
-                          <Input
-                            id={`response-${button.id}`}
-                            placeholder="Pesan yang akan dikirim ketika tombol diklik"
-                            value={button.responseText || ""}
-                            onChange={(e) => updateKeyboardButton(button.id, "responseText", e.target.value)}
-                          />
-                        </div>
+                        <Badge variant="outline" className={levelInfo.color}>
+                          Level {level + 1}
+                        </Badge>
                       </div>
-                    ))}
-                  </div>
-                );
-              })}
+                      
+                      {/* Button Cards Grid */}
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {buttonsAtLevel.map((button, index) => (
+                          <Card key={button.id} className={`relative transition-all hover:shadow-lg ${button.isAllShow ? 'ring-2 ring-indigo-200 bg-indigo-50/50' : ''} ${level > 0 ? 'border-l-4 border-l-green-300' : ''}`}>
+                            <CardHeader className="pb-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-3 h-3 rounded-full ${button.isAllShow ? 'bg-indigo-500' : levelInfo.color.includes('blue') ? 'bg-blue-500' : levelInfo.color.includes('green') ? 'bg-green-500' : levelInfo.color.includes('orange') ? 'bg-orange-500' : levelInfo.color.includes('purple') ? 'bg-purple-500' : 'bg-pink-500'}`}></div>
+                                  <CardTitle className="text-sm">
+                                    {button.isAllShow ? '📋 All Show' : `${levelInfo.name} ${index + 1}`}
+                                  </CardTitle>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeKeyboardButton(button.id)}
+                                  className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                              {button.isAllShow && (
+                                <Badge variant="secondary" className="w-fit bg-indigo-100 text-indigo-800 border-indigo-200">
+                                  Special Button
+                                </Badge>
+                              )}
+                              {button.parentId && (
+                                <p className="text-xs text-muted-foreground">
+                                  Parent: {keyboardButtons.find(b => b.id === button.parentId)?.text || 'Unknown'}
+                                </p>
+                              )}
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              <div className="space-y-2">
+                                <Label className="text-xs font-medium">Teks Tombol</Label>
+                                <Input
+                                  placeholder="Nama tombol"
+                                  value={button.text}
+                                  onChange={(e) => updateKeyboardButton(button.id, "text", e.target.value)}
+                                  className="h-9"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label className="text-xs font-medium">Callback Data</Label>
+                                <Input
+                                  placeholder="callback_data"
+                                  value={button.callbackData}
+                                  onChange={(e) => updateKeyboardButton(button.id, "callbackData", e.target.value)}
+                                  className="h-9"
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label className="text-xs font-medium">URL (Opsional)</Label>
+                                <Input
+                                  placeholder="https://example.com"
+                                  value={button.url || ""}
+                                  onChange={(e) => updateKeyboardButton(button.id, "url", e.target.value)}
+                                  className="h-9"
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label className="text-xs font-medium">Pesan Respons</Label>
+                                <Textarea
+                                  placeholder="Pesan yang dikirim saat tombol diklik"
+                                  value={button.responseText || ""}
+                                  onChange={(e) => updateKeyboardButton(button.id, "responseText", e.target.value)}
+                                  className="min-h-[60px] resize-none"
+                                />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
 
               {keyboardButtons.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Keyboard className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>Belum ada tombol keyboard yang dikonfigurasi</p>
-                  <p className="text-sm">Klik "Tambah Tombol" atau "Template Menu Hierarkis" untuk memulai</p>
+                <div className="text-center py-12">
+                  <div className="max-w-md mx-auto">
+                    <div className="bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
+                      <Keyboard className="w-12 h-12 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">Belum Ada Keyboard yang Dikonfigurasi</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Mulai membuat menu interaktif untuk bot Telegram Anda dengan tombol inline yang mudah digunakan.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <Button 
+                        onClick={() => addKeyboardButton(0)}
+                        className="flex items-center gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Tambah Menu Utama
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => {
+                          const templateButtons: InlineKeyboard[] = [
+                            {
+                              id: 'demo_' + Date.now(),
+                              text: '🏪 Produk & Layanan',
+                              callbackData: 'produk',
+                              level: 0
+                            },
+                            {
+                              id: 'demo_' + (Date.now() + 1),
+                              text: '📱 Instagram',
+                              callbackData: 'instagram',
+                              level: 1,
+                              parentId: 'demo_' + Date.now()
+                            },
+                            {
+                              id: 'demo_' + (Date.now() + 2),
+                              text: '🎥 TikTok',
+                              callbackData: 'tiktok',
+                              level: 1,
+                              parentId: 'demo_' + Date.now()
+                            },
+                            {
+                              id: 'all_show_demo_' + Date.now(),
+                              text: '📋 Lihat Semua Menu',
+                              callbackData: 'show_all_menus',
+                              level: 0,
+                              isAllShow: true
+                            }
+                          ];
+                          setKeyboardButtons(templateButtons);
+                          toast({
+                            title: "Template Demo Berhasil Ditambahkan!",
+                            description: "Template keyboard demo telah siap untuk Anda kustomisasi.",
+                          });
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <Settings className="w-4 h-4" />
+                        Gunakan Template Demo
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Live Preview Section */}
+              {keyboardButtons.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Bot className="w-5 h-5 text-blue-600" />
+                    <h3 className="font-semibold">Preview Keyboard</h3>
+                    <Badge variant="secondary">Live Preview</Badge>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-lg p-6 border-2 border-dashed border-gray-200 dark:border-gray-700">
+                    <div className="max-w-sm mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+                      {/* Telegram Header Simulation */}
+                      <div className="bg-blue-500 text-white p-3 flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-400 rounded-full flex items-center justify-center">
+                          <Bot className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{editingBot?.botName || 'Bot Name'}</p>
+                          <p className="text-xs opacity-90">online</p>
+                        </div>
+                      </div>
+                      
+                      {/* Message Content */}
+                      <div className="p-4 space-y-3">
+                        <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
+                          <p className="text-sm">{editingBot?.welcomeMessage || 'Selamat datang! Silakan pilih opsi di bawah ini:'}</p>
+                        </div>
+                        
+                        {/* Keyboard Buttons Preview */}
+                        <div className="space-y-2">
+                          {[0, 1, 2, 3, 4].map(level => {
+                            const buttonsAtLevel = keyboardButtons.filter(btn => (btn.level || 0) === level);
+                            if (buttonsAtLevel.length === 0) return null;
+                            
+                            return (
+                              <div key={level} className="space-y-1">
+                                {level > 0 && (
+                                  <div className="text-xs text-muted-foreground px-2">
+                                    Level {level + 1} Menu:
+                                  </div>
+                                )}
+                                <div className="grid gap-1">
+                                  {buttonsAtLevel.map((button) => (
+                                    <button
+                                      key={button.id}
+                                      className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${
+                                        button.isAllShow 
+                                          ? 'bg-indigo-500 text-white hover:bg-indigo-600' 
+                                          : 'bg-blue-500 text-white hover:bg-blue-600'
+                                      }`}
+                                    >
+                                      {button.text || 'Untitled Button'}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="text-center mt-4">
+                      <p className="text-xs text-muted-foreground">
+                        ↑ Pratinjau bagaimana keyboard akan terlihat di Telegram
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
 
