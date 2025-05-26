@@ -10,6 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
   ShoppingCart,
   Server,
@@ -26,7 +29,13 @@ import {
   Info,
   X,
   Loader2,
-  ArrowLeft
+  ArrowLeft,
+  Search,
+  Calendar,
+  Clock,
+  DollarSign,
+  Link as LinkIcon,
+  Package
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -64,6 +73,24 @@ export default function SmmServicesPage() {
     useCustomRate: false
   });
 
+  // State untuk New Order dan Riwayat Order
+  const [orderForm, setOrderForm] = useState({
+    serviceId: "",
+    link: "",
+    quantity: "",
+  });
+  const [orderStatusFilter, setOrderStatusFilter] = useState("all");
+  const [orderSearchTerm, setOrderSearchTerm] = useState("");
+  const [selectedOrderService, setSelectedOrderService] = useState<any>(null);
+  const [orderCharge, setOrderCharge] = useState("");
+
+  // State untuk mengkalkulasi charge berdasarkan quantity
+  const calculateCharge = (service: any, quantity: number) => {
+    if (!service || !quantity) return 0;
+    const rate = parseFloat(service.rate) || 0;
+    return (rate * quantity / 1000).toFixed(2);
+  };
+
   // Fetch SMM providers
   const { data: smmProviders = [], isLoading: providersLoading } = useQuery({
     queryKey: ["/api/smm/providers"],
@@ -72,6 +99,11 @@ export default function SmmServicesPage() {
   // Fetch SMM services
   const { data: smmServices = [], isLoading: servicesLoading } = useQuery({
     queryKey: ["/api/smm/services"],
+  });
+
+  // Fetch SMM orders
+  const { data: smmOrders = [], isLoading: ordersLoading } = useQuery({
+    queryKey: ["/api/smm/orders"],
   });
 
   // Create SMM Provider mutation
@@ -171,6 +203,117 @@ export default function SmmServicesPage() {
       });
     },
   });
+
+  // Create order mutation
+  const createOrderMutation = useMutation({
+    mutationFn: async (orderData: any) => {
+      const res = await apiRequest("POST", "/api/smm/orders", orderData);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/smm/orders"] });
+      setOrderForm({
+        serviceId: "",
+        link: "",
+        quantity: "",
+      });
+      setSelectedOrderService(null);
+      setOrderCharge("");
+      toast({
+        title: "Order Created",
+        description: "Your SMM order has been placed successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Order Failed",
+        description: error.message || "Failed to create order.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handler functions untuk order
+  const handleCreateOrder = () => {
+    if (!orderForm.serviceId || !orderForm.link || !orderForm.quantity) {
+      toast({
+        title: "Error",
+        description: "Please fill all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const service = smmServices.find(s => s.id === parseInt(orderForm.serviceId));
+    if (!service) {
+      toast({
+        title: "Error",
+        description: "Selected service not found.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const quantity = parseInt(orderForm.quantity);
+    if (quantity < service.min || quantity > service.max) {
+      toast({
+        title: "Error",
+        description: `Quantity must be between ${service.min} and ${service.max}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createOrderMutation.mutate({
+      serviceId: parseInt(orderForm.serviceId),
+      link: orderForm.link,
+      quantity: quantity,
+    });
+  };
+
+  const handleServiceSelect = (serviceId: string) => {
+    const service = smmServices.find(s => s.id === parseInt(serviceId));
+    setSelectedOrderService(service);
+    setOrderForm({ ...orderForm, serviceId });
+    
+    if (service && orderForm.quantity) {
+      const charge = calculateCharge(service, parseInt(orderForm.quantity));
+      setOrderCharge(charge);
+    }
+  };
+
+  const handleQuantityChange = (quantity: string) => {
+    setOrderForm({ ...orderForm, quantity });
+    
+    if (selectedOrderService && quantity) {
+      const charge = calculateCharge(selectedOrderService, parseInt(quantity));
+      setOrderCharge(charge);
+    } else {
+      setOrderCharge("");
+    }
+  };
+
+  // Filter orders berdasarkan status dan search
+  const filteredOrders = smmOrders.filter((order: any) => {
+    const matchesStatus = orderStatusFilter === "all" || order.status.toLowerCase() === orderStatusFilter.toLowerCase();
+    const matchesSearch = orderSearchTerm === "" || 
+      order.id.toString().includes(orderSearchTerm) ||
+      order.link.toLowerCase().includes(orderSearchTerm.toLowerCase()) ||
+      order.service?.name.toLowerCase().includes(orderSearchTerm.toLowerCase());
+    
+    return matchesStatus && matchesSearch;
+  });
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed': return 'default';
+      case 'processing': return 'secondary';
+      case 'pending': return 'outline';
+      case 'canceled': return 'destructive';
+      case 'partial': return 'secondary';
+      default: return 'outline';
+    }
+  };
 
   const handleCreateProvider = () => {
     if (!smmProviderForm.name || !smmProviderForm.apiKey || !smmProviderForm.apiEndpoint) {
