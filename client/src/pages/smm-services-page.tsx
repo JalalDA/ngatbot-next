@@ -1363,8 +1363,8 @@ export default function SmmServicesPage() {
                             </Badge>
                           </div>
                         
-                        <div className="flex items-center space-x-2">
-                          <Button
+                          <div className="flex items-center space-x-2">
+                            <Button
                             size="sm"
                             variant="ghost"
                             onClick={(e) => {
