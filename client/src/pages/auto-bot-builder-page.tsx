@@ -1493,8 +1493,240 @@ export default function AutoBotBuilderPage() {
                                   </div>
                                 )}
 
-                                {/* Render submenus */}
-                                {renderSubmenuTree(mainMenu.id, 1)}
+                                {/* Render submenus recursively */}
+                                {keyboardButtons
+                                  .filter(btn => btn.parentId === mainMenu.id && btn.level === 1)
+                                  .map(subMenu => (
+                                    <div key={subMenu.id} className="ml-6 border-l-2 border-gray-200 pl-4 mt-3">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <span className="text-sm font-medium flex items-center gap-1">
+                                          <Layers className="w-3 h-3" />
+                                          +Sub Menu
+                                        </span>
+                                        <Button
+                                          onClick={() => removeKeyboardButton(subMenu.id)}
+                                          variant="outline"
+                                          size="sm"
+                                          title="Hapus Sub Menu"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </Button>
+                                      </div>
+                                      
+                                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-3 bg-gray-50 rounded-lg">
+                                        <div>
+                                          <Label>Text Tombol</Label>
+                                          <Input
+                                            value={subMenu.text || ''}
+                                            onChange={(e) => updateKeyboardButton(subMenu.id, 'text', e.target.value)}
+                                            placeholder="Teks sub menu"
+                                          />
+                                        </div>
+                                        <div>
+                                          <Label>Callback Data</Label>
+                                          <Input
+                                            value={subMenu.callbackData || ''}
+                                            onChange={(e) => updateKeyboardButton(subMenu.id, 'callbackData', e.target.value)}
+                                            placeholder="callback_data"
+                                          />
+                                        </div>
+                                        <div>
+                                          <Label>Response Text</Label>
+                                          <Input
+                                            value={subMenu.responseText || ''}
+                                            onChange={(e) => updateKeyboardButton(subMenu.id, 'responseText', e.target.value)}
+                                            placeholder="Teks respons"
+                                          />
+                                        </div>
+                                      </div>
+
+                                      {/* Quick Actions untuk Sub Menu */}
+                                      <div className="flex gap-2 mt-2">
+                                        <Button
+                                          onClick={() => addSubSubMenu(subMenu.id)}
+                                          variant="outline"
+                                          size="sm"
+                                          title="Tambah Sub Level 1"
+                                        >
+                                          <Plus className="w-3 h-3 mr-1" />
+                                          +Sub Level 1
+                                        </Button>
+                                      </div>
+
+                                      {/* Level 2 - Sub Level 1 */}
+                                      {keyboardButtons
+                                        .filter(btn => btn.parentId === subMenu.id && btn.level === 2)
+                                        .map(level2 => (
+                                          <div key={level2.id} className="ml-6 border-l-2 border-gray-200 pl-4 mt-3">
+                                            <div className="flex items-center justify-between mb-2">
+                                              <span className="text-sm font-medium flex items-center gap-1">
+                                                <Layers className="w-3 h-3" />
+                                                +Sub Level 1
+                                              </span>
+                                              <Button
+                                                onClick={() => removeKeyboardButton(level2.id)}
+                                                variant="outline"
+                                                size="sm"
+                                                title="Hapus Sub Level 1"
+                                              >
+                                                <Trash2 className="w-3 h-3" />
+                                              </Button>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-3 bg-gray-50 rounded-lg">
+                                              <div>
+                                                <Label>Text Tombol</Label>
+                                                <Input
+                                                  value={level2.text || ''}
+                                                  onChange={(e) => updateKeyboardButton(level2.id, 'text', e.target.value)}
+                                                  placeholder="Teks sub level 1"
+                                                />
+                                              </div>
+                                              <div>
+                                                <Label>Callback Data</Label>
+                                                <Input
+                                                  value={level2.callbackData || ''}
+                                                  onChange={(e) => updateKeyboardButton(level2.id, 'callbackData', e.target.value)}
+                                                  placeholder="callback_data"
+                                                />
+                                              </div>
+                                              <div>
+                                                <Label>Response Text</Label>
+                                                <Input
+                                                  value={level2.responseText || ''}
+                                                  onChange={(e) => updateKeyboardButton(level2.id, 'responseText', e.target.value)}
+                                                  placeholder="Teks respons"
+                                                />
+                                              </div>
+                                            </div>
+
+                                            {/* Quick Actions untuk Level 2 */}
+                                            <div className="flex gap-2 mt-2">
+                                              <Button
+                                                onClick={() => addLevel4(level2.id)}
+                                                variant="outline"
+                                                size="sm"
+                                                title="Tambah Sub Level 2"
+                                              >
+                                                <Plus className="w-3 h-3 mr-1" />
+                                                +Sub Level 2
+                                              </Button>
+                                            </div>
+
+                                            {/* Level 3 - Sub Level 2 */}
+                                            {keyboardButtons
+                                              .filter(btn => btn.parentId === level2.id && btn.level === 3)
+                                              .map(level3 => (
+                                                <div key={level3.id} className="ml-6 border-l-2 border-gray-200 pl-4 mt-3">
+                                                  <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-sm font-medium flex items-center gap-1">
+                                                      <Layers className="w-3 h-3" />
+                                                      +Sub Level 2
+                                                    </span>
+                                                    <Button
+                                                      onClick={() => removeKeyboardButton(level3.id)}
+                                                      variant="outline"
+                                                      size="sm"
+                                                      title="Hapus Sub Level 2"
+                                                    >
+                                                      <Trash2 className="w-3 h-3" />
+                                                    </Button>
+                                                  </div>
+                                                  
+                                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-3 bg-gray-50 rounded-lg">
+                                                    <div>
+                                                      <Label>Text Tombol</Label>
+                                                      <Input
+                                                        value={level3.text || ''}
+                                                        onChange={(e) => updateKeyboardButton(level3.id, 'text', e.target.value)}
+                                                        placeholder="Teks sub level 2"
+                                                      />
+                                                    </div>
+                                                    <div>
+                                                      <Label>Callback Data</Label>
+                                                      <Input
+                                                        value={level3.callbackData || ''}
+                                                        onChange={(e) => updateKeyboardButton(level3.id, 'callbackData', e.target.value)}
+                                                        placeholder="callback_data"
+                                                      />
+                                                    </div>
+                                                    <div>
+                                                      <Label>Response Text</Label>
+                                                      <Input
+                                                        value={level3.responseText || ''}
+                                                        onChange={(e) => updateKeyboardButton(level3.id, 'responseText', e.target.value)}
+                                                        placeholder="Teks respons"
+                                                      />
+                                                    </div>
+                                                  </div>
+
+                                                  {/* Quick Actions untuk Level 3 */}
+                                                  <div className="flex gap-2 mt-2">
+                                                    <Button
+                                                      onClick={() => addLevel5(level3.id)}
+                                                      variant="outline"
+                                                      size="sm"
+                                                      title="Tambah Sub Level 3"
+                                                    >
+                                                      <Plus className="w-3 h-3 mr-1" />
+                                                      +Sub Level 3
+                                                    </Button>
+                                                  </div>
+
+                                                  {/* Level 4 - Sub Level 3 */}
+                                                  {keyboardButtons
+                                                    .filter(btn => btn.parentId === level3.id && btn.level === 4)
+                                                    .map(level4 => (
+                                                      <div key={level4.id} className="ml-6 border-l-2 border-gray-200 pl-4 mt-3">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                          <span className="text-sm font-medium flex items-center gap-1">
+                                                            <Layers className="w-3 h-3" />
+                                                            +Sub Level 3
+                                                          </span>
+                                                          <Button
+                                                            onClick={() => removeKeyboardButton(level4.id)}
+                                                            variant="outline"
+                                                            size="sm"
+                                                            title="Hapus Sub Level 3"
+                                                          >
+                                                            <Trash2 className="w-3 h-3" />
+                                                          </Button>
+                                                        </div>
+                                                        
+                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-3 bg-gray-50 rounded-lg">
+                                                          <div>
+                                                            <Label>Text Tombol</Label>
+                                                            <Input
+                                                              value={level4.text || ''}
+                                                              onChange={(e) => updateKeyboardButton(level4.id, 'text', e.target.value)}
+                                                              placeholder="Teks sub level 3"
+                                                            />
+                                                          </div>
+                                                          <div>
+                                                            <Label>Callback Data</Label>
+                                                            <Input
+                                                              value={level4.callbackData || ''}
+                                                              onChange={(e) => updateKeyboardButton(level4.id, 'callbackData', e.target.value)}
+                                                              placeholder="callback_data"
+                                                            />
+                                                          </div>
+                                                          <div>
+                                                            <Label>Response Text</Label>
+                                                            <Input
+                                                              value={level4.responseText || ''}
+                                                              onChange={(e) => updateKeyboardButton(level4.id, 'responseText', e.target.value)}
+                                                              placeholder="Teks respons"
+                                                            />
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                    ))}
+                                                </div>
+                                              ))}
+                                          </div>
+                                        ))}
+                                    </div>
+                                  ))}
                               </div>
                             )}
                           </div>
