@@ -93,6 +93,8 @@ export default function SmmServicesPage() {
   // State untuk filter service saat create order
   const [serviceSearchTerm, setServiceSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
 
   // State untuk mengkalkulasi charge berdasarkan quantity
   const calculateCharge = (service: any, quantity: number) => {
@@ -274,6 +276,76 @@ export default function SmmServicesPage() {
   const handleManualSync = () => {
     setIsSyncing(true);
     syncOrderStatusMutation.mutate();
+  };
+
+  // Handle batch import for large service imports
+  const handleBatchImport = async () => {
+    if (!importingProvider || selectedServices.size === 0) return;
+
+    setIsImporting(true);
+    setImportProgress({ current: 0, total: selectedServices.size });
+
+    try {
+      // Convert selected services to array
+      const selectedServicesList = providerServices.filter(service => 
+        selectedServices.has(service.service || service.id)
+      );
+
+      console.log(`Starting batch import of ${selectedServicesList.length} services`);
+
+      // Use the enhanced endpoint with batch processing
+      const response = await apiRequest("POST", `/api/smm/providers/${importingProvider.id}/import-services`, {
+        services: selectedServicesList,
+        batchSize: 50 // Process in batches of 50 to avoid request size limits
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "✅ Import berhasil!",
+          description: `${result.importedCount} services berhasil diimpor dari ${selectedServicesList.length} yang dipilih${result.batchesProcessed ? ` dalam ${result.batchesProcessed} batch` : ''}`,
+        });
+
+        // Reset states
+        setSelectedServices(new Set());
+        setShowImportModal(false);
+        setImportingProvider(null);
+        
+        // Refresh services list
+        queryClient.invalidateQueries({ queryKey: ["/api/smm/services"] });
+
+        // Show errors if any
+        if (result.errors && result.errors.length > 0) {
+          console.warn("Import errors:", result.errors);
+          toast({
+            title: "⚠️ Beberapa service gagal diimpor",
+            description: `${result.errors.length} service mengalami error. Periksa console untuk detail.`,
+            variant: "destructive",
+          });
+        }
+      } else {
+        throw new Error(result.message || "Import failed");
+      }
+    } catch (error: any) {
+      console.error("Batch import error:", error);
+      
+      let errorMessage = "Gagal mengimpor services";
+      if (error.message?.includes("413") || error.message?.includes("request entity too large")) {
+        errorMessage = "Request terlalu besar. Coba pilih lebih sedikit services per batch.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      toast({
+        title: "❌ Import gagal!",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsImporting(false);
+      setImportProgress({ current: 0, total: 0 });
+    }
   };
 
   // Create order mutation
@@ -1566,18 +1638,66 @@ export default function SmmServicesPage() {
               </div>)
             )}
 
-            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setShowImportModal(false);
-                  setImportingProvider(null);
-                  setSelectedServices(new Set());
-                }}
-              >
-                Cancel
-              </Button>
+            <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
+              <div className="text-sm text-gray-600">
+                Selected: <span className="font-semibold text-blue-600">{selectedServices.size}</span> services
+                {selectedServices.size > 100 && (
+                  <span className="ml-2 text-orange-600 font-medium">
+                    (Will be processed in batches)
+                  </span>
+                )}
+              </div>
+              
+              <div className="flex space-x-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowImportModal(false);
+                    setImportingProvider(null);
+                    setSelectedServices(new Set());
+                    setIsImporting(false);
+                    setImportProgress({ current: 0, total: 0 });
+                  }}
+                  disabled={isImporting}
+                >
+                  Cancel
+                </Button>
+                
+                <Button
+                  onClick={handleBatchImport}
+                  disabled={selectedServices.size === 0 || isImporting}
+                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+                >
+                  {isImporting ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Importing... ({importProgress.current}/{importProgress.total})</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <Download className="w-4 h-4" />
+                      <span>Import Selected ({selectedServices.size})</span>
+                    </div>
+                  )}
+                </Button>
+              </div>
             </div>
+            
+            {/* Progress Bar */}
+            {isImporting && importProgress.total > 0 && (
+              <div className="mt-4 space-y-2">
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Importing services...</span>
+                  <span>{Math.round((importProgress.current / importProgress.total) * 100)}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

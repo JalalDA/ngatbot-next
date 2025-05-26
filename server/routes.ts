@@ -896,12 +896,12 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Import services from SMM provider
+  // Import services from SMM provider with batch processing
   app.post("/api/smm/providers/:id/import-services", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
       const providerId = parseInt(req.params.id);
-      const { services: selectedServices } = req.body;
+      const { services: selectedServices, batchSize = 50 } = req.body;
 
       // Check if provider belongs to user
       const provider = await storage.getSmmProvider(providerId);
@@ -919,7 +919,93 @@ export function registerRoutes(app: Express): Server {
       let importedCount = 0;
       const errors: string[] = [];
 
-      for (const service of selectedServices) {
+      // Process services in batches to avoid request size limits
+      const batches = [];
+      for (let i = 0; i < selectedServices.length; i += batchSize) {
+        batches.push(selectedServices.slice(i, i + batchSize));
+      }
+
+      console.log(`Processing ${selectedServices.length} services in ${batches.length} batches of ${batchSize}`);
+
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
+        console.log(`Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} services`);
+
+        for (const service of batch) {
+          try {
+            // Auto-assign MID (1-10)
+            const mid = generateMid(usedMids);
+            if (mid) {
+              usedMids.push(mid);
+
+              await storage.createSmmService({
+                userId: user.id,
+                providerId: provider.id,
+                mid,
+                name: service.name,
+                description: service.category || "",
+                min: service.min,
+                max: service.max,
+                rate: parseRate(service.rate).toString(),
+                category: service.category,
+                serviceIdApi: (service.service || service.id).toString(),
+                isActive: true
+              });
+
+              importedCount++;
+            } else {
+              errors.push(`No available MID for service: ${service.name}`);
+            }
+          } catch (error) {
+            errors.push(`Failed to import ${service.name}: ${(error as Error).message}`);
+          }
+        }
+
+        // Small delay between batches to prevent overwhelming the database
+        if (batchIndex < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+
+      res.json({
+        message: `Successfully imported ${importedCount} services`,
+        importedCount,
+        totalRequested: selectedServices.length,
+        batchesProcessed: batches.length,
+        errors: errors.length > 0 ? errors : undefined
+      });
+    } catch (error) {
+      console.error("Import services error:", error);
+      res.status(500).json({ message: "Failed to import services from provider" });
+    }
+  });
+
+  // Batch import endpoint for very large service imports
+  app.post("/api/smm/providers/:id/import-services-batch", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const providerId = parseInt(req.params.id);
+      const { servicesBatch, batchIndex, totalBatches } = req.body;
+
+      // Check if provider belongs to user
+      const provider = await storage.getSmmProvider(providerId);
+      if (!provider || provider.userId !== user.id) {
+        return res.status(404).json({ message: "SMM provider not found" });
+      }
+
+      if (!servicesBatch || !Array.isArray(servicesBatch)) {
+        return res.status(400).json({ message: "No services batch provided" });
+      }
+
+      // Get used MIDs for this user
+      const usedMids = await storage.getUsedMids(user.id);
+      
+      let importedCount = 0;
+      const errors: string[] = [];
+
+      console.log(`Processing batch ${batchIndex + 1}/${totalBatches} with ${servicesBatch.length} services`);
+
+      for (const service of servicesBatch) {
         try {
           // Auto-assign MID (1-10)
           const mid = generateMid(usedMids);
@@ -941,6 +1027,8 @@ export function registerRoutes(app: Express): Server {
             });
 
             importedCount++;
+          } else {
+            errors.push(`No available MID for service: ${service.name}`);
           }
         } catch (error) {
           errors.push(`Failed to import ${service.name}: ${(error as Error).message}`);
@@ -948,13 +1036,16 @@ export function registerRoutes(app: Express): Server {
       }
 
       res.json({
-        message: `Successfully imported ${importedCount} services`,
+        message: `Batch ${batchIndex + 1}/${totalBatches} processed successfully`,
         importedCount,
+        batchIndex,
+        totalBatches,
+        isLastBatch: batchIndex === totalBatches - 1,
         errors: errors.length > 0 ? errors : undefined
       });
     } catch (error) {
-      console.error("Import services error:", error);
-      res.status(500).json({ message: "Failed to import services from provider" });
+      console.error("Import services batch error:", error);
+      res.status(500).json({ message: "Failed to import services batch" });
     }
   });
 
