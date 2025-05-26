@@ -84,6 +84,8 @@ export default function SmmServicesPage() {
   const [orderSearchTerm, setOrderSearchTerm] = useState("");
   const [selectedOrderService, setSelectedOrderService] = useState<any>(null);
   const [orderCharge, setOrderCharge] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [ordersPerPage] = useState(20);
 
   // State untuk mengkalkulasi charge berdasarkan quantity
   const calculateCharge = (service: any, quantity: number) => {
@@ -102,9 +104,14 @@ export default function SmmServicesPage() {
     queryKey: ["/api/smm/services"],
   });
 
-  // Fetch SMM orders
+  // Fetch SMM orders with pagination
   const { data: smmOrders = [], isLoading: ordersLoading } = useQuery({
-    queryKey: ["/api/smm/orders"],
+    queryKey: ["/api/smm/orders", currentPage],
+    queryFn: async () => {
+      const response = await fetch(`/api/smm/orders?page=${currentPage}&limit=${ordersPerPage}`);
+      if (!response.ok) throw new Error('Failed to fetch orders');
+      return response.json();
+    }
   });
 
   // Create SMM Provider mutation

@@ -64,7 +64,7 @@ export interface IStorage {
   // SMM Order management
   getSmmOrder(id: number): Promise<SmmOrder | undefined>;
   getSmmOrderByOrderId(orderId: string): Promise<SmmOrder | undefined>;
-  getSmmOrdersByUserId(userId: number): Promise<SmmOrder[]>;
+  getSmmOrdersByUserId(userId: number, limit?: number, offset?: number): Promise<any[]>;
   createSmmOrder(order: InsertSmmOrder): Promise<SmmOrder>;
   updateSmmOrder(id: number, updates: Partial<SmmOrder>): Promise<SmmOrder | undefined>;
 
@@ -367,8 +367,8 @@ export class DatabaseStorage implements IStorage {
     return order || undefined;
   }
 
-  async getSmmOrdersByUserId(userId: number): Promise<any[]> {
-    return await db
+  async getSmmOrdersByUserId(userId: number, limit?: number, offset?: number): Promise<any[]> {
+    const baseQuery = db
       .select({
         id: smmOrders.id,
         userId: smmOrders.userId,
@@ -388,25 +388,42 @@ export class DatabaseStorage implements IStorage {
         errorMessage: smmOrders.errorMessage,
         createdAt: smmOrders.createdAt,
         updatedAt: smmOrders.updatedAt,
-        // Join service information
-        service: {
-          id: smmServices.id,
-          name: smmServices.name,
-          category: smmServices.category,
-          rate: smmServices.rate,
-          mid: smmServices.mid,
-        },
+        // Join service information with aliases
+        serviceName: smmServices.name,
+        serviceCategory: smmServices.category,
+        serviceRate: smmServices.rate,
+        serviceMid: smmServices.mid,
         // Join provider information
-        provider: {
-          id: smmProviders.id,
-          name: smmProviders.name,
-        }
+        providerName: smmProviders.name,
       })
       .from(smmOrders)
-      .leftJoin(smmServices, eq(smmOrders.serviceId, smmServices.id))
-      .leftJoin(smmProviders, eq(smmOrders.providerId, smmProviders.id))
+      .innerJoin(smmServices, eq(smmOrders.serviceId, smmServices.id))
+      .innerJoin(smmProviders, eq(smmOrders.providerId, smmProviders.id))
       .where(eq(smmOrders.userId, userId))
       .orderBy(desc(smmOrders.createdAt));
+
+    let results;
+    if (limit && offset !== undefined) {
+      results = await baseQuery.limit(limit).offset(offset);
+    } else if (limit) {
+      results = await baseQuery.limit(limit);
+    } else {
+      results = await baseQuery;
+    }
+    
+    // Transform the results to include nested objects
+    return results.map(row => ({
+      ...row,
+      service: {
+        name: row.serviceName,
+        category: row.serviceCategory,
+        rate: row.serviceRate,
+        mid: row.serviceMid,
+      },
+      provider: {
+        name: row.providerName,
+      }
+    }));
   }
 
   async createSmmOrder(insertOrder: InsertSmmOrder): Promise<SmmOrder> {

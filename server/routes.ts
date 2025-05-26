@@ -1110,11 +1110,15 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Get SMM orders for current user
+  // Get SMM orders for current user with pagination
   app.get("/api/smm/orders", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
-      const orders = await storage.getSmmOrdersByUserId(user.id);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = (page - 1) * limit;
+      
+      const orders = await storage.getSmmOrdersByUserId(user.id, limit, offset);
       res.json(orders);
     } catch (error) {
       console.error("Get SMM orders error:", error);
