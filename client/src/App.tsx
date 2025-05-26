@@ -63,15 +63,6 @@ function Router() {
         )} 
       />
       <ProtectedRoute 
-        path="/smm-services" 
-        component={() => (
-          <>
-            <Navigation />
-            <SmmServicesPage />
-          </>
-        )} 
-      />
-      <ProtectedRoute 
         path="/profile" 
         component={() => (
           <>
