@@ -37,7 +37,9 @@ import {
   Link as LinkIcon,
   Package,
   TrendingUp,
-  Target
+  Target,
+  ChevronRight,
+  ChevronDown
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -95,6 +97,7 @@ export default function SmmServicesPage() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
 
   // State untuk mengkalkulasi charge berdasarkan quantity
   const calculateCharge = (service: any, quantity: number) => {
@@ -117,6 +120,29 @@ export default function SmmServicesPage() {
   const categories = Array.isArray(smmServices) 
     ? [...new Set(smmServices.map((service: any) => service.category).filter(Boolean))]
     : [];
+
+  // Toggle category collapse
+  const toggleCategoryCollapse = (category: string) => {
+    const newCollapsed = new Set(collapsedCategories);
+    if (newCollapsed.has(category)) {
+      newCollapsed.delete(category);
+    } else {
+      newCollapsed.add(category);
+    }
+    setCollapsedCategories(newCollapsed);
+  };
+
+  // Group services by category
+  const servicesByCategory = Array.isArray(smmServices) 
+    ? smmServices.reduce((acc: any, service: any) => {
+        const category = service.category || 'Uncategorized';
+        if (!acc[category]) {
+          acc[category] = [];
+        }
+        acc[category].push(service);
+        return acc;
+      }, {})
+    : {};
 
   // Filter services based on search term and category for order form
   const filteredOrderServices = Array.isArray(smmServices) 
@@ -1187,79 +1213,123 @@ export default function SmmServicesPage() {
                   </Select>
                 </div>
 
-                {/* Simplified Services List */}
-                <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                  {filteredServices.map((service: any) => (
-                    <div key={service.id} className="bg-card p-3 rounded border border-border hover:bg-muted/20 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3 flex-1">
-                          <Checkbox
-                            checked={selectedServicesForDelete.has(service.id)}
-                            onCheckedChange={(checked) => {
-                              const newSelected = new Set(selectedServicesForDelete);
-                              if (checked) {
-                                newSelected.add(service.id);
-                              } else {
-                                newSelected.delete(service.id);
-                              }
-                              setSelectedServicesForDelete(newSelected);
-                            }}
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-1">
-                              <h4 className="font-medium text-foreground text-sm truncate pr-2">{service.name}</h4>
-                              <span className="text-xs text-muted-foreground">ID: {service.service}</span>
-                            </div>
-                            
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                              <Badge variant="outline" className="text-xs px-2 py-0.5">
-                                {service.category}
-                              </Badge>
-                              
-                              <div className="flex items-center space-x-4">
-                                <span className="text-green-600 font-medium">${service.rate}/1K</span>
-                                <span>Min: {service.min?.toLocaleString()}</span>
-                                <span>Max: {service.max?.toLocaleString()}</span>
-                                {service.refill && <span className="text-blue-600">♻️</span>}
-                                {service.cancel && <span className="text-red-600">❌</span>}
-                              </div>
-                            </div>
+                {/* Categorized Services List with Collapsible Categories */}
+                <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                  {Object.entries(servicesByCategory).map(([category, services]: [string, any]) => (
+                    <div key={category} className="border rounded-lg">
+                      {/* Category Header */}
+                      <div 
+                        className="flex items-center justify-between p-3 bg-muted/30 rounded-t-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => toggleCategoryCollapse(category)}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="flex items-center space-x-2">
+                            {collapsedCategories.has(category) ? (
+                              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                            )}
+                            <h3 className="font-medium text-foreground">{category}</h3>
                           </div>
+                          <Badge variant="secondary" className="text-xs">
+                            {services.length} services
+                          </Badge>
                         </div>
                         
-                        <div className="flex items-center space-x-1 ml-3">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              setEditingService(service);
-                              setServiceForm({
-                                name: service.name || "",
-                                description: service.description || "",
-                                category: service.category || "",
-                                rate: service.rate || "",
-                                min: service.min || "",
-                                max: service.max || "",
-                                syncMinMax: true,
-                                customRate: service.customRate || "",
-                                useCustomRate: false
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            checked={services.every((service: any) => selectedServicesForDelete.has(service.id))}
+                            onCheckedChange={(checked) => {
+                              const newSelected = new Set(selectedServicesForDelete);
+                              services.forEach((service: any) => {
+                                if (checked) {
+                                  newSelected.add(service.id);
+                                } else {
+                                  newSelected.delete(service.id);
+                                }
                               });
-                              setShowEditServiceModal(true);
+                              setSelectedServicesForDelete(newSelected);
                             }}
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => deleteSmmServiceMutation.mutate(service.id)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <span className="text-xs text-muted-foreground">Select All</span>
                         </div>
                       </div>
+
+                      {/* Services List (Collapsible) */}
+                      {!collapsedCategories.has(category) && (
+                        <div className="space-y-1 p-2">
+                          {services.map((service: any) => (
+                            <div key={service.id} className="bg-card p-2 rounded border border-border hover:bg-muted/20 transition-colors">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3 flex-1">
+                                  <Checkbox
+                                    checked={selectedServicesForDelete.has(service.id)}
+                                    onCheckedChange={(checked) => {
+                                      const newSelected = new Set(selectedServicesForDelete);
+                                      if (checked) {
+                                        newSelected.add(service.id);
+                                      } else {
+                                        newSelected.delete(service.id);
+                                      }
+                                      setSelectedServicesForDelete(newSelected);
+                                    }}
+                                  />
+                                  <div className="flex-1">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <h4 className="font-medium text-foreground text-sm truncate pr-2">{service.name}</h4>
+                                      <span className="text-xs text-muted-foreground">ID: {service.service}</span>
+                                    </div>
+                                    
+                                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                      <div className="flex items-center space-x-4">
+                                        <span className="text-green-600 font-medium">${service.rate}/1K</span>
+                                        <span>Min: {service.min?.toLocaleString()}</span>
+                                        <span>Max: {service.max?.toLocaleString()}</span>
+                                        {service.refill && <span className="text-blue-600">♻️</span>}
+                                        {service.cancel && <span className="text-red-600">❌</span>}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-center space-x-1 ml-3">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      setEditingService(service);
+                                      setServiceForm({
+                                        name: service.name || "",
+                                        description: service.description || "",
+                                        category: service.category || "",
+                                        rate: service.rate || "",
+                                        min: service.min || "",
+                                        max: service.max || "",
+                                        syncMinMax: true,
+                                        customRate: service.customRate || "",
+                                        useCustomRate: false
+                                      });
+                                      setShowEditServiceModal(true);
+                                    }}
+                                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  >
+                                    <Edit className="w-3 h-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => deleteSmmServiceMutation.mutate(service.id)}
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
 
