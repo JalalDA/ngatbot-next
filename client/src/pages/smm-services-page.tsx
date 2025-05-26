@@ -98,6 +98,17 @@ export default function SmmServicesPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+  
+  // State untuk edit kategori
+  const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<string>("");
+  const [categoryForm, setCategoryForm] = useState({
+    name: "",
+    isDisabled: false,
+    sortBy: "default" // default, price-low, price-high
+  });
+  const [disabledCategories, setDisabledCategories] = useState<Set<string>>(new Set());
+  const [categorySortSettings, setCategorySortSettings] = useState<{[key: string]: string}>({});
 
   // State untuk mengkalkulasi charge berdasarkan quantity
   const calculateCharge = (service: any, quantity: number) => {
@@ -132,10 +143,95 @@ export default function SmmServicesPage() {
     setCollapsedCategories(newCollapsed);
   };
 
-  // Group services by category
+  // Fungsi untuk menangani edit kategori
+  const handleEditCategory = (category: string) => {
+    setEditingCategory(category);
+    setCategoryForm({
+      name: category,
+      isDisabled: disabledCategories.has(category),
+      sortBy: categorySortSettings[category] || "default"
+    });
+    setShowEditCategoryModal(true);
+  };
+
+  // Fungsi untuk menyimpan perubahan kategori
+  const handleSaveCategory = () => {
+    if (categoryForm.name && categoryForm.name !== editingCategory) {
+      // Update nama kategori di semua services
+      const updatedServices = smmServices.map((service: any) => {
+        if (service.category === editingCategory) {
+          return { ...service, category: categoryForm.name };
+        }
+        return service;
+      });
+      // Di sini nanti bisa ditambahkan API call untuk update database
+    }
+
+    // Update disabled categories
+    const newDisabledCategories = new Set(disabledCategories);
+    if (categoryForm.isDisabled) {
+      newDisabledCategories.add(categoryForm.name);
+    } else {
+      newDisabledCategories.delete(editingCategory);
+      newDisabledCategories.delete(categoryForm.name);
+    }
+    setDisabledCategories(newDisabledCategories);
+
+    // Update sort settings
+    const newSortSettings = { ...categorySortSettings };
+    newSortSettings[categoryForm.name] = categoryForm.sortBy;
+    setCategorySortSettings(newSortSettings);
+
+    setShowEditCategoryModal(false);
+    setEditingCategory("");
+    
+    toast({
+      title: "Kategori berhasil diupdate",
+      description: "Pengaturan kategori telah disimpan.",
+    });
+  };
+
+  // Fungsi untuk delete kategori (menghapus semua services dalam kategori)
+  const handleDeleteCategory = () => {
+    const servicesToDelete = smmServices.filter((service: any) => service.category === editingCategory);
+    const serviceIds = servicesToDelete.map((service: any) => service.id);
+    
+    if (serviceIds.length > 0) {
+      // Delete semua services dalam kategori
+      serviceIds.forEach(id => {
+        deleteSmmServiceMutation.mutate(id);
+      });
+    }
+
+    setShowEditCategoryModal(false);
+    setEditingCategory("");
+    
+    toast({
+      title: "Kategori berhasil dihapus",
+      description: `${servicesToDelete.length} services dalam kategori "${editingCategory}" telah dihapus.`,
+    });
+  };
+
+  // Fungsi untuk sort services dalam kategori
+  const sortServicesInCategory = (services: any[], sortBy: string) => {
+    if (sortBy === "price-low") {
+      return [...services].sort((a, b) => parseFloat(a.rate) - parseFloat(b.rate));
+    } else if (sortBy === "price-high") {
+      return [...services].sort((a, b) => parseFloat(b.rate) - parseFloat(a.rate));
+    }
+    return services; // default order
+  };
+
+  // Group services by category dengan sorting dan filtering
   const servicesByCategory = Array.isArray(smmServices) 
     ? smmServices.reduce((acc: any, service: any) => {
         const category = service.category || 'Uncategorized';
+        
+        // Skip jika kategori di-disable
+        if (disabledCategories.has(category)) {
+          return acc;
+        }
+        
         if (!acc[category]) {
           acc[category] = [];
         }
@@ -143,6 +239,12 @@ export default function SmmServicesPage() {
         return acc;
       }, {})
     : {};
+
+  // Apply sorting untuk setiap kategori
+  Object.keys(servicesByCategory).forEach(category => {
+    const sortBy = categorySortSettings[category] || "default";
+    servicesByCategory[category] = sortServicesInCategory(servicesByCategory[category], sortBy);
+  });
 
   // Filter services based on search term and category for order form
   const filteredOrderServices = Array.isArray(smmServices) 
@@ -1237,6 +1339,17 @@ export default function SmmServicesPage() {
                         </div>
                         
                         <div className="flex items-center space-x-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditCategory(category);
+                            }}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            <Settings className="w-4 h-4" />
+                          </Button>
                           <Checkbox
                             checked={services.every((service: any) => selectedServicesForDelete.has(service.id))}
                             onCheckedChange={(checked) => {
@@ -2002,6 +2115,95 @@ export default function SmmServicesPage() {
                 >
                   Save Changes
                 </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Modal Edit Kategori */}
+      {showEditCategoryModal && (
+        <Dialog open={showEditCategoryModal} onOpenChange={setShowEditCategoryModal}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <Settings className="w-5 h-5 text-blue-600" />
+                <span>Edit Kategori</span>
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* Edit Nama Kategori */}
+              <div>
+                <Label htmlFor="categoryName" className="text-gray-900 font-medium">Nama Kategori</Label>
+                <Input
+                  id="categoryName"
+                  value={categoryForm.name}
+                  onChange={(e) => setCategoryForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Masukkan nama kategori"
+                  className="mt-2 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Disable Kategori */}
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <Label htmlFor="disableCategory" className="text-gray-900 font-medium">Disable Kategori</Label>
+                  <p className="text-xs text-gray-600 mt-1">Kategori dan semua service di dalamnya akan disembunyikan</p>
+                </div>
+                <Switch
+                  id="disableCategory"
+                  checked={categoryForm.isDisabled}
+                  onCheckedChange={(checked) => setCategoryForm(prev => ({ ...prev, isDisabled: checked }))}
+                />
+              </div>
+
+              {/* Sort by Price */}
+              <div>
+                <Label htmlFor="sortByPrice" className="text-gray-900 font-medium">Urutkan Berdasarkan Harga</Label>
+                <Select
+                  value={categoryForm.sortBy}
+                  onValueChange={(value) => setCategoryForm(prev => ({ ...prev, sortBy: value }))}
+                >
+                  <SelectTrigger className="mt-2">
+                    <SelectValue placeholder="Pilih urutan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Default (Tidak diurutkan)</SelectItem>
+                    <SelectItem value="price-low">Harga Terendah ke Tertinggi</SelectItem>
+                    <SelectItem value="price-high">Harga Tertinggi ke Terendah</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-between pt-4 border-t">
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteCategory}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Hapus Kategori
+                </Button>
+
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowEditCategoryModal(false);
+                      setEditingCategory("");
+                    }}
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    onClick={handleSaveCategory}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Simpan
+                  </Button>
+                </div>
               </div>
             </div>
           </DialogContent>
