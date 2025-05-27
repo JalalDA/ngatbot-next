@@ -159,7 +159,7 @@ export default function ApiProviderPage() {
   const testApiKey = async (apiKey: ApiKey) => {
     setTestingApiKey(apiKey.id);
     try {
-      const response = await fetch('/api/v2', {
+      const response = await fetch('/api/smm-provider', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',

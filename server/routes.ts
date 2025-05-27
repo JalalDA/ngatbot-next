@@ -60,12 +60,12 @@ export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
   // ===============================
-  // API PROVIDER ENDPOINTS (/provider/v2) - MUST BE FIRST
+  // API PROVIDER ENDPOINTS - Compatible with SMM Panel format
   // ===============================
   
-  // API Provider endpoints for resellers
-  app.get("/provider/v2", validateApiKey, getBalance);
-  app.post("/provider/v2", validateApiKey, (req, res) => {
+  // API Provider endpoints for resellers (using /api path to avoid Vite conflicts)
+  app.get("/api/smm-provider", validateApiKey, getBalance);
+  app.post("/api/smm-provider", validateApiKey, (req, res) => {
     const action = req.body.action || req.query.action;
     
     switch (action) {
