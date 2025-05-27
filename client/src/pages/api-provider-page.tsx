@@ -199,7 +199,7 @@ export default function ApiProviderPage() {
               <Activity className="w-5 h-5 text-green-500" />
               <div>
                 <p className="text-sm text-muted-foreground">Total Requests</p>
-                <p className="text-2xl font-bold">{totalStats.totalRequests.toLocaleString()}</p>
+                <p className="text-2xl font-bold">{(totalStats?.totalRequests || 0).toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
@@ -210,7 +210,7 @@ export default function ApiProviderPage() {
               <Users className="w-5 h-5 text-purple-500" />
               <div>
                 <p className="text-sm text-muted-foreground">Total Orders</p>
-                <p className="text-2xl font-bold">{totalStats.totalOrders.toLocaleString()}</p>
+                <p className="text-2xl font-bold">{(totalStats?.totalOrders || 0).toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
@@ -221,7 +221,7 @@ export default function ApiProviderPage() {
               <DollarSign className="w-5 h-5 text-yellow-500" />
               <div>
                 <p className="text-sm text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold">${totalStats.totalRevenue.toFixed(2)}</p>
+                <p className="text-2xl font-bold">${(totalStats?.totalRevenue || 0).toFixed(2)}</p>
               </div>
             </div>
           </CardContent>
@@ -308,15 +308,15 @@ export default function ApiProviderPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
                         <p className="text-muted-foreground">Requests</p>
-                        <p className="font-semibold">{apiKey.totalRequests.toLocaleString()}</p>
+                        <p className="font-semibold">{(apiKey.totalRequests || 0).toLocaleString()}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Orders</p>
-                        <p className="font-semibold">{apiKey.totalOrders.toLocaleString()}</p>
+                        <p className="font-semibold">{(apiKey.totalOrders || 0).toLocaleString()}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Revenue</p>
-                        <p className="font-semibold">${parseFloat(apiKey.totalRevenue).toFixed(2)}</p>
+                        <p className="font-semibold">${parseFloat(apiKey.totalRevenue || "0").toFixed(2)}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Last Used</p>
