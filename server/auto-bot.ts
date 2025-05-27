@@ -296,7 +296,8 @@ export class AutoBotManager {
                   await bot.editMessageText(responseText, {
                     chat_id: chatId,
                     message_id: msg.message_id,
-                    reply_markup: responseKeyboard
+                    reply_markup: responseKeyboard,
+                    parse_mode: 'Markdown'
                   });
                 }
               } else {
@@ -340,13 +341,17 @@ export class AutoBotManager {
                   console.log(`📋 Level ${currentLevel + 1} menu buttons:`, childMenusWithNavigation.map(btn => btn.text));
                   
                   const childMenuKeyboard = this.createInlineKeyboard(childMenusWithNavigation);
+                  
+                  // Use response text if available, otherwise use default format
                   const levelNames = ['Menu', 'Sub Menu', 'Sub Sub Menu', 'Level 4 Menu', 'Level 5 Menu', 'Level 6 Menu'];
                   const levelName = levelNames[currentLevel] || `Level ${currentLevel + 1} Menu`;
+                  const menuText = pressedButton.responseText || `📋 ${levelName} ${pressedButton.text}:`;
                   
-                  await bot.editMessageText(`📋 ${levelName} ${pressedButton.text}:`, {
+                  await bot.editMessageText(menuText, {
                     chat_id: chatId,
                     message_id: msg.message_id,
-                    reply_markup: childMenuKeyboard
+                    reply_markup: childMenuKeyboard,
+                    parse_mode: 'Markdown'
                   });
                 } else {
                   // No child menus, this is a final button - show response text inline with back button
@@ -365,7 +370,8 @@ export class AutoBotManager {
                   await bot.editMessageText(responseText, {
                     chat_id: chatId,
                     message_id: msg.message_id,
-                    reply_markup: responseKeyboard
+                    reply_markup: responseKeyboard,
+                    parse_mode: 'Markdown'
                   });
                 }
               }
