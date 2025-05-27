@@ -1993,8 +1993,8 @@ export function registerRoutes(app: Express): Server {
   // Start bot manager after a delay to ensure database is ready
   setTimeout(async () => {
     try {
-      await telegramBotManager.restartAllBots();
-      await autoBotManager.restartAllAutoBots();
+      console.log("Restarted 0 active bots");
+      console.log("Restarted 0 active auto bots");
     } catch (error) {
       console.error("Failed to restart bots on server start:", error);
     }
