@@ -1,6 +1,8 @@
 // Load environment variables from .env file in development mode
-if (process.env.NODE_ENV === 'development') {
-  require('dotenv').config();
+import dotenv from "dotenv";
+
+if (process.env.NODE_ENV === "development") {
+  dotenv.config();
 }
 
 import express, { type Request, Response, NextFunction } from "express";
@@ -33,11 +35,11 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       // SECURITY: Only log essential info without exposing sensitive data
       const basicLogLine = `${req.method} ${path} ${res.statusCode} ${duration}ms`;
-      
+
       // Only log errors and important operations, not successful GET requests
       if (res.statusCode >= 400) {
         console.error(`🔥 API ERROR: ${basicLogLine}`);
-      } else if (req.method !== 'GET') {
+      } else if (req.method !== "GET") {
         console.log(`📝 API: ${basicLogLine}`);
       }
       // No response data logged for security
@@ -71,11 +73,14 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  server.listen(
+    {
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    },
+    () => {
+      log(`serving on port ${port}`);
+    },
+  );
 })();
