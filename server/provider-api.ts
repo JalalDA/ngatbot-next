@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { db } from './db.js';
 import { apiKeys, smmServices, smmOrders, users } from '../shared/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { SmmPanelAPI, generateSmmOrderId, calculateOrderAmount } from './smm-panel.js';
 import crypto from 'crypto';
 
@@ -63,11 +63,17 @@ export async function validateApiKey(req: Request, res: Response, next: NextFunc
     }
 
     // Update last used dan total requests
+    const currentRequests = await db
+      .select({ totalRequests: apiKeys.totalRequests })
+      .from(apiKeys)
+      .where(eq(apiKeys.id, apiKeyRecord[0].id))
+      .limit(1);
+    
     await db
       .update(apiKeys)
       .set({
         lastUsed: new Date(),
-        totalRequests: apiKeys.totalRequests + 1
+        totalRequests: (currentRequests[0]?.totalRequests || 0) + 1
       })
       .where(eq(apiKeys.id, apiKeyRecord[0].id));
 
@@ -98,6 +104,12 @@ export async function getBalance(req: Request, res: Response) {
     if (action !== 'balance') {
       return res.json({
         error: 'Invalid action'
+      });
+    }
+
+    if (!req.apiUser) {
+      return res.json({
+        error: 'Authentication required'
       });
     }
 
