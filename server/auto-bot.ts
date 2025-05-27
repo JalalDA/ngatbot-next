@@ -166,27 +166,11 @@ export class AutoBotManager {
         if (msg && data) {
           const chatId = msg.chat.id;
           
-          // Debug: Log the callback data
-          console.log(`Received callback data: ${data}`);
-          
           // Find the button that was pressed
           const pressedButton = autoBot.keyboardConfig?.find(btn => btn.callbackData === data);
           
-          console.log(`Found pressed button: ${pressedButton ? pressedButton.text : 'Not found'}`);
-          if (pressedButton) {
-            console.log('🔍 Button details:', { level: pressedButton.level, hasSubMenus: false });
-          }
-          
-          try {
-            // Answer the callback query to remove loading state
-            const answerText = pressedButton ? `Anda memilih: ${pressedButton.text}` : 'Navigasi...';
-            await bot.answerCallbackQuery(callbackQuery.id, {
-              text: answerText,
-              show_alert: false
-            });
-          } catch (error) {
-            console.error('Error answering callback query:', error);
-          }
+          // Answer callback query immediately for fast response
+          bot.answerCallbackQuery(callbackQuery.id).catch(() => {});
           
           // Handle special navigation callbacks first (they might not be in pressedButton)
           if (data === 'back_to_main') {
@@ -196,14 +180,9 @@ export class AutoBotManager {
             );
             const keyboard = this.createInlineKeyboard(mainMenuButtons);
             
-            // Always delete original message and send new one to avoid conflicts
-            try {
-              await bot.deleteMessage(chatId, msg.message_id);
-            } catch (deleteError) {
-              console.log('Could not delete message, continuing...');
-            }
-            
-            await bot.sendMessage(chatId, autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:", {
+            // Fast delete and send
+            bot.deleteMessage(chatId, msg.message_id).catch(() => {});
+            bot.sendMessage(chatId, autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:", {
               reply_markup: keyboard,
               parse_mode: 'Markdown'
             });
@@ -233,18 +212,14 @@ export class AutoBotManager {
               
               // Check if this is a main menu button (level 0) that has sub-menus
               if (!pressedButton.level || pressedButton.level === 0) {
-                console.log('🔍 Checking for sub menus of button:', pressedButton.text, 'with ID:', pressedButton.id);
                 // Find sub-menus for this main menu
                 const subMenus = (autoBot.keyboardConfig || []).filter(btn => 
                   btn.level === 1 && btn.parentId === pressedButton.id
                 );
-                console.log('🔍 Found sub menus:', subMenus.length, subMenus.map(btn => btn.text));
                 
                 if (subMenus.length > 0) {
                   // Find All Show button from config
                   const allShowButton = (autoBot.keyboardConfig || []).find(btn => btn.isAllShow);
-                  console.log('🔍 Found All Show button:', allShowButton ? 'YES' : 'NO');
-                  
                   // Add only All Show button if it exists in config (remove duplicate Menu Utama)
                   const navigationButtons = [];
                   if (allShowButton) {
@@ -254,7 +229,6 @@ export class AutoBotManager {
                       callbackData: 'show_all_menus',
                       level: 1
                     });
-                    console.log('✅ Added All Show button to sub menu level');
                   }
                   
                   // Add back button at the end
@@ -264,7 +238,7 @@ export class AutoBotManager {
                     this.createHomeButton('submenu')
                   ];
                   
-                  console.log('📋 Sub menu with navigation buttons:', subMenusWithNavigation.map(btn => btn.text));
+
                   
                   // Replace main menu with sub-menus
                   const subMenuKeyboard = this.createInlineKeyboard(subMenusWithNavigation);
