@@ -311,11 +311,12 @@ export class AutoBotManager {
                   const responseKeyboard = this.createInlineKeyboard([backButton]);
                   
                   // Check if button has image URL
-                  if (pressedButton.responseImage && pressedButton.responseImage.trim()) {
+                  const buttonWithImage = pressedButton as any;
+                  if (buttonWithImage.responseImage && buttonWithImage.responseImage.trim()) {
                     // Send photo with caption and keyboard
                     await bot.editMessageMedia({
                       type: 'photo',
-                      media: pressedButton.responseImage,
+                      media: buttonWithImage.responseImage,
                       caption: responseText,
                       parse_mode: 'Markdown'
                     }, {
@@ -381,11 +382,12 @@ export class AutoBotManager {
                   const menuText = pressedButton.responseText || `📋 ${levelName} ${pressedButton.text}:`;
                   
                   // Check if button has image URL
-                  if (pressedButton.responseImage && pressedButton.responseImage.trim()) {
+                  const buttonWithImage = pressedButton as any;
+                  if (buttonWithImage.responseImage && buttonWithImage.responseImage.trim()) {
                     // Send photo with caption and keyboard
                     await bot.editMessageMedia({
                       type: 'photo',
-                      media: pressedButton.responseImage,
+                      media: buttonWithImage.responseImage,
                       caption: menuText,
                       parse_mode: 'Markdown'
                     }, {
@@ -417,11 +419,12 @@ export class AutoBotManager {
                   const responseKeyboard = this.createInlineKeyboard([backButton]);
                   
                   // Check if button has image URL
-                  if (pressedButton.responseImage && pressedButton.responseImage.trim()) {
+                  const buttonWithImage = pressedButton as any;
+                  if (buttonWithImage.responseImage && buttonWithImage.responseImage.trim()) {
                     // Send photo with caption and keyboard
                     await bot.editMessageMedia({
                       type: 'photo',
-                      media: pressedButton.responseImage,
+                      media: buttonWithImage.responseImage,
                       caption: responseText,
                       parse_mode: 'Markdown'
                     }, {
