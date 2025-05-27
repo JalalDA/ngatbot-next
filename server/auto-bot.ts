@@ -187,6 +187,7 @@ export class AutoBotManager {
           const chatId = msg.chat.id;
           
           console.log(`🎯 BOT ${autoBot.botName} - Callback received: "${data}" from chat ${chatId}`);
+          console.log(`📋 ALL KEYBOARD CONFIG:`, JSON.stringify(autoBot.keyboardConfig, null, 2));
           
           // Find the button that was pressed
           const pressedButton = autoBot.keyboardConfig?.find(btn => btn.callbackData === data);
@@ -198,6 +199,7 @@ export class AutoBotManager {
           if (!pressedButton) {
             console.log(`❌ No button found for callback data: "${data}"`);
             console.log(`📋 Available buttons:`, autoBot.keyboardConfig?.map(btn => `"${btn.text}" -> "${btn.callbackData}"`));
+            return; // Exit early if button not found
           }
           
           // Answer callback query immediately for fast response
