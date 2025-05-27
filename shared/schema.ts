@@ -209,11 +209,32 @@ export const autoBots = pgTable("auto_bots", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// API Keys table for provider functionality
+export const apiKeys = pgTable("api_keys", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  keyName: text("key_name").notNull(),
+  apiKey: text("api_key").notNull().unique(),
+  isActive: boolean("is_active").notNull().default(true),
+  lastUsed: timestamp("last_used"),
+  totalRequests: integer("total_requests").notNull().default(0),
+  totalOrders: integer("total_orders").notNull().default(0),
+  totalRevenue: decimal("total_revenue", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertAutoBotSchema = createInsertSchema(autoBots).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+});
+
+export const insertApiKeySchema = createInsertSchema(apiKeys).pick({
+  userId: true,
+  keyName: true,
+  apiKey: true,
+  isActive: true,
 });
 
 // Types
@@ -235,4 +256,6 @@ export type SmmOrder = typeof smmOrders.$inferSelect;
 export type InsertSmmOrder = z.infer<typeof insertSmmOrderSchema>;
 export type AutoBot = typeof autoBots.$inferSelect;
 export type InsertAutoBot = z.infer<typeof insertAutoBotSchema>;
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
 

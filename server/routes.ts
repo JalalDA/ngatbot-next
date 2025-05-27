@@ -30,6 +30,14 @@ import {
 } from "./smm-panel";
 import { autoBotManager } from "./auto-bot";
 import { threadingMonitor } from "./monitoring";
+import { 
+  validateApiKey, 
+  getBalance, 
+  getServices, 
+  createOrder, 
+  getOrderStatus,
+  generateApiKey 
+} from "./provider-api";
 import { z } from "zod";
 
 function requireAuth(req: any, res: any, next: any) {
