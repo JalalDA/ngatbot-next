@@ -34,6 +34,7 @@ export function Navigation() {
     { name: "Auto Bot", href: "/botauto", icon: Wrench },
     { name: "Digital Product", href: "/digitalproduct", icon: ShoppingCart },
     { name: "API Provider", href: "/api-provider", icon: Key },
+    { name: "Service Management", href: "/service-management", icon: Settings },
     { name: "Payment Method", href: "/payment", icon: CreditCard },
     { name: "Profile", href: "/profile", icon: UserCircle },
   ];
