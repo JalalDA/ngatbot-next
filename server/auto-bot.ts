@@ -270,10 +270,14 @@ export class AutoBotManager {
                   // Replace main menu with sub-menus by editing the message
                   const subMenuKeyboard = this.createInlineKeyboard(subMenusWithNavigation);
                   
-                  await bot.editMessageText(`📋 Menu ${pressedButton.text}:`, {
+                  // Use response text if available, otherwise use default format
+                  const menuText = pressedButton.responseText || `📋 Menu ${pressedButton.text}:`;
+                  
+                  await bot.editMessageText(menuText, {
                     chat_id: chatId,
                     message_id: msg.message_id,
-                    reply_markup: subMenuKeyboard
+                    reply_markup: subMenuKeyboard,
+                    parse_mode: 'Markdown'
                   });
                 } else {
                   // No sub-menus, show response text inline with back button
