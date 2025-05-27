@@ -286,12 +286,21 @@ export class AutoBotManager {
                     });
                   } else {
                     // Send text only
-                    await bot.editMessageText(menuText, {
-                      chat_id: chatId,
-                      message_id: msg.message_id,
-                      reply_markup: subMenuKeyboard,
-                      parse_mode: 'Markdown'
-                    });
+                    try {
+                      await bot.editMessageText(menuText, {
+                        chat_id: chatId,
+                        message_id: msg.message_id,
+                        reply_markup: subMenuKeyboard,
+                        parse_mode: 'Markdown'
+                      });
+                    } catch (editError: any) {
+                      // If edit fails, delete and send new message
+                      await bot.deleteMessage(chatId, msg.message_id);
+                      await bot.sendMessage(chatId, menuText, {
+                        reply_markup: subMenuKeyboard,
+                        parse_mode: 'Markdown'
+                      });
+                    }
                   }
                 } else {
                   // No sub-menus, show response text inline with back button
@@ -431,8 +440,14 @@ export class AutoBotManager {
                   }
                 }
               }
-            } catch (error) {
-              console.error(`Error handling callback for bot ${autoBot.botName}:`, error);
+            } catch (error: any) {
+              console.error(`Error handling callback for bot ${autoBot.botName}:`, error?.message || error);
+              
+              // If it's a Telegram API error about editing message, try to send a new message instead
+              if (error?.message?.includes('there is no text in the message to edit') || 
+                  error?.message?.includes('message to edit not found')) {
+                console.log('Message edit failed, this is normal when switching between text and image messages');
+              }
             }
           }
         }
