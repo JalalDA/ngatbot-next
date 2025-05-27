@@ -42,9 +42,12 @@ import {
 import { z } from "zod";
 
 function requireAuth(req: any, res: any, next: any) {
+  console.log(`🔐 Auth check for ${req.method} ${req.url} - isAuthenticated: ${req.isAuthenticated()}`);
   if (!req.isAuthenticated()) {
+    console.log(`❌ Auth failed for ${req.method} ${req.url}`);
     return res.status(401).json({ message: "Authentication required" });
   }
+  console.log(`✅ Auth passed for ${req.method} ${req.url}`);
   next();
 }
 
