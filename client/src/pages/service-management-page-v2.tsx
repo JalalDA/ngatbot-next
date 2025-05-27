@@ -243,7 +243,7 @@ export default function ServiceManagementPageV2() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-3xl font-bold dark:text-white text-[#ffffff]">
             Service Management
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
@@ -261,7 +261,6 @@ export default function ServiceManagementPageV2() {
           </Button>
         </div>
       </div>
-
       {/* Step Navigation */}
       <Card className="bg-white dark:bg-gray-800 shadow-lg">
         <CardHeader>
@@ -282,14 +281,14 @@ export default function ServiceManagementPageV2() {
                   }`}
                   onClick={() => setActiveStep(step as any)}
                 >
-                  <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center font-bold mb-2 ${
+                  <div className={`w-14 h-14 rounded-full border-2 flex items-center justify-center font-bold mb-2 text-lg ${
                     activeStep === step
                       ? 'border-blue-600 bg-blue-50 text-blue-600 dark:border-blue-400 dark:bg-blue-900/30 dark:text-blue-400'
                       : 'border-gray-300 bg-gray-50 text-gray-400 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-500'
                   }`}>
                     {index + 1}
                   </div>
-                  <span className="text-xs font-medium text-center max-w-16">{title}</span>
+                  <span className="text-xs font-medium text-center max-w-20">{title}</span>
                 </div>
                 {index < Object.keys(stepTitles).length - 1 && (
                   <ArrowRight className="h-6 w-6 text-gray-300 dark:text-gray-600 mx-2" />
@@ -299,7 +298,6 @@ export default function ServiceManagementPageV2() {
           </div>
         </CardContent>
       </Card>
-
       {/* Current Step Content */}
       <Card className="bg-white dark:bg-gray-800 shadow-lg">
         <CardHeader className="border-b border-gray-200 dark:border-gray-700">
@@ -444,7 +442,6 @@ export default function ServiceManagementPageV2() {
           </div>
         </CardContent>
       </Card>
-
       {/* Add/Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="sm:max-w-[500px]">
