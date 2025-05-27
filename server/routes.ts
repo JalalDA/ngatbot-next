@@ -7,6 +7,7 @@ import { insertBotSchema, insertKnowledgeSchema, insertSettingSchema, insertSmmP
 import { createMidtransTransaction, generateOrderId, verifySignatureKey, getTransactionStatus, UPGRADE_PLANS, type PlanType } from "./midtrans";
 import { SmmPanelAPI, generateSmmOrderId, generateMid, parseRate, calculateOrderAmount, mapProviderStatus } from "./smm-panel";
 import { autoBotManager } from "./auto-bot";
+import { threadingMonitor } from "./monitoring";
 import { z } from "zod";
 
 function requireAuth(req: any, res: any, next: any) {
@@ -899,12 +900,24 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Import services from SMM provider with batch processing
+  // Import services from SMM provider with batch processing + MONITORING
   app.post("/api/smm/providers/:id/import-services", requireAuth, async (req, res) => {
+    const operationId = `import_services_${Date.now()}_${req.params.id}`;
+    
     try {
       const user = req.user!;
       const providerId = parseInt(req.params.id);
       const { services: selectedServices, batchSize = 10 } = req.body;
+
+      // SAFETY CHECK: Monitor system health before starting
+      const healthCheck = threadingMonitor.getSystemHealth();
+      if (healthCheck.status === 'critical') {
+        return res.status(503).json({ 
+          success: false,
+          message: "Sistem sedang overload. Import dibatalkan untuk menjaga stabilitas.",
+          recommendations: healthCheck.recommendations
+        });
+      }
 
       // Check if provider belongs to user
       const provider = await storage.getSmmProvider(providerId);
@@ -914,6 +927,15 @@ export function registerRoutes(app: Express): Server {
 
       if (!selectedServices || !Array.isArray(selectedServices)) {
         return res.status(400).json({ message: "No services provided for import" });
+      }
+
+      // SAFETY CHECK: Monitor operation start
+      if (!threadingMonitor.startOperation(operationId, 'service_import', selectedServices.length)) {
+        return res.status(503).json({ 
+          success: false,
+          message: "Sistem sedang busy. Import ditolak untuk menjaga stabilitas.",
+          currentOperations: threadingMonitor.getSystemHealth().metrics.currentConcurrency
+        });
       }
 
       // Get used MIDs for this user
@@ -987,15 +1009,23 @@ export function registerRoutes(app: Express): Server {
         }
       }
 
+      // MONITORING: Complete operation successfully
+      threadingMonitor.completeOperation(operationId, importedCount);
+
       res.json({
         message: `Successfully imported ${importedCount} services`,
         importedCount,
         totalRequested: selectedServices.length,
         batchesProcessed: batches.length,
-        errors: errors.length > 0 ? errors : undefined
+        errors: errors.length > 0 ? errors : undefined,
+        systemHealth: threadingMonitor.getSystemHealth().status
       });
     } catch (error) {
       console.error("Import services error:", error);
+      
+      // MONITORING: Fail operation
+      threadingMonitor.failOperation(operationId, error instanceof Error ? error.message : 'Unknown error');
+      
       res.status(500).json({ message: "Failed to import services from provider" });
     }
   });
@@ -1350,10 +1380,22 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Manual sync orders status endpoint - OPTIMIZED WITH MULTITHREADING
+  // Manual sync orders status endpoint - OPTIMIZED WITH MULTITHREADING + MONITORING
   app.post("/api/smm/orders/sync", requireAuth, async (req, res) => {
+    const operationId = `sync_orders_${Date.now()}_${req.user!.id}`;
+    
     try {
       const user = req.user!;
+      
+      // SAFETY CHECK: Monitor system health before starting
+      const healthCheck = threadingMonitor.getSystemHealth();
+      if (healthCheck.status === 'critical') {
+        return res.status(503).json({ 
+          success: false,
+          message: "Sistem sedang overload. Coba lagi dalam beberapa menit.",
+          recommendations: healthCheck.recommendations
+        });
+      }
       
       // Get all orders for the user that might need syncing - ASYNC
       const [allOrders] = await Promise.all([
@@ -1377,11 +1419,20 @@ export function registerRoutes(app: Express): Server {
         order.providerOrderId.trim() !== ''
       );
 
+      // SAFETY CHECK: Monitor operation start
+      if (!threadingMonitor.startOperation(operationId, 'order_sync', ordersToSync.length)) {
+        return res.status(503).json({ 
+          success: false,
+          message: "Sistem sedang busy. Operasi ditolak untuk menjaga stabilitas.",
+          currentOperations: threadingMonitor.getSystemHealth().metrics.currentConcurrency
+        });
+      }
+
       let syncedCount = 0;
       let updatedCount = 0;
       let errorCount = 0;
 
-      console.log(`🔄 Starting parallel sync for ${ordersToSync.length} orders...`);
+      console.log(`🔄 MONITORED SYNC: Starting parallel sync for ${ordersToSync.length} orders (OpID: ${operationId})...`);
 
       // MULTITHREADING: Process orders in parallel batches
       const batchSize = 10; // Process 10 orders simultaneously
@@ -1458,22 +1509,78 @@ export function registerRoutes(app: Express): Server {
         });
       }
       
-      console.log(`📊 Sync completed: ${syncedCount} checked, ${updatedCount} updated, ${errorCount} errors`);
+      console.log(`📊 MONITORED SYNC COMPLETED: ${syncedCount} checked, ${updatedCount} updated, ${errorCount} errors`);
+      
+      // MONITORING: Complete operation successfully
+      threadingMonitor.completeOperation(operationId, updatedCount);
       
       res.json({ 
         success: true, 
         message: `Berhasil sinkronisasi ${syncedCount} order, ${updatedCount} order diperbarui${errorCount > 0 ? `, ${errorCount} error` : ''}`,
         syncedCount,
         updatedCount,
-        errorCount
+        errorCount,
+        systemHealth: threadingMonitor.getSystemHealth().status
       });
     } catch (error) {
       console.error("Manual sync orders error:", error);
+      
+      // MONITORING: Fail operation
+      threadingMonitor.failOperation(operationId, error instanceof Error ? error.message : 'Unknown error');
+      
       res.status(500).json({ 
         success: false,
         message: "Gagal melakukan sinkronisasi",
         error: error instanceof Error ? error.message : 'Unknown error'
       });
+    }
+  });
+
+  // MONITORING ENDPOINTS - System Health & Performance
+  app.get("/api/system/health", requireAuth, async (req, res) => {
+    try {
+      const health = threadingMonitor.getSystemHealth();
+      const summary = threadingMonitor.getPerformanceSummary();
+      
+      res.json({
+        ...health,
+        summary,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Get system health error:", error);
+      res.status(500).json({ message: "Failed to get system health" });
+    }
+  });
+
+  // Reset performance metrics (admin only)
+  app.post("/api/system/reset-metrics", requireAdmin, async (req, res) => {
+    try {
+      threadingMonitor.resetMetrics();
+      res.json({ 
+        success: true, 
+        message: "Performance metrics reset successfully",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Reset metrics error:", error);
+      res.status(500).json({ message: "Failed to reset metrics" });
+    }
+  });
+
+  // Manual cleanup stuck operations (admin only)
+  app.post("/api/system/cleanup", requireAdmin, async (req, res) => {
+    try {
+      const cleaned = threadingMonitor.cleanupStuckOperations();
+      res.json({ 
+        success: true, 
+        message: `Successfully cleaned up ${cleaned} stuck operations`,
+        cleanedCount: cleaned,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Cleanup stuck operations error:", error);
+      res.status(500).json({ message: "Failed to cleanup stuck operations" });
     }
   });
 
