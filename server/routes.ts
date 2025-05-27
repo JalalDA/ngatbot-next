@@ -30,6 +30,8 @@ import {
 } from "./smm-panel";
 import { autoBotManager } from "./auto-bot";
 import { threadingMonitor } from "./monitoring";
+import { validateApiKey, rateLimitMiddleware, generateApiKey, publicApiRoutes } from "./public-api";
+import { insertApiKeySchema } from "@shared/schema";
 import { z } from "zod";
 
 function requireAuth(req: any, res: any, next: any) {
@@ -2248,6 +2250,122 @@ export function registerRoutes(app: Express): Server {
       console.error("Failed to restart bots on server start:", error);
     }
   }, 1000);
+
+  // API KEY MANAGEMENT ROUTES
+  
+  // Get user's API keys
+  app.get("/api/api-keys", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const apiKeys = await storage.getApiKeysByUserId(user.id);
+      res.json(apiKeys);
+    } catch (error) {
+      console.error("Get API keys error:", error);
+      res.status(500).json({ message: "Failed to fetch API keys" });
+    }
+  });
+
+  // Create new API key
+  app.post("/api/api-keys", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { keyName, allowedDomains } = req.body;
+
+      if (!keyName) {
+        return res.status(400).json({ message: "Key name is required" });
+      }
+
+      const apiKey = generateApiKey();
+      
+      const newApiKey = await storage.createApiKey({
+        userId: user.id,
+        keyName,
+        apiKey,
+        allowedDomains: allowedDomains || [],
+        isActive: true
+      });
+
+      res.json(newApiKey);
+    } catch (error) {
+      console.error("Create API key error:", error);
+      res.status(500).json({ message: "Failed to create API key" });
+    }
+  });
+
+  // Update API key
+  app.patch("/api/api-keys/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const keyId = parseInt(req.params.id);
+      const updates = req.body;
+
+      const existingKey = await storage.getApiKey(keyId);
+      if (!existingKey || existingKey.userId !== user.id) {
+        return res.status(404).json({ message: "API key not found" });
+      }
+
+      const updatedKey = await storage.updateApiKey(keyId, updates);
+      res.json(updatedKey);
+    } catch (error) {
+      console.error("Update API key error:", error);
+      res.status(500).json({ message: "Failed to update API key" });
+    }
+  });
+
+  // Delete API key
+  app.delete("/api/api-keys/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const keyId = parseInt(req.params.id);
+
+      const existingKey = await storage.getApiKey(keyId);
+      if (!existingKey || existingKey.userId !== user.id) {
+        return res.status(404).json({ message: "API key not found" });
+      }
+
+      await storage.deleteApiKey(keyId);
+      res.json({ message: "API key deleted successfully" });
+    } catch (error) {
+      console.error("Delete API key error:", error);
+      res.status(500).json({ message: "Failed to delete API key" });
+    }
+  });
+
+  // Get API usage statistics
+  app.get("/api/api-keys/:id/usage", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const keyId = parseInt(req.params.id);
+
+      const existingKey = await storage.getApiKey(keyId);
+      if (!existingKey || existingKey.userId !== user.id) {
+        return res.status(404).json({ message: "API key not found" });
+      }
+
+      const usage = await storage.getApiUsageLogs(keyId);
+      res.json(usage);
+    } catch (error) {
+      console.error("Get API usage error:", error);
+      res.status(500).json({ message: "Failed to fetch API usage" });
+    }
+  });
+
+  // PUBLIC API ENDPOINTS
+  
+  // Public API - Get services
+  app.get("/api/public/services", validateApiKey, rateLimitMiddleware(1000), publicApiRoutes.getServices);
+  
+  // Public API - Get categories
+  app.get("/api/public/services/categories", validateApiKey, rateLimitMiddleware(100), publicApiRoutes.getCategories);
+  
+  // Public API - Create order
+  app.post("/api/public/order", validateApiKey, rateLimitMiddleware(500), publicApiRoutes.createOrder);
+  
+  // Public API - Get order status
+  app.get("/api/public/order/status/:orderId", validateApiKey, rateLimitMiddleware(1000), publicApiRoutes.getOrderStatus);
+  
+  // Public API - Get balance
+  app.get("/api/public/balance", validateApiKey, rateLimitMiddleware(100), publicApiRoutes.getBalance);
 
   // SECURITY MONITORING ENDPOINTS
   app.get("/api/system/security-status", requireAuth, async (req, res) => {

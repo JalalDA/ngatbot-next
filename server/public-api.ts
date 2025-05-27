@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { db } from './db.js';
 import { apiKeys, apiUsageLogs, smmServices, smmOrders, users } from '../shared/schema.js';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 
 // Middleware untuk validasi API key
@@ -126,17 +126,13 @@ export const publicApiRoutes = {
         .from(smmServices)
         .where(eq(smmServices.isActive, true));
 
-      if (category) {
-        query = query.where(eq(smmServices.category, category as string));
-      }
-
       const services = await query
         .limit(Number(limit))
         .offset(offset)
         .orderBy(smmServices.category, smmServices.name);
 
       // Get total count
-      const [{ count }] = await db
+      const totalCount = await db
         .select({ count: sql`count(*)` })
         .from(smmServices)
         .where(eq(smmServices.isActive, true));
@@ -147,8 +143,8 @@ export const publicApiRoutes = {
         pagination: {
           page: Number(page),
           limit: Number(limit),
-          total: Number(count),
-          totalPages: Math.ceil(Number(count) / Number(limit))
+          total: Number(totalCount[0]?.count || 0),
+          totalPages: Math.ceil(Number(totalCount[0]?.count || 0) / Number(limit))
         }
       });
     } catch (error) {
@@ -236,11 +232,11 @@ export const publicApiRoutes = {
         transactionId: orderId,
         link,
         quantity,
-        amount,
+        amount: amount.toString(),
         status: 'pending',
         paymentStatus: 'paid', // API orders are considered pre-paid
-        startCount: 0,
-        remains: quantity,
+        startCount: '0',
+        remains: quantity.toString(),
         notes: `Order created via API by key: ${apiUser.keyName}`
       }).returning();
 
