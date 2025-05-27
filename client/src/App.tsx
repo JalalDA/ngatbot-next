@@ -14,7 +14,6 @@ import SmmServicesPage from "@/pages/smm-services-page";
 import ProfilePage from "@/pages/profile-page";
 import AdminPage from "@/pages/admin-page";
 import AutoBotBuilderPage from "@/pages/auto-bot-builder-page";
-import ApiManagementPage from "@/pages/api-management-page";
 import NotFound from "@/pages/not-found";
 
 function RootRedirect() {
@@ -78,15 +77,6 @@ function Router() {
           <>
             <Navigation />
             <AutoBotBuilderPage />
-          </>
-        )} 
-      />
-      <ProtectedRoute 
-        path="/api" 
-        component={() => (
-          <>
-            <Navigation />
-            <ApiManagementPage />
           </>
         )} 
       />
