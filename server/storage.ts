@@ -560,6 +560,51 @@ export class DatabaseStorage implements IStorage {
     );
   }
 
+  // Payment Settings methods
+  async getPaymentSettings(userId: number): Promise<PaymentSettings | undefined> {
+    const [settings] = await db.select().from(paymentSettings).where(eq(paymentSettings.userId, userId));
+    return settings || undefined;
+  }
+
+  async savePaymentSettings(userId: number, settings: { serverKey: string; clientKey: string; isProduction: boolean }): Promise<PaymentSettings> {
+    // Check if settings already exist
+    const existing = await this.getPaymentSettings(userId);
+    
+    if (existing) {
+      // Update existing settings
+      const [updated] = await db
+        .update(paymentSettings)
+        .set({
+          serverKey: settings.serverKey,
+          clientKey: settings.clientKey,
+          isProduction: settings.isProduction,
+          updatedAt: new Date(),
+        })
+        .where(eq(paymentSettings.userId, userId))
+        .returning();
+      return updated;
+    } else {
+      // Create new settings
+      const [created] = await db
+        .insert(paymentSettings)
+        .values({
+          userId: userId,
+          serverKey: settings.serverKey,
+          clientKey: settings.clientKey,
+          isProduction: settings.isProduction,
+        })
+        .returning();
+      return created;
+    }
+  }
+
+  async deletePaymentSettings(userId: number): Promise<boolean> {
+    const result = await db
+      .delete(paymentSettings)
+      .where(eq(paymentSettings.userId, userId));
+    return true;
+  }
+
 }
 
 export const storage = new DatabaseStorage();

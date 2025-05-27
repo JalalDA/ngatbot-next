@@ -66,7 +66,7 @@ export default function PaymentMethodPage() {
   // Fetch current payment settings
   const { data: paymentSettings, isLoading, error } = useQuery({
     queryKey: ['/api/payment/settings'],
-    queryFn: () => apiRequest('/api/payment/settings'),
+    queryFn: () => fetch('/api/payment/settings').then(res => res.json()),
   });
 
   // Load existing settings into form
@@ -83,11 +83,11 @@ export default function PaymentMethodPage() {
   // Save payment settings mutation
   const saveSettingsMutation = useMutation({
     mutationFn: (data: PaymentConfigForm) => 
-      apiRequest('/api/payment/settings', {
+      fetch('/api/payment/settings', {
         method: 'POST',
         body: JSON.stringify(data),
         headers: { 'Content-Type': 'application/json' },
-      }),
+      }).then(res => res.json()),
     onSuccess: () => {
       toast({
         title: 'Pengaturan berhasil disimpan',

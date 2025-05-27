@@ -209,6 +209,17 @@ export const autoBots = pgTable("auto_bots", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Payment Settings table for Midtrans configuration
+export const paymentSettings = pgTable("payment_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  serverKey: text("server_key").notNull(),
+  clientKey: text("client_key").notNull(),
+  isProduction: boolean("is_production").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // API Keys table for provider functionality
 export const apiKeys = pgTable("api_keys", {
   id: serial("id").primaryKey(),
@@ -337,4 +348,6 @@ export type AutoBot = typeof autoBots.$inferSelect;
 export type InsertAutoBot = z.infer<typeof insertAutoBotSchema>;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
+export type PaymentSettings = typeof paymentSettings.$inferSelect;
+export type InsertPaymentSettings = typeof paymentSettings.$inferInsert;
 
