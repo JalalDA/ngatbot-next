@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Package, DollarSign, Users, Heart, Eye, MessageCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Package, DollarSign, Users, Heart, Eye, MessageCircle, ToggleLeft, ToggleRight } from 'lucide-react';
 
 interface ServiceCategory {
   id: number;
@@ -250,7 +250,7 @@ export default function ServiceManagementPage() {
             className="w-full p-2 border rounded-md"
             required
           >
-            {mockCategories.map(cat => (
+            {categories.map(cat => (
               <option key={cat.id} value={cat.id}>{cat.name}</option>
             ))}
           </select>
@@ -358,7 +358,7 @@ export default function ServiceManagementPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {mockCategories.map((category) => {
+            {categories.map((category) => {
               const IconComponent = getIconComponent(category.icon);
               return (
                 <Card key={category.id} className={!category.isActive ? 'opacity-50' : ''}>
@@ -383,6 +383,15 @@ export default function ServiceManagementPage() {
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => toggleCategoryStatus(category.id)}
+                          title={category.isActive ? 'Nonaktifkan kategori' : 'Aktifkan kategori'}
+                          className={category.isActive ? 'text-green-600' : 'text-gray-400'}
+                        >
+                          {category.isActive ? 'ON' : 'OFF'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => {
                             setEditingCategory(category);
                             setIsAddCategoryOpen(true);
@@ -390,7 +399,12 @@ export default function ServiceManagementPage() {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="outline">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => deleteCategory(category.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -450,7 +464,7 @@ export default function ServiceManagementPage() {
               </TableHeader>
               <TableBody>
                 {filteredPackages.map((pkg) => {
-                  const category = mockCategories.find(c => c.id === pkg.categoryId);
+                  const category = categories.find(c => c.id === pkg.categoryId);
                   return (
                     <TableRow key={pkg.id}>
                       <TableCell>
@@ -500,7 +514,7 @@ export default function ServiceManagementPage() {
               <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg font-mono text-sm">
                 <div className="space-y-2">
                   <div className="font-bold">🤖 Menu Utama</div>
-                  {mockCategories.filter(cat => cat.isActive).map(category => {
+                  {categories.filter(cat => cat.isActive).map(category => {
                     const categoryPackages = mockPackages.filter(pkg => 
                       pkg.categoryId === category.id && pkg.isActive
                     );
