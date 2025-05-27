@@ -81,26 +81,6 @@ export class SecurityLogger {
     return sanitized;
   }
 
-  // Whitelist of safe API endpoints
-  private safeEndpoints = [
-    /^\/api\/user/,
-    /^\/api\/smm\/orders/,
-    /^\/api\/smm\/services/,
-    /^\/api\/smm\/providers/,
-    /^\/api\/telegram\/bots/,
-    /^\/api\/upgrade/,
-    /^\/api\/payment/,
-    /^\/$/,
-    /^\/login/,
-    /^\/register/,
-    /^\/dashboard/,
-    /^\/digitalproduct/,
-    /^\/@fs\//,  // Vite dev server files
-    /^\/node_modules/,  // Development dependencies
-    /^\/src\//,  // Source files
-    /^\/public\//,  // Static assets
-  ];
-
   /**
    * Check for suspicious requests
    */
@@ -114,15 +94,6 @@ export class SecurityLogger {
 
     // Check URL for suspicious patterns
     const fullUrl = req.originalUrl || req.url;
-    
-    // Skip security checks for whitelisted endpoints and query parameters
-    const urlWithoutQuery = fullUrl.split('?')[0];
-    const isSafeEndpoint = this.safeEndpoints.some(pattern => pattern.test(urlWithoutQuery)) || 
-                          this.safeEndpoints.some(pattern => pattern.test(fullUrl));
-    if (isSafeEndpoint) {
-      return { isSuspicious: false, threats: [], riskLevel: 'low' };
-    }
-    
     this.suspiciousPatterns.forEach((pattern, index) => {
       if (pattern.test(fullUrl)) {
         threats.push(`Suspicious URL pattern detected: ${this.getPatternName(index)}`);
@@ -264,7 +235,7 @@ export class SecurityLogger {
   /**
    * Rate limiting per IP
    */
-  rateLimitMiddleware(maxRequests: number = 500, windowMs: number = 60000) {
+  rateLimitMiddleware(maxRequests: number = 100, windowMs: number = 60000) {
     return (req: Request, res: Response, next: NextFunction) => {
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
       

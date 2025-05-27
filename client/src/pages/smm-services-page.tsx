@@ -682,8 +682,8 @@ export default function SmmServicesPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Digital Product</h1>
-            <p className="text-muted-foreground">Manage your digital products and service providers</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">SMM Services</h1>
+            <p className="text-muted-foreground">Manage your social media marketing services and providers</p>
           </div>
           <Dialog open={showSmmProviderModal} onOpenChange={setShowSmmProviderModal}>
             <DialogTrigger asChild>
@@ -694,7 +694,7 @@ export default function SmmServicesPage() {
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Add Digital Product Provider</DialogTitle>
+                <DialogTitle>Add SMM Provider</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
@@ -774,7 +774,7 @@ export default function SmmServicesPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Products</p>
+                  <p className="text-sm font-medium text-muted-foreground">Total Services</p>
                   <p className="text-2xl font-bold text-purple-500">
                     {Array.isArray(smmServices) ? smmServices.length : 0}
                   </p>
@@ -829,7 +829,7 @@ export default function SmmServicesPage() {
                         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="service-search"
-                          placeholder="Search products..."
+                          placeholder="Search services..."
                           value={serviceSearchTerm}
                           onChange={(e) => setServiceSearchTerm(e.target.value)}
                           className="pl-10"
