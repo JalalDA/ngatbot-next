@@ -6,11 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Plus, Edit, Trash2, Package, DollarSign, Users, Heart, Eye, MessageCircle, 
   ArrowRight, Zap, Settings, Play, QrCode, CreditCard, ToggleLeft, ToggleRight,
-  Workflow, Layers, GitBranch, Monitor, Bot, Sparkles
+  Workflow, Layers, GitBranch, Monitor, Bot, Sparkles, Save, X
 } from 'lucide-react';
 
 interface ServiceCategory {
@@ -176,16 +179,16 @@ export default function ServiceManagementPageV2() {
   const FlowDesigner = () => (
     <div className="space-y-6">
       {/* Workflow Header */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 p-6 rounded-xl border border-blue-200/50 dark:border-blue-800/50">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border-2 border-blue-200 dark:border-blue-700 shadow-lg">
         <div className="flex items-center space-x-3">
           <div className="bg-blue-500 p-2 rounded-lg">
             <Workflow className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h2 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
               Service Workflow Designer
             </h2>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-gray-600 dark:text-gray-300">
               Buat alur tombol interaktif untuk bot Telegram Anda
             </p>
           </div>
@@ -195,17 +198,17 @@ export default function ServiceManagementPageV2() {
       {/* Flow Steps */}
       <div className="grid gap-6">
         {/* Step 1: Menu Utama/Kategory */}
-        <Card className="border-2 border-dashed border-blue-200 dark:border-blue-800 hover:border-blue-400 transition-colors">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
+        <Card className="border-2 border-blue-200 dark:border-blue-700 hover:border-blue-400 transition-colors bg-white dark:bg-gray-800 shadow-lg">
+          <CardHeader className="bg-blue-50 dark:bg-blue-900/30 border-b border-blue-200 dark:border-blue-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">1</div>
                 <div>
-                  <CardTitle className="text-lg">Menu Utama / Kategory</CardTitle>
-                  <CardDescription>Tombol kategori utama yang akan muncul di bot</CardDescription>
+                  <CardTitle className="text-lg text-gray-900 dark:text-white">Menu Utama / Kategory</CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-300">Tombol kategori utama yang akan muncul di bot</CardDescription>
                 </div>
               </div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="border-blue-300 text-blue-600 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-900/20">
                 <Plus className="h-4 w-4 mr-2" />
                 Tambah Button
               </Button>
@@ -216,26 +219,28 @@ export default function ServiceManagementPageV2() {
               {categories.map(category => {
                 const IconComponent = getIconComponent(category.icon);
                 return (
-                  <Card key={category.id} className={`cursor-pointer transition-all hover:shadow-lg ${
+                  <Card key={category.id} className={`cursor-pointer transition-all hover:shadow-lg bg-white dark:bg-gray-800 border-2 ${
                     category.isActive 
-                      ? 'border-green-200 bg-green-50 dark:bg-green-950/20' 
-                      : 'border-gray-200 bg-gray-50 dark:bg-gray-800/50 opacity-60'
+                      ? 'border-green-300 shadow-green-100 dark:border-green-600' 
+                      : 'border-gray-300 dark:border-gray-600 opacity-70'
                   }`}>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-2">
-                          <IconComponent className="h-5 w-5 text-blue-600" />
-                          <span className="font-semibold">{category.name}</span>
+                          <IconComponent className={`h-5 w-5 ${category.isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'}`} />
+                          <span className={`font-semibold ${category.isActive ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+                            {category.name}
+                          </span>
                         </div>
-                        <Badge variant={category.isActive ? 'default' : 'secondary'}>
+                        <Badge variant={category.isActive ? 'default' : 'secondary'} className={category.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : ''}>
                           {category.isActive ? 'Aktif' : 'Nonaktif'}
                         </Badge>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
                         {category.description}
                       </p>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
                           {category.packagesCount} paket
                         </span>
                         <div className="flex space-x-1">
@@ -243,18 +248,21 @@ export default function ServiceManagementPageV2() {
                             size="sm"
                             variant="outline"
                             onClick={() => toggleCategoryStatus(category.id)}
-                            className={category.isActive ? 'text-green-600' : 'text-gray-400'}
+                            className={`border ${category.isActive 
+                              ? 'border-green-300 text-green-700 hover:bg-green-50 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-900/20' 
+                              : 'border-gray-300 text-gray-500 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800'
+                            }`}
                           >
                             {category.isActive ? 'ON' : 'OFF'}
                           </Button>
-                          <Button size="sm" variant="outline">
+                          <Button size="sm" variant="outline" className="border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
                             <Edit className="h-3 w-3" />
                           </Button>
                           <Button 
                             size="sm" 
                             variant="outline"
                             onClick={() => deleteCategory(category.id)}
-                            className="text-red-600 hover:text-red-700"
+                            className="border-red-300 text-red-600 hover:bg-red-50 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-900/20"
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
@@ -274,17 +282,17 @@ export default function ServiceManagementPageV2() {
         </div>
 
         {/* Step 2: Nama Layanan */}
-        <Card className="border-2 border-dashed border-purple-200 dark:border-purple-800 hover:border-purple-400 transition-colors">
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900">
+        <Card className="border-2 border-purple-200 dark:border-purple-700 hover:border-purple-400 transition-colors bg-white dark:bg-gray-800 shadow-lg">
+          <CardHeader className="bg-purple-50 dark:bg-purple-900/30 border-b border-purple-200 dark:border-purple-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="bg-purple-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">2</div>
                 <div>
-                  <CardTitle className="text-lg">Nama Layanan</CardTitle>
-                  <CardDescription>Paket layanan yang tersedia dalam setiap kategori</CardDescription>
+                  <CardTitle className="text-lg text-gray-900 dark:text-white">Nama Layanan</CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-300">Paket layanan yang tersedia dalam setiap kategori</CardDescription>
                 </div>
               </div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="border-purple-300 text-purple-600 hover:bg-purple-50 dark:border-purple-600 dark:text-purple-400 dark:hover:bg-purple-900/20">
                 <Plus className="h-4 w-4 mr-2" />
                 Tambah Layanan
               </Button>
@@ -293,24 +301,24 @@ export default function ServiceManagementPageV2() {
           <CardContent className="p-6">
             <div className="grid gap-4">
               {mockPackages.map(pkg => (
-                <Card key={pkg.id} className="border border-gray-200 hover:shadow-md transition-shadow">
+                <Card key={pkg.id} className="border-2 border-gray-200 dark:border-gray-600 hover:shadow-md transition-shadow bg-white dark:bg-gray-800">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3">
-                          <Package className="h-5 w-5 text-purple-600" />
+                          <Package className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                           <div>
-                            <h4 className="font-semibold">{pkg.name}</h4>
-                            <p className="text-sm text-gray-600">{pkg.description}</p>
+                            <h4 className="font-semibold text-gray-900 dark:text-white">{pkg.name}</h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">{pkg.description}</p>
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center space-x-4">
                         <div className="text-right">
-                          <div className="font-semibold">{formatCurrency(pkg.price)}</div>
-                          <div className="text-sm text-gray-500">{pkg.quantity.toLocaleString()} items</div>
+                          <div className="font-semibold text-gray-900 dark:text-white">{formatCurrency(pkg.price)}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">{pkg.quantity.toLocaleString()} items</div>
                         </div>
-                        <Badge variant={pkg.isActive ? 'default' : 'secondary'}>
+                        <Badge variant={pkg.isActive ? 'default' : 'secondary'} className={pkg.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : ''}>
                           {pkg.isActive ? 'Aktif' : 'Nonaktif'}
                         </Badge>
                       </div>
@@ -328,13 +336,13 @@ export default function ServiceManagementPageV2() {
         </div>
 
         {/* Step 3: Payment Flow */}
-        <Card className="border-2 border-dashed border-green-200 dark:border-green-800 hover:border-green-400 transition-colors">
-          <CardHeader className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
+        <Card className="border-2 border-green-200 dark:border-green-700 hover:border-green-400 transition-colors bg-white dark:bg-gray-800 shadow-lg">
+          <CardHeader className="bg-green-50 dark:bg-green-900/30 border-b border-green-200 dark:border-green-700">
             <div className="flex items-center space-x-3">
               <div className="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">3</div>
               <div>
-                <CardTitle className="text-lg">Pembayaran & Integrasi</CardTitle>
-                <CardDescription>Konfigurasi metode pembayaran dan integrasi layanan</CardDescription>
+                <CardTitle className="text-lg text-gray-900 dark:text-white">Pembayaran & Integrasi</CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-300">Konfigurasi metode pembayaran dan integrasi layanan</CardDescription>
               </div>
             </div>
           </CardHeader>
