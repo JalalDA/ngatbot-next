@@ -47,7 +47,7 @@ export async function validateApiKey(req: Request, res: Response, next: NextFunc
         id: apiKeys.id,
         userId: apiKeys.userId,
         isActive: apiKeys.isActive,
-        keyName: apiKeys.keyName
+        keyName: apiKeys.name
       })
       .from(apiKeys)
       .where(and(
