@@ -1324,15 +1324,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const user = req.user!;
       
-      // SAFETY CHECK: Monitor system health before starting
-      const healthCheck = threadingMonitor.getSystemHealth();
-      if (healthCheck.status === 'critical') {
-        return res.status(503).json({ 
-          success: false,
-          message: "Sistem sedang overload. Coba lagi dalam beberapa menit.",
-          recommendations: healthCheck.recommendations
-        });
-      }
+      // NO MONITORING - Allow all operations for development
       
       // Get all orders for the user that might need syncing - ASYNC
       const [allOrders] = await Promise.all([
