@@ -118,7 +118,7 @@ export default function PaymentMethodPage() {
 
   // Test connection mutation
   const testConnectionMutation = useMutation({
-    mutationFn: () => apiRequest('/api/payment/test-connection', { method: 'POST' }),
+    mutationFn: () => fetch('/api/payment/test-connection', { method: 'POST' }).then(res => res.json()),
     onSuccess: (data) => {
       toast({
         title: 'Koneksi berhasil',
