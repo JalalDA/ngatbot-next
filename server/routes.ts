@@ -1911,7 +1911,11 @@ export function registerRoutes(app: Express): Server {
   // Save/Update payment settings
   app.post("/api/payment/settings", requireAuth, async (req, res) => {
     try {
-      const userId = req.user?.id;
+      if (!req.user?.id) {
+        return res.status(401).json({ message: "User tidak terotentikasi" });
+      }
+      
+      const userId = req.user.id;
       const { serverKey, clientKey, isProduction } = req.body;
       
       console.log(`💳 POST payment settings for user ${userId}`);

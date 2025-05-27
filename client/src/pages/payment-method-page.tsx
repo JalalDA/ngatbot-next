@@ -82,12 +82,24 @@ export default function PaymentMethodPage() {
 
   // Save payment settings mutation
   const saveSettingsMutation = useMutation({
-    mutationFn: (data: PaymentConfigForm) => 
-      fetch('/api/payment/settings', {
+    mutationFn: async (data: PaymentConfigForm) => {
+      const response = await fetch('/api/payment/settings', {
         method: 'POST',
         body: JSON.stringify(data),
         headers: { 'Content-Type': 'application/json' },
-      }).then(res => res.json()),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server tidak mengembalikan JSON response');
+      }
+      
+      return response.json();
+    },
     onSuccess: () => {
       toast({
         title: 'Pengaturan berhasil disimpan',
