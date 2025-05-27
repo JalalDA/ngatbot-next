@@ -121,6 +121,7 @@ export class AutoBotManager {
       bot.onText(/\/start/, async (msg) => {
         const chatId = msg.chat.id;
         const welcomeMessage = autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:";
+        const welcomeImageUrl = (autoBot as any).welcomeImageUrl;
         
         // Show main menu buttons (level 0) and check for All Show button
         const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => 
@@ -147,14 +148,33 @@ export class AutoBotManager {
         
         const keyboard = this.createInlineKeyboard(buttonsToShow);
         
-        const options: any = {
-          reply_markup: keyboard
-        };
-
+        // Asynchronous image and text sending to avoid blocking
         try {
-          await bot.sendMessage(chatId, welcomeMessage, options);
+          if (welcomeImageUrl && welcomeImageUrl.trim()) {
+            // Send image with caption and keyboard asynchronously
+            bot.sendPhoto(chatId, welcomeImageUrl, {
+              caption: welcomeMessage,
+              reply_markup: keyboard,
+              parse_mode: 'Markdown'
+            }).catch(imageError => {
+              // If image fails, fallback to text message without blocking
+              bot.sendMessage(chatId, welcomeMessage, {
+                reply_markup: keyboard,
+                parse_mode: 'Markdown'
+              }).catch(() => {});
+            });
+          } else {
+            // Send text message only
+            bot.sendMessage(chatId, welcomeMessage, {
+              reply_markup: keyboard,
+              parse_mode: 'Markdown'
+            }).catch(() => {});
+          }
         } catch (error) {
-          console.error(`Error sending message for bot ${autoBot.botName}:`, error);
+          // Non-blocking error handling
+          bot.sendMessage(chatId, welcomeMessage, {
+            reply_markup: keyboard
+          }).catch(() => {});
         }
       });
 

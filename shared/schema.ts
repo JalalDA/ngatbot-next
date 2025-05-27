@@ -197,6 +197,7 @@ export const autoBots = pgTable("auto_bots", {
   botName: text("bot_name").notNull(),
   botUsername: text("bot_username").notNull(),
   welcomeMessage: text("welcome_message").notNull().default("Selamat datang! Silakan pilih opsi di bawah ini:"),
+  welcomeImageUrl: text("welcome_image_url"), // URL gambar untuk pesan sambutan
   keyboardConfig: json("keyboard_config").$type<{
     id: string;
     text: string;

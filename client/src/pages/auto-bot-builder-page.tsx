@@ -21,6 +21,7 @@ interface AutoBot {
   botName: string;
   botUsername: string;
   welcomeMessage: string;
+  welcomeImageUrl?: string;
   isActive: boolean;
   keyboardConfig: InlineKeyboard[];
   createdAt: string;
@@ -45,6 +46,7 @@ export default function AutoBotBuilderPage() {
   const [botName, setBotName] = useState("");
   const [botUsername, setBotUsername] = useState("");
   const [welcomeMessage, setWelcomeMessage] = useState("Selamat datang! Silakan pilih opsi di bawah ini:");
+  const [welcomeImageUrl, setWelcomeImageUrl] = useState("");
   const [keyboardButtons, setKeyboardButtons] = useState<InlineKeyboard[]>([]);
   const [editingBot, setEditingBot] = useState<AutoBot | null>(null);
 
@@ -493,6 +495,7 @@ export default function AutoBotBuilderPage() {
     console.log('🔧 Starting to edit bot:', bot);
     setEditingBot(bot);
     setWelcomeMessage(bot.welcomeMessage);
+    setWelcomeImageUrl(bot.welcomeImageUrl || "");
     setKeyboardButtons(bot.keyboardConfig || []);
     setShowEditDialog(true);
   };
@@ -502,6 +505,7 @@ export default function AutoBotBuilderPage() {
       updateBotMutation.mutate({
         id: editingBot.id,
         welcomeMessage,
+        welcomeImageUrl,
         keyboardConfig: keyboardButtons,
       });
     } else {
@@ -519,6 +523,7 @@ export default function AutoBotBuilderPage() {
         botName,
         botUsername,
         welcomeMessage,
+        welcomeImageUrl,
         keyboardConfig: keyboardButtons,
       });
     }
@@ -603,6 +608,20 @@ export default function AutoBotBuilderPage() {
                   onChange={(e) => setWelcomeMessage(e.target.value)}
                   rows={3}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="welcomeImageUrl">URL Gambar Sambutan (Opsional)</Label>
+                <Input
+                  id="welcomeImageUrl"
+                  type="url"
+                  placeholder="https://example.com/gambar.jpg"
+                  value={welcomeImageUrl}
+                  onChange={(e) => setWelcomeImageUrl(e.target.value)}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Gambar akan ditampilkan bersama pesan sambutan. Pastikan URL dapat diakses secara publik.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -1322,6 +1341,7 @@ export default function AutoBotBuilderPage() {
                           setBotName(bot.botName);
                           setBotUsername(bot.botUsername);
                           setWelcomeMessage(bot.welcomeMessage);
+                          setWelcomeImageUrl(bot.welcomeImageUrl || "");
                           setKeyboardButtons(bot.keyboardConfig || []);
                         }}
                       >
