@@ -1019,21 +1019,38 @@ export function registerRoutes(app: Express): Server {
       const user = req.user!;
       const providerId = parseInt(req.params.id);
 
+      console.log(`🔍 Loading services for provider ID: ${providerId}, User ID: ${user.id}`);
+
       // Check if provider exists and belongs to user
       const provider = await storage.getSmmProvider(providerId);
       if (!provider || provider.userId !== user.id) {
+        console.error(`❌ Provider not found or access denied. Provider: ${JSON.stringify(provider)}`);
         return res.status(404).json({ message: "Provider not found" });
       }
 
-      const smmApi = new SmmPanelAPI(provider.apiKey, provider.apiEndpoint);
-      const services = await smmApi.getServices();
+      console.log(`✅ Provider found: ${provider.name} - ${provider.apiEndpoint}`);
+      console.log(`🔑 Using API Key: ${provider.apiKey.substring(0, 10)}...`);
 
+      const smmApi = new SmmPanelAPI(provider.apiKey, provider.apiEndpoint);
+      
+      console.log(`📡 Calling getServices() from SmmPanelAPI...`);
+      const services = await smmApi.getServices();
+      
+      console.log(`✅ Successfully fetched ${services.length} services`);
       res.json({ services });
     } catch (error) {
-      console.error("Fetch services error:", error);
+      console.error("❌ Fetch services error:", error);
+      console.error("Error details:", {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace',
+        name: error instanceof Error ? error.name : 'Unknown error type'
+      });
       res
         .status(500)
-        .json({ message: "Failed to fetch services from provider" });
+        .json({ 
+          message: "Failed to fetch services from provider",
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
     }
   });
 
