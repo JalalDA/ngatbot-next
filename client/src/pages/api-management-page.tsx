@@ -40,7 +40,7 @@ export default function ApiManagementPage() {
   // Create API key mutation
   const createApiKeyMutation = useMutation({
     mutationFn: async (data: { keyName: string; allowedDomains: string[] }) => {
-      return apiRequest("/api/api-keys", "POST", data);
+      return apiRequest("POST", "/api/api-keys", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/api-keys"] });
@@ -64,7 +64,7 @@ export default function ApiManagementPage() {
   // Delete API key mutation
   const deleteApiKeyMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/api-keys/${id}`, "DELETE");
+      return apiRequest("DELETE", `/api/api-keys/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/api-keys"] });
@@ -85,7 +85,7 @@ export default function ApiManagementPage() {
   // Toggle API key mutation
   const toggleApiKeyMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
-      return apiRequest(`/api/api-keys/${id}`, "PATCH", { isActive });
+      return apiRequest("PATCH", `/api/api-keys/${id}`, { isActive });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/api-keys"] });
