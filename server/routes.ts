@@ -2353,10 +2353,18 @@ export function registerRoutes(app: Express): Server {
 
   // Toggle API key status
   app.patch("/api/api-keys/:id/toggle", requireAuth, async (req, res) => {
+    console.log("=== TOGGLE API KEY ENDPOINT HIT ===");
+    console.log("User ID:", req.user?.id);
+    console.log("API Key ID:", req.params.id);
+    console.log("Request body:", req.body);
+    
     try {
       const user = req.user!;
       const keyId = parseInt(req.params.id);
       const { isActive } = req.body;
+
+      console.log("Parsed keyId:", keyId);
+      console.log("isActive value:", isActive);
 
       // Verify ownership and update
       const result = await pool.query(
@@ -2364,7 +2372,10 @@ export function registerRoutes(app: Express): Server {
         [isActive, keyId, user.id]
       );
 
+      console.log("Update result rows:", result.rows.length);
+
       if (result.rows.length === 0) {
+        console.log("No rows updated - API key not found");
         return res.status(404).json({ message: "API key not found" });
       }
 
@@ -2381,6 +2392,7 @@ export function registerRoutes(app: Express): Server {
         createdAt: row.created_at
       };
 
+      console.log("Successfully updated API key:", updatedKey);
       res.json(updatedKey);
     } catch (error) {
       console.error("Toggle API key error:", error);
