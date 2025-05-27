@@ -263,7 +263,7 @@ export class AutoBotManager {
                     ...navigationButtons,
                     {
                       id: 'back_to_main_from_submenu',
-                      text: '🔙 Kembali ke Menu Utama',
+                      text: '🏠 HOME',
                       callbackData: 'back_to_main',
                       level: 1
                     }
@@ -307,7 +307,7 @@ export class AutoBotManager {
                   // Create back button
                   const backButton = {
                     id: 'back_to_main_from_response',
-                    text: '🔙 Kembali ke Menu Utama',
+                    text: '🏠 HOME',
                     callbackData: 'back_to_main',
                     level: 0
                   };
@@ -415,7 +415,7 @@ export class AutoBotManager {
                   // Create back button
                   const backButton = {
                     id: 'back_to_main_from_final_response',
-                    text: '🔙 Kembali ke Menu Utama',
+                    text: '🏠 HOME',
                     callbackData: 'back_to_main',
                     level: 0
                   };
