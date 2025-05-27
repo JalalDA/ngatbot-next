@@ -267,18 +267,35 @@ export class AutoBotManager {
                   
                   console.log('📋 Sub menu with navigation buttons:', subMenusWithNavigation.map(btn => btn.text));
                   
-                  // Replace main menu with sub-menus by editing the message
+                  // Replace main menu with sub-menus
                   const subMenuKeyboard = this.createInlineKeyboard(subMenusWithNavigation);
                   
                   // Use response text if available, otherwise use default format
                   const menuText = pressedButton.responseText || `📋 Menu ${pressedButton.text}:`;
                   
-                  await bot.editMessageText(menuText, {
-                    chat_id: chatId,
-                    message_id: msg.message_id,
-                    reply_markup: subMenuKeyboard,
-                    parse_mode: 'Markdown'
-                  });
+                  // Check if button has image URL
+                  const buttonWithImage = pressedButton as any;
+                  if (buttonWithImage.responseImage && buttonWithImage.responseImage.trim()) {
+                    // Send photo with caption and keyboard
+                    await bot.editMessageMedia({
+                      type: 'photo',
+                      media: buttonWithImage.responseImage,
+                      caption: menuText,
+                      parse_mode: 'Markdown'
+                    }, {
+                      chat_id: chatId,
+                      message_id: msg.message_id,
+                      reply_markup: subMenuKeyboard
+                    });
+                  } else {
+                    // Send text only
+                    await bot.editMessageText(menuText, {
+                      chat_id: chatId,
+                      message_id: msg.message_id,
+                      reply_markup: subMenuKeyboard,
+                      parse_mode: 'Markdown'
+                    });
+                  }
                 } else {
                   // No sub-menus, show response text inline with back button
                   const responseText = pressedButton.responseText || `Anda memilih: ${pressedButton.text}`;
@@ -293,12 +310,28 @@ export class AutoBotManager {
                   
                   const responseKeyboard = this.createInlineKeyboard([backButton]);
                   
-                  await bot.editMessageText(responseText, {
-                    chat_id: chatId,
-                    message_id: msg.message_id,
-                    reply_markup: responseKeyboard,
-                    parse_mode: 'Markdown'
-                  });
+                  // Check if button has image URL
+                  if (pressedButton.responseImage && pressedButton.responseImage.trim()) {
+                    // Send photo with caption and keyboard
+                    await bot.editMessageMedia({
+                      type: 'photo',
+                      media: pressedButton.responseImage,
+                      caption: responseText,
+                      parse_mode: 'Markdown'
+                    }, {
+                      chat_id: chatId,
+                      message_id: msg.message_id,
+                      reply_markup: responseKeyboard
+                    });
+                  } else {
+                    // Send text only
+                    await bot.editMessageText(responseText, {
+                      chat_id: chatId,
+                      message_id: msg.message_id,
+                      reply_markup: responseKeyboard,
+                      parse_mode: 'Markdown'
+                    });
+                  }
                 }
               } else {
                 // Handle any level button (level 1, 2, 3, 4, 5)
@@ -347,12 +380,28 @@ export class AutoBotManager {
                   const levelName = levelNames[currentLevel] || `Level ${currentLevel + 1} Menu`;
                   const menuText = pressedButton.responseText || `📋 ${levelName} ${pressedButton.text}:`;
                   
-                  await bot.editMessageText(menuText, {
-                    chat_id: chatId,
-                    message_id: msg.message_id,
-                    reply_markup: childMenuKeyboard,
-                    parse_mode: 'Markdown'
-                  });
+                  // Check if button has image URL
+                  if (pressedButton.responseImage && pressedButton.responseImage.trim()) {
+                    // Send photo with caption and keyboard
+                    await bot.editMessageMedia({
+                      type: 'photo',
+                      media: pressedButton.responseImage,
+                      caption: menuText,
+                      parse_mode: 'Markdown'
+                    }, {
+                      chat_id: chatId,
+                      message_id: msg.message_id,
+                      reply_markup: childMenuKeyboard
+                    });
+                  } else {
+                    // Send text only
+                    await bot.editMessageText(menuText, {
+                      chat_id: chatId,
+                      message_id: msg.message_id,
+                      reply_markup: childMenuKeyboard,
+                      parse_mode: 'Markdown'
+                    });
+                  }
                 } else {
                   // No child menus, this is a final button - show response text inline with back button
                   const responseText = pressedButton.responseText || `Anda memilih: ${pressedButton.text}`;
@@ -367,12 +416,28 @@ export class AutoBotManager {
                   
                   const responseKeyboard = this.createInlineKeyboard([backButton]);
                   
-                  await bot.editMessageText(responseText, {
-                    chat_id: chatId,
-                    message_id: msg.message_id,
-                    reply_markup: responseKeyboard,
-                    parse_mode: 'Markdown'
-                  });
+                  // Check if button has image URL
+                  if (pressedButton.responseImage && pressedButton.responseImage.trim()) {
+                    // Send photo with caption and keyboard
+                    await bot.editMessageMedia({
+                      type: 'photo',
+                      media: pressedButton.responseImage,
+                      caption: responseText,
+                      parse_mode: 'Markdown'
+                    }, {
+                      chat_id: chatId,
+                      message_id: msg.message_id,
+                      reply_markup: responseKeyboard
+                    });
+                  } else {
+                    // Send text only
+                    await bot.editMessageText(responseText, {
+                      chat_id: chatId,
+                      message_id: msg.message_id,
+                      reply_markup: responseKeyboard,
+                      parse_mode: 'Markdown'
+                    });
+                  }
                 }
               }
             } catch (error) {
