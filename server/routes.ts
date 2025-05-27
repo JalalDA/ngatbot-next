@@ -59,6 +59,29 @@ export function registerRoutes(app: Express): Server {
   // Setup authentication routes
   setupAuth(app);
 
+  // ===============================
+  // API PROVIDER ENDPOINTS (/provider/v2) - MUST BE FIRST
+  // ===============================
+  
+  // API Provider endpoints for resellers
+  app.get("/provider/v2", validateApiKey, getBalance);
+  app.post("/provider/v2", validateApiKey, (req, res) => {
+    const action = req.body.action || req.query.action;
+    
+    switch (action) {
+      case 'balance':
+        return getBalance(req, res);
+      case 'services':
+        return getServices(req, res);
+      case 'add':
+        return createOrder(req, res);
+      case 'status':
+        return getOrderStatus(req, res);
+      default:
+        return res.json({ error: 'Invalid action' });
+    }
+  });
+
   // Bot management routes
   app.post("/api/bots", requireAuth, async (req, res) => {
     try {
@@ -1794,28 +1817,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // ===============================
-  // API PROVIDER ENDPOINTS (/api/v2)
-  // ===============================
-  
-  // API Provider endpoints for resellers
-  app.get("/api/v2", validateApiKey, getBalance);
-  app.post("/api/v2", validateApiKey, (req, res) => {
-    const action = req.body.action || req.query.action;
-    
-    switch (action) {
-      case 'balance':
-        return getBalance(req, res);
-      case 'services':
-        return getServices(req, res);
-      case 'add':
-        return createOrder(req, res);
-      case 'status':
-        return getOrderStatus(req, res);
-      default:
-        return res.json({ error: 'Invalid action' });
-    }
-  });
+
 
   // Manual cleanup stuck operations (admin only)
   app.post("/api/system/cleanup", requireAdmin, async (req, res) => {
