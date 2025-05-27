@@ -22,7 +22,7 @@ async function seedDevelopmentData() {
       {
         username: 'admin_dev',
         email: 'admin@dev.local',
-        password: await hashPassword('dev123'),
+        password: await bcrypt.hash('dev123', 10),
         fullName: 'Development Admin',
         role: 'admin',
         level: 'business',
@@ -31,7 +31,7 @@ async function seedDevelopmentData() {
       {
         username: 'user_dev',
         email: 'user@dev.local', 
-        password: await hashPassword('dev123'),
+        password: await bcrypt.hash('dev123', 10),
         fullName: 'Development User',
         role: 'user',
         level: 'pro',
@@ -40,7 +40,7 @@ async function seedDevelopmentData() {
       {
         username: 'tester_dev',
         email: 'tester@dev.local',
-        password: await hashPassword('dev123'),
+        password: await bcrypt.hash('dev123', 10),
         fullName: 'Development Tester',
         role: 'user',
         level: 'basic',
@@ -282,7 +282,7 @@ async function seedDevelopmentData() {
 }
 
 // Run if called directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   seedDevelopmentData()
     .then(() => {
       console.log('🌱 Development seeding completed');
