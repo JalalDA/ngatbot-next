@@ -217,65 +217,100 @@ export class AutoBotManager {
           const chatId = msg.chat.id;
           
           console.log(`🎯 BOT ${autoBot.botName} - Callback received: "${data}" from chat ${chatId}`);
+          console.log(`🔧 Service Management enabled: ${(autoBot as any).enableServiceManagement}`);
           
           // Handle Service Management callbacks FIRST
-          if (data.startsWith('service_category_') && (autoBot as any).enableServiceManagement) {
-            const categoryId = data.replace('service_category_', '');
-            console.log(`🎯 Service Management: Category ${categoryId} clicked`);
+          if (data.startsWith('service_category_')) {
+            console.log(`🎯 Service Management: Category callback detected`);
             
-            try {
-              // Get category and packages data
-              const { storage } = await import('./storage');
-              const categories = await storage.getServiceCategories();
-              const packages = await storage.getServicePackages();
+            if ((autoBot as any).enableServiceManagement) {
+              const categoryId = data.replace('service_category_', '');
+              console.log(`🎯 Service Management: Category ${categoryId} clicked`);
               
-              const category = categories.find(cat => cat.id.toString() === categoryId);
-              const categoryPackages = packages.filter(pkg => pkg.categoryId && pkg.categoryId.toString() === categoryId);
+              // Answer callback immediately
+              bot.answerCallbackQuery(callbackQuery.id, {
+                text: `Loading ${categoryId}...`
+              }).catch(() => {});
               
-              console.log(`📦 Found category: ${category?.name}, packages: ${categoryPackages.length}`);
-              
-              if (category && categoryPackages.length > 0) {
-                // Create package buttons
-                const packageButtons = categoryPackages.map(pkg => ({
-                  id: `service_package_${pkg.id}`,
-                  text: `${pkg.name} - ${this.formatPrice(pkg.price)}`,
-                  callbackData: `service_package_${pkg.id}`,
-                  level: 1
-                }));
+              try {
+                // Get category and packages data
+                const { storage } = await import('./storage');
+                const categories = await storage.getServiceCategories();
+                const packages = await storage.getServicePackages();
                 
-                // Add back button
-                packageButtons.push({
-                  id: 'back_to_main',
-                  text: '🏠 Kembali ke Menu Utama',
-                  callbackData: 'back_to_main',
-                  level: 1
-                });
+                const category = categories.find(cat => cat.id.toString() === categoryId);
+                const categoryPackages = packages.filter(pkg => pkg.categoryId && pkg.categoryId.toString() === categoryId);
                 
-                const keyboard = this.createInlineKeyboard(packageButtons);
-                const message = `*${this.getCategoryIcon(category.icon)} ${category.name}*\n\nSilakan pilih paket yang diinginkan:`;
+                console.log(`📦 Found category: ${category?.name}, packages: ${categoryPackages.length}`);
                 
-                // Answer callback and edit message
-                bot.answerCallbackQuery(callbackQuery.id).catch(() => {});
-                await bot.editMessageText(message, {
+                if (category) {
+                  if (categoryPackages.length > 0) {
+                    // Create package buttons
+                    const packageButtons = categoryPackages.map(pkg => ({
+                      id: `service_package_${pkg.id}`,
+                      text: `${pkg.name} - ${this.formatPrice(pkg.price)}`,
+                      callbackData: `service_package_${pkg.id}`,
+                      level: 1
+                    }));
+                    
+                    // Add back button
+                    packageButtons.push({
+                      id: 'back_to_main',
+                      text: '🏠 Kembali ke Menu Utama',
+                      callbackData: 'back_to_main',
+                      level: 1
+                    });
+                    
+                    const keyboard = this.createInlineKeyboard(packageButtons);
+                    const message = `*${this.getCategoryIcon(category.icon)} ${category.name}*\n\nSilakan pilih paket yang diinginkan:`;
+                    
+                    await bot.editMessageText(message, {
+                      chat_id: chatId,
+                      message_id: msg.message_id,
+                      reply_markup: keyboard,
+                      parse_mode: 'Markdown'
+                    });
+                    
+                    console.log(`✅ Showed ${categoryPackages.length} packages for category: ${category.name}`);
+                  } else {
+                    // No packages available - show message
+                    const message = `*${this.getCategoryIcon(category.icon)} ${category.name}*\n\n⚠️ Belum ada paket tersedia untuk kategori ini.\n\nSilakan hubungi admin untuk informasi lebih lanjut.`;
+                    
+                    await bot.editMessageText(message, {
+                      chat_id: chatId,
+                      message_id: msg.message_id,
+                      reply_markup: {
+                        inline_keyboard: [[{
+                          text: '🏠 Kembali ke Menu Utama',
+                          callback_data: 'back_to_main'
+                        }]]
+                      },
+                      parse_mode: 'Markdown'
+                    });
+                    
+                    console.log(`⚠️ No packages found for category: ${category.name}`);
+                  }
+                } else {
+                  console.log(`❌ Category not found: ${categoryId}`);
+                }
+              } catch (error) {
+                console.error('❌ Error handling Service Management callback:', error);
+                await bot.editMessageText(`❌ Terjadi kesalahan, silakan coba lagi`, {
                   chat_id: chatId,
                   message_id: msg.message_id,
-                  reply_markup: keyboard,
-                  parse_mode: 'Markdown'
+                  reply_markup: {
+                    inline_keyboard: [[{
+                      text: '🏠 Kembali ke Menu Utama', 
+                      callback_data: 'back_to_main'
+                    }]]
+                  }
                 });
-                
-                console.log(`✅ Showed ${categoryPackages.length} packages for category: ${category.name}`);
-              } else {
-                // No packages available
-                bot.answerCallbackQuery(callbackQuery.id, {
-                  text: `Belum ada paket tersedia untuk ${category?.name || 'kategori ini'}`
-                });
-                console.log(`⚠️ No packages found for category: ${category?.name}`);
               }
-            } catch (error) {
-              console.error('❌ Error handling Service Management callback:', error);
+            } else {
+              // Service Management not enabled, answer with message
               bot.answerCallbackQuery(callbackQuery.id, {
-                text: 'Terjadi kesalahan, silakan coba lagi'
-              });
+                text: 'Service Management tidak aktif'
+              }).catch(() => {});
             }
             return;
           }
