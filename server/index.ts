@@ -7,7 +7,7 @@ const app = express();
 
 // SECURITY: Apply security middleware first - DISABLED for development
 // app.use(securityLogger.securityMiddleware());
-app.use(securityLogger.rateLimitMiddleware(2000, 60000)); // 2000 requests per minute for smooth development
+// app.use(securityLogger.rateLimitMiddleware(2000, 60000)); // Disabled for development
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
