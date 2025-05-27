@@ -213,14 +213,18 @@ export const autoBots = pgTable("auto_bots", {
 export const apiKeys = pgTable("api_keys", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  keyName: text("key_name").notNull(),
+  name: text("name").notNull(), // Changed from key_name to name for production compatibility
   apiKey: text("api_key").notNull().unique(),
+  apiEndpoint: text("api_endpoint"),
+  balance: decimal("balance", { precision: 15, scale: 7 }).notNull().default("0"),
   isActive: boolean("is_active").notNull().default(true),
-  lastUsed: timestamp("last_used"),
   totalRequests: integer("total_requests").notNull().default(0),
   totalOrders: integer("total_orders").notNull().default(0),
   totalRevenue: decimal("total_revenue", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  lastUsed: timestamp("last_used"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  balanceUpdatedAt: timestamp("balance_updated_at"),
 });
 
 // Insert schemas
@@ -232,7 +236,7 @@ export const insertAutoBotSchema = createInsertSchema(autoBots).omit({
 
 export const insertApiKeySchema = createInsertSchema(apiKeys).pick({
   userId: true,
-  keyName: true,
+  name: true,
   apiKey: true,
   isActive: true,
 });
