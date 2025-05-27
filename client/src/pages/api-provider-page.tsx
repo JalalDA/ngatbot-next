@@ -381,6 +381,44 @@ export default function ApiProviderPage() {
                         </p>
                       </div>
                     </div>
+
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                      <div className="flex items-center space-x-2">
+                        <Badge variant={apiKey.isActive ? "default" : "secondary"}>
+                          {apiKey.isActive ? "Aktif" : "Nonaktif"}
+                        </Badge>
+                        <span className="text-sm text-gray-500">
+                          {new Date(apiKey.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => testApiKey(apiKey)}
+                          disabled={testingApiKey === apiKey.id || !apiKey.isActive}
+                        >
+                          {testingApiKey === apiKey.id ? (
+                            <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+                          ) : (
+                            "Test API"
+                          )}
+                        </Button>
+                        <Switch
+                          checked={apiKey.isActive}
+                          onCheckedChange={(checked) =>
+                            toggleApiKeyMutation.mutate({ id: apiKey.id, isActive: checked })
+                          }
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteApiKeyMutation.mutate(apiKey.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
