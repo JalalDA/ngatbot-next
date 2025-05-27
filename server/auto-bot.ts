@@ -293,12 +293,24 @@ export class AutoBotManager {
                   
                   const responseKeyboard = this.createInlineKeyboard([backButton]);
                   
-                  await bot.editMessageText(responseText, {
-                    chat_id: chatId,
-                    message_id: msg.message_id,
-                    reply_markup: responseKeyboard,
-                    parse_mode: 'Markdown'
-                  });
+                  // Check if button has responseImage
+                  if (pressedButton.responseImage && pressedButton.responseImage.trim()) {
+                    // Send photo with caption and keyboard
+                    await bot.deleteMessage(chatId, msg.message_id);
+                    await bot.sendPhoto(chatId, pressedButton.responseImage, {
+                      caption: responseText,
+                      reply_markup: responseKeyboard,
+                      parse_mode: 'Markdown'
+                    });
+                  } else {
+                    // No image, just edit text
+                    await bot.editMessageText(responseText, {
+                      chat_id: chatId,
+                      message_id: msg.message_id,
+                      reply_markup: responseKeyboard,
+                      parse_mode: 'Markdown'
+                    });
+                  }
                 }
               } else {
                 // Handle any level button (level 1, 2, 3, 4, 5)
@@ -367,12 +379,24 @@ export class AutoBotManager {
                   
                   const responseKeyboard = this.createInlineKeyboard([backButton]);
                   
-                  await bot.editMessageText(responseText, {
-                    chat_id: chatId,
-                    message_id: msg.message_id,
-                    reply_markup: responseKeyboard,
-                    parse_mode: 'Markdown'
-                  });
+                  // Check if button has responseImage
+                  if (pressedButton.responseImage && pressedButton.responseImage.trim()) {
+                    // Send photo with caption and keyboard
+                    await bot.deleteMessage(chatId, msg.message_id);
+                    await bot.sendPhoto(chatId, pressedButton.responseImage, {
+                      caption: responseText,
+                      reply_markup: responseKeyboard,
+                      parse_mode: 'Markdown'
+                    });
+                  } else {
+                    // No image, just edit text
+                    await bot.editMessageText(responseText, {
+                      chat_id: chatId,
+                      message_id: msg.message_id,
+                      reply_markup: responseKeyboard,
+                      parse_mode: 'Markdown'
+                    });
+                  }
                 }
               }
             } catch (error) {
