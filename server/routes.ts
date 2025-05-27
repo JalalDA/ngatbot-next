@@ -2282,6 +2282,86 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // API KEYS MANAGEMENT ENDPOINTS
+  
+  // Get user's API keys
+  app.get("/api/api-keys", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const apiKeys = await storage.getUserApiKeys(user.id);
+      res.json(apiKeys);
+    } catch (error) {
+      console.error("Get API keys error:", error);
+      res.status(500).json({ message: "Failed to fetch API keys" });
+    }
+  });
+
+  // Create new API key
+  app.post("/api/api-keys", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { keyName } = req.body;
+
+      if (!keyName || keyName.trim().length === 0) {
+        return res.status(400).json({ message: "API key name is required" });
+      }
+
+      const apiKey = generateApiKey();
+      const newApiKey = await storage.createUserApiKey({
+        userId: user.id,
+        keyName: keyName.trim(),
+        apiKey,
+        isActive: true,
+      });
+
+      res.json(newApiKey);
+    } catch (error) {
+      console.error("Create API key error:", error);
+      res.status(500).json({ message: "Failed to create API key" });
+    }
+  });
+
+  // Toggle API key status
+  app.patch("/api/api-keys/:id/toggle", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const keyId = parseInt(req.params.id);
+      const { isActive } = req.body;
+
+      // Verify ownership
+      const existingKey = await storage.getUserApiKey(keyId);
+      if (!existingKey || existingKey.userId !== user.id) {
+        return res.status(404).json({ message: "API key not found" });
+      }
+
+      const updatedKey = await storage.updateUserApiKey(keyId, { isActive });
+      res.json(updatedKey);
+    } catch (error) {
+      console.error("Toggle API key error:", error);
+      res.status(500).json({ message: "Failed to update API key" });
+    }
+  });
+
+  // Delete API key
+  app.delete("/api/api-keys/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const keyId = parseInt(req.params.id);
+
+      // Verify ownership
+      const existingKey = await storage.getUserApiKey(keyId);
+      if (!existingKey || existingKey.userId !== user.id) {
+        return res.status(404).json({ message: "API key not found" });
+      }
+
+      await storage.deleteUserApiKey(keyId);
+      res.json({ message: "API key deleted successfully" });
+    } catch (error) {
+      console.error("Delete API key error:", error);
+      res.status(500).json({ message: "Failed to delete API key" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
