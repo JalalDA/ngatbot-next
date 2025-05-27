@@ -27,7 +27,7 @@ function RootRedirect() {
     return <Redirect to="/dashboard" />;
   }
   
-  return <Redirect to="/auth" />;
+  return <Redirect to="/landing-page" />;
 }
 
 function Router() {
