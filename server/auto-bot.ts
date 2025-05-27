@@ -276,8 +276,24 @@ export class AutoBotManager {
                     reply_markup: subMenuKeyboard
                   });
                 } else {
-                  // No sub-menus, send response text and/or image if available
-                  await this.sendResponseMessage(bot, chatId, pressedButton);
+                  // No sub-menus, show response text inline with back button
+                  const responseText = pressedButton.responseText || `Anda memilih: ${pressedButton.text}`;
+                  
+                  // Create back button
+                  const backButton = {
+                    id: 'back_to_main_from_response',
+                    text: '🔙 Kembali ke Menu Utama',
+                    callbackData: 'back_to_main',
+                    level: 0
+                  };
+                  
+                  const responseKeyboard = this.createInlineKeyboard([backButton]);
+                  
+                  await bot.editMessageText(responseText, {
+                    chat_id: chatId,
+                    message_id: msg.message_id,
+                    reply_markup: responseKeyboard
+                  });
                 }
               } else {
                 // Handle any level button (level 1, 2, 3, 4, 5)
