@@ -28,6 +28,8 @@ export default function ApiProviderPage() {
   const [showApiKey, setShowApiKey] = useState<{ [key: number]: boolean }>({});
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
+  const [testResults, setTestResults] = useState<{ [key: number]: any }>({});
+  const [testingApiKey, setTestingApiKey] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -123,6 +125,54 @@ export default function ApiProviderPage() {
       return;
     }
     createApiKeyMutation.mutate(newKeyName);
+  };
+
+  const testApiKey = async (apiKey: ApiKey) => {
+    setTestingApiKey(apiKey.id);
+    try {
+      const response = await fetch('/api/v2', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Bearer ${apiKey.apiKey}`
+        },
+        body: 'action=services'
+      });
+      
+      const result = await response.json();
+      setTestResults(prev => ({
+        ...prev,
+        [apiKey.id]: {
+          success: response.ok,
+          data: result,
+          servicesCount: Array.isArray(result) ? result.length : 0
+        }
+      }));
+      
+      toast({
+        title: response.ok ? "API Test Berhasil!" : "API Test Gagal",
+        description: response.ok 
+          ? `Ditemukan ${Array.isArray(result) ? result.length : 0} layanan tersedia` 
+          : "Gagal mengambil layanan",
+        variant: response.ok ? "default" : "destructive"
+      });
+    } catch (error) {
+      setTestResults(prev => ({
+        ...prev,
+        [apiKey.id]: {
+          success: false,
+          error: error.message
+        }
+      }));
+      
+      toast({
+        title: "API Test Gagal",
+        description: "Terjadi kesalahan jaringan",
+        variant: "destructive"
+      });
+    } finally {
+      setTestingApiKey(null);
+    }
   };
 
   // Calculate total statistics

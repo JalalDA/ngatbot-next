@@ -152,6 +152,10 @@ export async function getServices(req: Request, res: Response) {
   try {
     const action = req.body.action || req.query.action;
     
+    console.log("=== GET SERVICES ENDPOINT HIT ===");
+    console.log("Action:", action);
+    console.log("API User:", req.apiUser);
+    
     if (action !== 'services') {
       return res.json({
         error: 'Invalid action'
@@ -173,6 +177,8 @@ export async function getServices(req: Request, res: Response) {
       })
       .from(smmServices)
       .where(eq(smmServices.isActive, true));
+
+    console.log("Found services:", services.length);
 
     // Format services sesuai dengan format API idcdigitals.com
     const formattedServices = services.map(service => ({
