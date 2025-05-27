@@ -18,6 +18,7 @@ import ApiProviderPage from "@/pages/api-provider-page";
 import PaymentMethodPage from "@/pages/payment-method-page";
 import ServiceManagementPage from "@/pages/service-management-page";
 import ServiceManagementPageV2 from "@/pages/service-management-page-v2";
+import ServiceManagementWhiteboard from "@/pages/service-management-whiteboard";
 import NotFound from "@/pages/not-found";
 
 function RootRedirect() {
@@ -108,6 +109,15 @@ function Router() {
           <>
             <Navigation />
             <ServiceManagementPageV2 />
+          </>
+        )} 
+      />
+      <ProtectedRoute 
+        path="/service-whiteboard" 
+        component={() => (
+          <>
+            <Navigation />
+            <ServiceManagementWhiteboard />
           </>
         )} 
       />
