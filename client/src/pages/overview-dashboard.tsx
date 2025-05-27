@@ -300,7 +300,7 @@ export default function OverviewDashboard() {
               className="w-full h-20 flex flex-col items-center justify-center space-y-2 bg-slate-800 border-slate-700 hover:bg-slate-700 text-white"
               onClick={() => {
                 setShowCreateBotModal(false);
-                setLocation('/bots/create?type=ai');
+                setLocation('/bots');
               }}
             >
               <Brain className="w-8 h-8 text-blue-400" />
@@ -315,7 +315,7 @@ export default function OverviewDashboard() {
               className="w-full h-20 flex flex-col items-center justify-center space-y-2 bg-slate-800 border-slate-700 hover:bg-slate-700 text-white"
               onClick={() => {
                 setShowCreateBotModal(false);
-                setLocation('/auto-bots/create');
+                setLocation('/botauto');
               }}
             >
               <Cpu className="w-8 h-8 text-green-400" />
