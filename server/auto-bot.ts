@@ -189,6 +189,39 @@ export class AutoBotManager {
           console.log(`🎯 BOT ${autoBot.botName} - Callback received: "${data}" from chat ${chatId}`);
           console.log(`📋 ALL KEYBOARD CONFIG:`, JSON.stringify(autoBot.keyboardConfig, null, 2));
           
+          // Handle special navigation buttons FIRST
+          if (data === 'back_to_main') {
+            console.log(`🏠 Handling Menu Utama button`);
+            // Show main menu again - exclude All Show buttons
+            const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => 
+              (!btn.level || btn.level === 0) && !btn.isAllShow
+            );
+            const keyboard = this.createInlineKeyboard(mainMenuButtons);
+            
+            // Fast delete and send
+            bot.deleteMessage(chatId, msg.message_id).catch(() => {});
+            bot.sendMessage(chatId, autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:", {
+              reply_markup: keyboard,
+              parse_mode: 'Markdown'
+            });
+            return;
+          }
+          
+          // Handle All Show button (both direct and navigation)
+          if (data === 'show_all_menus' || data === 'all_show') {
+            console.log(`📋 Handling All Show button`);
+            const allShowMessage = this.createAllShowMessage(autoBot.keyboardConfig || []);
+            const keyboard = this.createAllShowKeyboard(autoBot.keyboardConfig || []);
+            
+            await bot.editMessageText(allShowMessage, {
+              chat_id: chatId,
+              message_id: msg.message_id,
+              reply_markup: keyboard,
+              parse_mode: 'Markdown'
+            });
+            return;
+          }
+          
           // Find the button that was pressed
           const pressedButton = autoBot.keyboardConfig?.find(btn => btn.callbackData === data);
           
@@ -205,36 +238,7 @@ export class AutoBotManager {
           // Answer callback query immediately for fast response
           bot.answerCallbackQuery(callbackQuery.id).catch(() => {});
           
-          // Handle special navigation callbacks first (they might not be in pressedButton)
-          if (data === 'back_to_main') {
-            // Show main menu again - exclude All Show buttons
-            const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => 
-              (!btn.level || btn.level === 0) && !btn.isAllShow
-            );
-            const keyboard = this.createInlineKeyboard(mainMenuButtons);
-            
-            // Fast delete and send
-            bot.deleteMessage(chatId, msg.message_id).catch(() => {});
-            bot.sendMessage(chatId, autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:", {
-              reply_markup: keyboard,
-              parse_mode: 'Markdown'
-            });
-            return;
-          }
 
-          // Handle All Show button
-          if (data === 'show_all_menus') {
-            const allShowMessage = this.createAllShowMessage(autoBot.keyboardConfig || []);
-            const keyboard = this.createAllShowKeyboard(autoBot.keyboardConfig || []);
-            
-            await bot.editMessageText(allShowMessage, {
-              chat_id: chatId,
-              message_id: msg.message_id,
-              reply_markup: keyboard,
-              parse_mode: 'Markdown'
-            });
-            return;
-          }
 
 
           
