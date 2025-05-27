@@ -162,7 +162,7 @@ export async function getServices(req: Request, res: Response) {
       });
     }
 
-    // Get all active services (accessible to all API key holders)
+    // Get services milik user yang memiliki API key ini
     const services = await db
       .select({
         id: smmServices.id,
@@ -176,7 +176,10 @@ export async function getServices(req: Request, res: Response) {
         isActive: smmServices.isActive
       })
       .from(smmServices)
-      .where(eq(smmServices.isActive, true));
+      .where(and(
+        eq(smmServices.isActive, true),
+        eq(smmServices.userId, req.apiUser!.id)
+      ));
 
     console.log("Found services:", services.length);
 
