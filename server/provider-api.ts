@@ -89,7 +89,7 @@ export async function validateApiKey(req: Request, res: Response, next: NextFunc
     req.apiUser = {
       id: apiKeyRecord[0].userId,
       apiKeyId: apiKeyRecord[0].id,
-      keyName: apiKeyRecord[0].keyName
+      keyName: apiKeyRecord[0].name || apiKeyRecord[0].keyName // Support both field names
     };
 
     next();

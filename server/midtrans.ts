@@ -65,20 +65,31 @@ interface CreateTransactionParams {
   userId: number;
   userName: string;
   userEmail: string;
-  plan: PlanType;
+  plan: PlanType | 'custom';
+  customAmount?: number;
 }
 
 export async function createMidtransTransaction(params: CreateTransactionParams) {
-  const { orderId, userId, userName, userEmail, plan } = params;
-  const planConfig = UPGRADE_PLANS[plan];
-
-  if (!planConfig) {
-    throw new Error('Invalid plan selected');
+  const { orderId, userId, userName, userEmail, plan, customAmount } = params;
+  
+  let amount: number;
+  let itemName: string;
+  
+  if (plan === 'custom' && customAmount) {
+    amount = customAmount;
+    itemName = 'Pembayaran Telegram Bot';
+  } else {
+    const planConfig = UPGRADE_PLANS[plan as PlanType];
+    if (!planConfig) {
+      throw new Error('Invalid plan selected');
+    }
+    amount = planConfig.price;
+    itemName = planConfig.name;
   }
 
   const transactionDetails = {
     order_id: orderId,
-    gross_amount: planConfig.price,
+    gross_amount: amount,
   };
 
   const itemDetails = [

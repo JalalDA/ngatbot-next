@@ -204,7 +204,19 @@ export const autoBots = pgTable("auto_bots", {
     responseText?: string; // Teks respons yang dikirim ketika tombol diklik
     isAllShow?: boolean; // Property untuk tombol All Show
   }[]>(),
+  paymentIntegration: boolean("payment_integration").notNull().default(false), // Toggle untuk payment integration
   isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Payment Settings table for Midtrans configuration
+export const paymentSettings = pgTable("payment_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  serverKey: text("server_key").notNull(),
+  clientKey: text("client_key").notNull(),
+  isProduction: boolean("is_production").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -213,14 +225,69 @@ export const autoBots = pgTable("auto_bots", {
 export const apiKeys = pgTable("api_keys", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  keyName: text("key_name").notNull(),
+  name: text("name").notNull(), // Changed from key_name to name for production compatibility
   apiKey: text("api_key").notNull().unique(),
+  apiEndpoint: text("api_endpoint"),
+  balance: decimal("balance", { precision: 15, scale: 7 }).notNull().default("0"),
   isActive: boolean("is_active").notNull().default(true),
-  lastUsed: timestamp("last_used"),
   totalRequests: integer("total_requests").notNull().default(0),
   totalOrders: integer("total_orders").notNull().default(0),
   totalRevenue: decimal("total_revenue", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  lastUsed: timestamp("last_used"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  balanceUpdatedAt: timestamp("balance_updated_at"),
+});
+
+// Telegram Bot Orders table for payment tracking
+export const telegramOrders = pgTable("telegram_orders", {
+  id: serial("id").primaryKey(),
+  orderId: text("order_id").notNull().unique(),
+  botToken: text("bot_token").notNull(),
+  telegramUserId: text("telegram_user_id").notNull(),
+  telegramUsername: text("telegram_username"),
+  serviceId: text("service_id").notNull(),
+  serviceName: text("service_name").notNull(),
+  quantity: integer("quantity").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("IDR"),
+  status: text("status").notNull().default("pending"), // pending, paid, completed, cancelled
+  midtransTransactionId: text("midtrans_transaction_id"),
+  qrisUrl: text("qris_url"),
+  targetLink: text("target_link"), // Link Instagram/TikTok yang akan diproses
+  resultLink: text("result_link"), // Link hasil (foto/bukti) yang dikirim ke user
+  paymentExpiredAt: timestamp("payment_expired_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Telegram Bot Services table
+export const telegramServices = pgTable("telegram_services", {
+  id: serial("id").primaryKey(),
+  botToken: text("bot_token").notNull(),
+  serviceId: text("service_id").notNull(),
+  serviceName: text("service_name").notNull(),
+  category: text("category").notNull(),
+  description: text("description"),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  minQuantity: integer("min_quantity").notNull().default(1),
+  maxQuantity: integer("max_quantity").notNull().default(10000),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Telegram Bot Payment Settings table
+export const telegramPaymentSettings = pgTable("telegram_payment_settings", {
+  id: serial("id").primaryKey(),
+  botToken: text("bot_token").notNull().unique(),
+  botOwnerId: text("bot_owner_id").notNull(), // Telegram user ID of bot owner
+  midtransServerKey: text("midtrans_server_key"),
+  midtransClientKey: text("midtrans_client_key"),
+  midtransIsProduction: boolean("midtrans_is_production").notNull().default(false),
+  isConfigured: boolean("is_configured").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Insert schemas
@@ -232,9 +299,27 @@ export const insertAutoBotSchema = createInsertSchema(autoBots).omit({
 
 export const insertApiKeySchema = createInsertSchema(apiKeys).pick({
   userId: true,
-  keyName: true,
+  name: true,
   apiKey: true,
   isActive: true,
+});
+
+export const insertTelegramOrderSchema = createInsertSchema(telegramOrders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTelegramServiceSchema = createInsertSchema(telegramServices).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTelegramPaymentSettingsSchema = createInsertSchema(telegramPaymentSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 // Types
@@ -244,6 +329,12 @@ export type Bot = typeof bots.$inferSelect;
 export type InsertBot = z.infer<typeof insertBotSchema>;
 export type Knowledge = typeof knowledge.$inferSelect;
 export type InsertKnowledge = z.infer<typeof insertKnowledgeSchema>;
+export type TelegramOrder = typeof telegramOrders.$inferSelect;
+export type InsertTelegramOrder = z.infer<typeof insertTelegramOrderSchema>;
+export type TelegramService = typeof telegramServices.$inferSelect;
+export type InsertTelegramService = z.infer<typeof insertTelegramServiceSchema>;
+export type TelegramPaymentSettings = typeof telegramPaymentSettings.$inferSelect;
+export type InsertTelegramPaymentSettings = z.infer<typeof insertTelegramPaymentSettingsSchema>;
 export type Transaction = typeof transactions.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Setting = typeof settings.$inferSelect;
@@ -258,4 +349,6 @@ export type AutoBot = typeof autoBots.$inferSelect;
 export type InsertAutoBot = z.infer<typeof insertAutoBotSchema>;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
+export type PaymentSettings = typeof paymentSettings.$inferSelect;
+export type InsertPaymentSettings = typeof paymentSettings.$inferInsert;
 

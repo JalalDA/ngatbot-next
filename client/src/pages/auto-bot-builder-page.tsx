@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Bot, Keyboard, Settings, Play, Square, Edit3, Layers, Layers2, Menu, Grid3X3, Wand2, ChevronDown, ChevronRight, ToggleLeft, ToggleRight, Info, ArrowLeft, Eye } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -24,6 +25,7 @@ interface AutoBot {
   welcomeImageUrl?: string;
   isActive: boolean;
   keyboardConfig: InlineKeyboard[];
+  paymentIntegration: boolean; // Toggle untuk payment integration
   createdAt: string;
 }
 
@@ -48,6 +50,7 @@ export default function AutoBotBuilderPage() {
   const [welcomeMessage, setWelcomeMessage] = useState("Selamat datang! Silakan pilih opsi di bawah ini:");
   const [welcomeImageUrl, setWelcomeImageUrl] = useState("");
   const [keyboardButtons, setKeyboardButtons] = useState<InlineKeyboard[]>([]);
+  const [paymentIntegration, setPaymentIntegration] = useState(false); // State untuk payment integration toggle
   const [editingBot, setEditingBot] = useState<AutoBot | null>(null);
 
   // Reset state when component mounts
@@ -57,6 +60,7 @@ export default function AutoBotBuilderPage() {
     setBotUsername("");
     setWelcomeMessage("Selamat datang! Silakan pilih opsi di bawah ini:");
     setKeyboardButtons([]);
+    setPaymentIntegration(false);
     setEditingBot(null);
     setActiveTab("create");
   }, []);
@@ -497,6 +501,7 @@ export default function AutoBotBuilderPage() {
     setWelcomeMessage(bot.welcomeMessage);
     setWelcomeImageUrl(bot.welcomeImageUrl || "");
     setKeyboardButtons(bot.keyboardConfig || []);
+    setPaymentIntegration(bot.paymentIntegration || false); // Set payment integration state
     setShowEditDialog(true);
   };
 
@@ -507,6 +512,7 @@ export default function AutoBotBuilderPage() {
         welcomeMessage,
         welcomeImageUrl,
         keyboardConfig: keyboardButtons,
+        paymentIntegration, // Include payment integration setting
       });
     } else {
       if (!newBotToken || !botName || !botUsername) {
@@ -1409,6 +1415,38 @@ export default function AutoBotBuilderPage() {
                       Gambar akan ditampilkan bersama pesan sambutan.
                     </p>
                   </div>
+                </div>
+
+                {/* Payment Integration Toggle */}
+                <div className="border rounded-lg p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium flex items-center gap-2 text-green-800">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        Payment Integration
+                      </h3>
+                      <p className="text-sm text-green-700 mt-1">
+                        Aktifkan untuk menampilkan QRIS langsung dari menu utama
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={paymentIntegration}
+                        onCheckedChange={setPaymentIntegration}
+                        className="data-[state=checked]:bg-green-600"
+                      />
+                      <span className="text-sm font-medium text-green-800">
+                        {paymentIntegration ? 'ON' : 'OFF'}
+                      </span>
+                    </div>
+                  </div>
+                  {paymentIntegration && (
+                    <div className="mt-3 p-3 bg-green-100 rounded-lg border border-green-200">
+                      <p className="text-sm text-green-800">
+                        ✅ Ketika diaktifkan, bot akan menampilkan QRIS Midtrans langsung di menu utama untuk pembayaran cepat.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Quick Actions - Same as Create Bot */}
