@@ -1317,12 +1317,30 @@ export default function AutoBotBuilderPage() {
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="flex items-center gap-2">
+                      <CardTitle className="flex items-center gap-2 flex-wrap">
                         <Bot className="w-5 h-5" />
                         {bot.botName}
                         <Badge variant={bot.isActive ? "default" : "secondary"}>
                           {bot.isActive ? "Aktif" : "Nonaktif"}
                         </Badge>
+                        
+                        {/* Service Management Integration Badges */}
+                        {(bot as any).enableServiceManagement && (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            <Settings className="w-3 h-3 mr-1" />
+                            Service Management
+                          </Badge>
+                        )}
+                        {(bot as any).enablePaymentIntegration && (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            💳 Payment
+                          </Badge>
+                        )}
+                        {(bot as any).enableOrderTracking && (
+                          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                            📊 Tracking
+                          </Badge>
+                        )}
                       </CardTitle>
                       <CardDescription>@{bot.botUsername}</CardDescription>
                     </div>
@@ -1374,6 +1392,31 @@ export default function AutoBotBuilderPage() {
                       <Label className="text-sm font-medium">Pesan Sambutan:</Label>
                       <p className="text-sm text-muted-foreground mt-1">{bot.welcomeMessage}</p>
                     </div>
+                    
+                    {/* Service Management Integration Status */}
+                    {((bot as any).enableServiceManagement || (bot as any).enablePaymentIntegration || (bot as any).enableOrderTracking) && (
+                      <div>
+                        <Label className="text-sm font-medium">Service Management Integration:</Label>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {(bot as any).enableServiceManagement && (
+                            <div className="flex items-center gap-1 text-xs text-green-700 bg-green-50 px-2 py-1 rounded">
+                              <Settings className="w-3 h-3" />
+                              Menu Otomatis Aktif
+                            </div>
+                          )}
+                          {(bot as any).enablePaymentIntegration && (
+                            <div className="flex items-center gap-1 text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded">
+                              💳 QRIS Payment
+                            </div>
+                          )}
+                          {(bot as any).enableOrderTracking && (
+                            <div className="flex items-center gap-1 text-xs text-purple-700 bg-purple-50 px-2 py-1 rounded">
+                              📊 Order Tracking
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     
                     {bot.keyboardConfig && bot.keyboardConfig.length > 0 && (
                       <div>
