@@ -169,30 +169,30 @@ export default function OverviewDashboard() {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Quick Bot Actions */}
-          <Card>
+          <Card className="bg-slate-900 dark:bg-slate-900 border-slate-800 dark:border-slate-800">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Bot className="w-5 h-5 text-blue-600" />
-                <span>Bot Management</span>
+                <Bot className="w-5 h-5 text-blue-400 dark:text-blue-400" />
+                <span className="text-white dark:text-white">Bot Management</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-slate-800 dark:bg-slate-800 rounded-lg border border-slate-700 dark:border-slate-700">
                 <div>
-                  <h4 className="font-medium text-slate-900">Create New Bot</h4>
-                  <p className="text-sm text-slate-600">Set up a new Telegram bot with AI</p>
+                  <h4 className="font-medium text-white dark:text-white">Create New Bot</h4>
+                  <p className="text-sm text-slate-400 dark:text-slate-400">Set up a new Telegram bot with AI</p>
                 </div>
                 <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
                   <Bot className="w-4 h-4 mr-2" />
                   Create
                 </Button>
               </div>
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-slate-800 dark:bg-slate-800 rounded-lg border border-slate-700 dark:border-slate-700">
                 <div>
-                  <h4 className="font-medium text-slate-900">Manage Existing Bots</h4>
-                  <p className="text-sm text-slate-600">Edit settings and knowledge base</p>
+                  <h4 className="font-medium text-white dark:text-white">Manage Existing Bots</h4>
+                  <p className="text-sm text-slate-400 dark:text-slate-400">Edit settings and knowledge base</p>
                 </div>
-                <Button size="sm" variant="outline">
+                <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white">
                   View All
                 </Button>
               </div>
@@ -200,30 +200,30 @@ export default function OverviewDashboard() {
           </Card>
 
           {/* Quick SMM Actions */}
-          <Card>
+          <Card className="bg-slate-900 dark:bg-slate-900 border-slate-800 dark:border-slate-800">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <ShoppingCart className="w-5 h-5 text-green-600" />
-                <span>SMM Panel</span>
+                <ShoppingCart className="w-5 h-5 text-green-400 dark:text-green-400" />
+                <span className="text-white dark:text-white">SMM Panel</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-slate-800 dark:bg-slate-800 rounded-lg border border-slate-700 dark:border-slate-700">
                 <div>
-                  <h4 className="font-medium text-slate-900">Add Provider</h4>
-                  <p className="text-sm text-slate-600">Connect new SMM service provider</p>
+                  <h4 className="font-medium text-white dark:text-white">Add Provider</h4>
+                  <p className="text-sm text-slate-400 dark:text-slate-400">Connect new SMM service provider</p>
                 </div>
                 <Button size="sm" className="bg-green-600 hover:bg-green-700">
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   Add
                 </Button>
               </div>
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-slate-800 dark:bg-slate-800 rounded-lg border border-slate-700 dark:border-slate-700">
                 <div>
-                  <h4 className="font-medium text-slate-900">Manage Services</h4>
-                  <p className="text-sm text-slate-600">View and edit imported services</p>
+                  <h4 className="font-medium text-white dark:text-white">Manage Services</h4>
+                  <p className="text-sm text-slate-400 dark:text-slate-400">View and edit imported services</p>
                 </div>
-                <Button size="sm" variant="outline">
+                <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white">
                   View All
                 </Button>
               </div>
