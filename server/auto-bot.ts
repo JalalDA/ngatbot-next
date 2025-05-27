@@ -345,8 +345,24 @@ export class AutoBotManager {
                     reply_markup: childMenuKeyboard
                   });
                 } else {
-                  // No child menus, this is a final button - send response text and/or image
-                  await this.sendResponseMessage(bot, chatId, pressedButton);
+                  // No child menus, this is a final button - show response text inline with back button
+                  const responseText = pressedButton.responseText || `Anda memilih: ${pressedButton.text}`;
+                  
+                  // Create back button
+                  const backButton = {
+                    id: 'back_to_main_from_final_response',
+                    text: '🔙 Kembali ke Menu Utama',
+                    callbackData: 'back_to_main',
+                    level: 0
+                  };
+                  
+                  const responseKeyboard = this.createInlineKeyboard([backButton]);
+                  
+                  await bot.editMessageText(responseText, {
+                    chat_id: chatId,
+                    message_id: msg.message_id,
+                    reply_markup: responseKeyboard
+                  });
                 }
               }
             } catch (error) {
