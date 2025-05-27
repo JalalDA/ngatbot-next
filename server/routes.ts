@@ -1003,36 +1003,60 @@ export function registerRoutes(app: Express): Server {
       let importedCount = 0;
       const errors: string[] = [];
 
-      console.log(`Processing batch ${batchIndex + 1}/${totalBatches} with ${servicesBatch.length} services`);
+      console.log(`🚀 Processing batch ${batchIndex + 1}/${totalBatches} with ${servicesBatch.length} services using multithreading...`);
 
-      for (const service of servicesBatch) {
-        try {
-          // Auto-assign MID (1-10)
-          const mid = generateMid(usedMids);
-          if (mid) {
-            usedMids.push(mid);
+      // MULTITHREADING: Process services in parallel chunks
+      const chunkSize = 5; // Process 5 services simultaneously
+      const chunks = [];
+      for (let i = 0; i < servicesBatch.length; i += chunkSize) {
+        chunks.push(servicesBatch.slice(i, i + chunkSize));
+      }
 
-            await storage.createSmmService({
-              userId: user.id,
-              providerId: provider.id,
-              mid,
-              name: service.name,
-              description: service.category || "",
-              min: service.min,
-              max: service.max,
-              rate: parseRate(service.rate).toString(),
-              category: service.category,
-              serviceIdApi: (service.service || service.id).toString(),
-              isActive: true
-            });
+      for (const chunk of chunks) {
+        const chunkPromises = chunk.map(async (service) => {
+          try {
+            // Auto-assign MID (1-10) - thread-safe
+            const mid = generateMid(usedMids);
+            if (mid) {
+              usedMids.push(mid);
 
-            importedCount++;
-          } else {
-            errors.push(`No available MID for service: ${service.name}`);
+              await storage.createSmmService({
+                userId: user.id,
+                providerId: provider.id,
+                mid,
+                name: service.name,
+                description: service.category || "",
+                min: service.min,
+                max: service.max,
+                rate: parseRate(service.rate).toString(),
+                category: service.category,
+                serviceIdApi: (service.service || service.id).toString(),
+                isActive: true
+              });
+
+              return { success: true, serviceName: service.name };
+            } else {
+              return { success: false, serviceName: service.name, error: 'No available MID' };
+            }
+          } catch (error) {
+            return { success: false, serviceName: service.name, error: (error as Error).message };
           }
-        } catch (error) {
-          errors.push(`Failed to import ${service.name}: ${(error as Error).message}`);
-        }
+        });
+
+        // ASYNC: Wait for chunk to complete
+        const chunkResults = await Promise.allSettled(chunkPromises);
+        
+        chunkResults.forEach((result) => {
+          if (result.status === 'fulfilled') {
+            if (result.value.success) {
+              importedCount++;
+            } else {
+              errors.push(`${result.value.serviceName}: ${result.value.error}`);
+            }
+          } else {
+            errors.push(`Unknown error: ${result.reason}`);
+          }
+        });
       }
 
       res.json({
@@ -1136,23 +1160,49 @@ export function registerRoutes(app: Express): Server {
       let deletedCount = 0;
       const errors: string[] = [];
 
-      for (const serviceId of serviceIds) {
-        try {
-          // Check if service belongs to user
-          const service = await storage.getSmmService(serviceId);
-          if (service && service.userId === user.id) {
-            const success = await storage.deleteSmmService(serviceId);
-            if (success) {
+      console.log(`🚀 Bulk deleting ${serviceIds.length} services using multithreading...`);
+
+      // MULTITHREADING: Process deletions in parallel batches
+      const batchSize = 10; // Process 10 deletions simultaneously
+      const batches = [];
+      for (let i = 0; i < serviceIds.length; i += batchSize) {
+        batches.push(serviceIds.slice(i, i + batchSize));
+      }
+
+      for (const batch of batches) {
+        const batchPromises = batch.map(async (serviceId) => {
+          try {
+            // Check if service belongs to user
+            const service = await storage.getSmmService(serviceId);
+            if (service && service.userId === user.id) {
+              const success = await storage.deleteSmmService(serviceId);
+              if (success) {
+                return { success: true, serviceId };
+              } else {
+                return { success: false, serviceId, error: 'Failed to delete' };
+              }
+            } else {
+              return { success: false, serviceId, error: 'Not found or access denied' };
+            }
+          } catch (error) {
+            return { success: false, serviceId, error: (error as Error).message };
+          }
+        });
+
+        // ASYNC: Wait for batch to complete
+        const batchResults = await Promise.allSettled(batchPromises);
+        
+        batchResults.forEach((result) => {
+          if (result.status === 'fulfilled') {
+            if (result.value.success) {
               deletedCount++;
             } else {
-              errors.push(`Failed to delete service ID ${serviceId}`);
+              errors.push(`Service ID ${result.value.serviceId}: ${result.value.error}`);
             }
           } else {
-            errors.push(`Service ID ${serviceId} not found or access denied`);
+            errors.push(`Unknown error: ${result.reason}`);
           }
-        } catch (error) {
-          errors.push(`Error deleting service ID ${serviceId}: ${(error as Error).message}`);
-        }
+        });
       }
 
       res.json({
@@ -1262,13 +1312,15 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Manual sync orders status endpoint
+  // Manual sync orders status endpoint - OPTIMIZED WITH MULTITHREADING
   app.post("/api/smm/orders/sync", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
       
-      // Get all orders for the user that might need syncing
-      const allOrders = await storage.getSmmOrdersByUserId(user.id, 1000, 0);
+      // Get all orders for the user that might need syncing - ASYNC
+      const [allOrders] = await Promise.all([
+        storage.getSmmOrdersByUserId(user.id, 1000, 0)
+      ]);
       
       if (!allOrders || allOrders.length === 0) {
         return res.json({ 
@@ -1291,64 +1343,81 @@ export function registerRoutes(app: Express): Server {
       let updatedCount = 0;
       let errorCount = 0;
 
-      console.log(`🔄 Starting manual sync for ${ordersToSync.length} orders...`);
+      console.log(`🔄 Starting parallel sync for ${ordersToSync.length} orders...`);
 
-      for (const order of ordersToSync) {
-        try {
-          // Get provider info
-          const provider = await storage.getSmmProvider(order.providerId);
-          if (!provider) {
-            console.warn(`⚠️ Provider not found for order ${order.id}`);
-            continue;
-          }
+      // MULTITHREADING: Process orders in parallel batches
+      const batchSize = 10; // Process 10 orders simultaneously
+      const batches = [];
+      for (let i = 0; i < ordersToSync.length; i += batchSize) {
+        batches.push(ordersToSync.slice(i, i + batchSize));
+      }
 
-          console.log(`🔍 Checking order ${order.id} with provider ${provider.name}...`);
+      for (const batch of batches) {
+        const batchPromises = batch.map(async (order) => {
+          try {
+            // Get provider info asynchronously
+            const provider = await storage.getSmmProvider(order.providerId);
+            if (!provider) {
+              console.warn(`⚠️ Provider not found for order ${order.id}`);
+              return { success: false, orderId: order.id, error: 'Provider not found' };
+            }
 
-          // Check status dari provider
-          const statusUrl = `${provider.apiEndpoint}?key=${provider.apiKey}&action=status&order=${order.providerOrderId}`;
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-          
-          const statusResponse = await fetch(statusUrl, {
-            method: 'GET',
-            signal: controller.signal
-          });
-          
-          clearTimeout(timeoutId);
-          
-          if (statusResponse.ok) {
-            const statusData = await statusResponse.json();
-            console.log(`📊 Provider response for order ${order.id}:`, statusData);
+            // ASYNC with timeout for API call
+            const statusUrl = `${provider.apiEndpoint}?key=${provider.apiKey}&action=status&order=${order.providerOrderId}`;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout for faster response
             
-            if (statusData && statusData.status) {
-              // Map provider status ke system status
-              const systemStatus = mapProviderStatus(statusData.status);
+            const statusResponse = await fetch(statusUrl, {
+              method: 'GET',
+              signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (statusResponse.ok) {
+              const statusData = await statusResponse.json();
               
-              // Update status jika berbeda
-              if (systemStatus !== order.status) {
-                await storage.updateSmmOrder(order.id, {
-                  status: systemStatus,
-                  startCount: statusData.start_count || order.startCount,
-                  remains: statusData.remains || order.remains
-                });
+              if (statusData && statusData.status) {
+                // Map provider status ke system status
+                const systemStatus = mapProviderStatus(statusData.status);
                 
-                updatedCount++;
-                console.log(`✅ Manual sync updated order ${order.id}: ${order.status} -> ${systemStatus}`);
+                // Update status jika berbeda
+                if (systemStatus !== order.status) {
+                  await storage.updateSmmOrder(order.id, {
+                    status: systemStatus,
+                    startCount: statusData.start_count || order.startCount,
+                    remains: statusData.remains || order.remains
+                  });
+                  
+                  return { success: true, orderId: order.id, updated: true, oldStatus: order.status, newStatus: systemStatus };
+                } else {
+                  return { success: true, orderId: order.id, updated: false, status: order.status };
+                }
               } else {
-                console.log(`ℹ️ Order ${order.id} status unchanged: ${order.status}`);
+                return { success: false, orderId: order.id, error: 'Invalid response data' };
               }
-              syncedCount++;
             } else {
-              console.warn(`⚠️ Invalid response for order ${order.id}:`, statusData);
+              return { success: false, orderId: order.id, error: `HTTP ${statusResponse.status}` };
+            }
+          } catch (syncError) {
+            return { success: false, orderId: order.id, error: syncError.message };
+          }
+        });
+
+        // MULTITHREADING: Process batch in parallel and collect results
+        const batchResults = await Promise.allSettled(batchPromises);
+        
+        batchResults.forEach((result) => {
+          if (result.status === 'fulfilled') {
+            syncedCount++;
+            if (result.value.updated) {
+              updatedCount++;
+              console.log(`✅ Updated order ${result.value.orderId}: ${result.value.oldStatus} -> ${result.value.newStatus}`);
             }
           } else {
-            console.error(`❌ HTTP error ${statusResponse.status} for order ${order.id}`);
             errorCount++;
           }
-        } catch (syncError) {
-          console.error(`❌ Failed to manually sync order ${order.id}:`, syncError);
-          errorCount++;
-        }
+        });
       }
       
       console.log(`📊 Sync completed: ${syncedCount} checked, ${updatedCount} updated, ${errorCount} errors`);
