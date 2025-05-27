@@ -36,7 +36,7 @@ export async function validateApiKey(req: Request, res: Response, next: NextFunc
     const apiKey = req.body.key || req.query.key;
     
     if (!apiKey) {
-      return res.json({
+      return res.status(400).json({
         error: 'API key is required'
       });
     }
@@ -57,25 +57,31 @@ export async function validateApiKey(req: Request, res: Response, next: NextFunc
       .limit(1);
 
     if (apiKeyRecord.length === 0) {
-      return res.json({
+      return res.status(401).json({
         error: 'Invalid API key'
       });
     }
 
-    // Update last used dan total requests
-    const currentRequests = await db
-      .select({ totalRequests: apiKeys.totalRequests })
-      .from(apiKeys)
-      .where(eq(apiKeys.id, apiKeyRecord[0].id))
-      .limit(1);
-    
-    await db
-      .update(apiKeys)
-      .set({
-        lastUsed: new Date(),
-        totalRequests: (currentRequests[0]?.totalRequests || 0) + 1
-      })
-      .where(eq(apiKeys.id, apiKeyRecord[0].id));
+    // Update last used dan total requests (non-blocking)
+    setImmediate(async () => {
+      try {
+        const currentRequests = await db
+          .select({ totalRequests: apiKeys.totalRequests })
+          .from(apiKeys)
+          .where(eq(apiKeys.id, apiKeyRecord[0].id))
+          .limit(1);
+        
+        await db
+          .update(apiKeys)
+          .set({
+            lastUsed: new Date(),
+            totalRequests: (currentRequests[0]?.totalRequests || 0) + 1
+          })
+          .where(eq(apiKeys.id, apiKeyRecord[0].id));
+      } catch (updateError) {
+        console.error('Background API key update error:', updateError);
+      }
+    });
 
     // Attach user info ke request
     req.apiUser = {
@@ -87,7 +93,7 @@ export async function validateApiKey(req: Request, res: Response, next: NextFunc
     next();
   } catch (error) {
     console.error('API key validation error:', error);
-    res.json({
+    res.status(500).json({
       error: 'Internal server error'
     });
   }
@@ -95,20 +101,12 @@ export async function validateApiKey(req: Request, res: Response, next: NextFunc
 
 /**
  * GET /api/v2 - Get user balance
- * Compatible dengan format idcdigitals.com
+ * Compatible dengan format N1Panel.com
  */
 export async function getBalance(req: Request, res: Response) {
   try {
-    const action = req.body.action || req.query.action;
-    
-    if (action !== 'balance') {
-      return res.json({
-        error: 'Invalid action'
-      });
-    }
-
     if (!req.apiUser) {
-      return res.json({
+      return res.status(401).json({
         error: 'Authentication required'
       });
     }
@@ -124,13 +122,13 @@ export async function getBalance(req: Request, res: Response) {
       .limit(1);
 
     if (user.length === 0) {
-      return res.json({
+      return res.status(404).json({
         error: 'User not found'
       });
     }
 
-    // Convert credits to balance format (credits = balance in USD cents)
-    const balance = (user[0].credits / 100).toFixed(2);
+    // Convert credits to balance format yang konsisten dengan N1Panel
+    const balance = (user[0].credits / 100).toFixed(7);
 
     res.json({
       balance: balance,
@@ -138,7 +136,7 @@ export async function getBalance(req: Request, res: Response) {
     });
   } catch (error) {
     console.error('Get balance error:', error);
-    res.json({
+    res.status(500).json({
       error: 'Internal server error'
     });
   }
@@ -146,19 +144,13 @@ export async function getBalance(req: Request, res: Response) {
 
 /**
  * POST /api/v2 - Get services list
- * Compatible dengan format idcdigitals.com
+ * Compatible dengan format N1Panel.com
  */
 export async function getServices(req: Request, res: Response) {
   try {
-    const action = req.body.action || req.query.action;
-    
-    console.log("=== GET SERVICES ENDPOINT HIT ===");
-    console.log("Action:", action);
-    console.log("API User:", req.apiUser);
-    
-    if (action !== 'services') {
-      return res.json({
-        error: 'Invalid action'
+    if (!req.apiUser) {
+      return res.status(401).json({
+        error: 'Authentication required'
       });
     }
 
@@ -178,12 +170,10 @@ export async function getServices(req: Request, res: Response) {
       .from(smmServices)
       .where(and(
         eq(smmServices.isActive, true),
-        eq(smmServices.userId, req.apiUser!.id)
+        eq(smmServices.userId, req.apiUser.id)
       ));
 
-    console.log("Found services:", services.length);
-
-    // Format services sesuai dengan format API idcdigitals.com
+    // Format services dengan struktur yang konsisten dengan N1Panel
     const formattedServices = services.map(service => ({
       service: service.mid,
       name: service.name,
@@ -199,7 +189,7 @@ export async function getServices(req: Request, res: Response) {
     res.json(formattedServices);
   } catch (error) {
     console.error('Get services error:', error);
-    res.json({
+    res.status(500).json({
       error: 'Internal server error'
     });
   }
@@ -207,21 +197,27 @@ export async function getServices(req: Request, res: Response) {
 
 /**
  * POST /api/v2 - Create new order
- * Compatible dengan format idcdigitals.com
+ * Compatible dengan format N1Panel.com
  */
 export async function createOrder(req: Request, res: Response) {
   try {
     const { action, service, link, quantity } = req.body;
     
     if (action !== 'add') {
-      return res.json({
+      return res.status(400).json({
         error: 'Invalid action'
       });
     }
 
     if (!service || !link || !quantity) {
-      return res.json({
+      return res.status(400).json({
         error: 'Missing required parameters'
+      });
+    }
+
+    if (!req.apiUser) {
+      return res.status(401).json({
+        error: 'Authentication required'
       });
     }
 
@@ -237,7 +233,7 @@ export async function createOrder(req: Request, res: Response) {
       .limit(1);
 
     if (serviceRecord.length === 0) {
-      return res.json({
+      return res.status(404).json({
         error: 'Service not found'
       });
     }
@@ -246,7 +242,7 @@ export async function createOrder(req: Request, res: Response) {
 
     // Validate quantity
     if (quantity < smmService.min || quantity > smmService.max) {
-      return res.json({
+      return res.status(400).json({
         error: `Quantity must be between ${smmService.min} and ${smmService.max}`
       });
     }
@@ -262,7 +258,7 @@ export async function createOrder(req: Request, res: Response) {
       .limit(1);
 
     if (user.length === 0 || user[0].credits < amount * 100) { // credits in cents
-      return res.json({
+      return res.status(400).json({
         error: 'Insufficient balance'
       });
     }
@@ -280,7 +276,7 @@ export async function createOrder(req: Request, res: Response) {
         orderId: orderId,
         link: link,
         quantity: quantity,
-        amount: amount,
+        amount: amount.toString(),
         status: 'pending',
         paymentStatus: 'pending'
       })
@@ -295,23 +291,31 @@ export async function createOrder(req: Request, res: Response) {
       .where(eq(users.id, req.apiUser.id));
 
     // Update API key revenue
-    await db
-      .update(apiKeys)
-      .set({
-        totalOrders: apiKeys.totalOrders + 1,
-        totalRevenue: apiKeys.totalRevenue + amount.toString()
+    const currentApiKey = await db
+      .select({ 
+        totalOrders: apiKeys.totalOrders, 
+        totalRevenue: apiKeys.totalRevenue 
       })
-      .where(eq(apiKeys.id, req.apiUser.apiKeyId));
+      .from(apiKeys)
+      .where(eq(apiKeys.id, req.apiUser.apiKeyId))
+      .limit(1);
 
-    // TODO: Forward order to upstream provider
-    // This will be handled by background job
+    if (currentApiKey.length > 0) {
+      await db
+        .update(apiKeys)
+        .set({
+          totalOrders: currentApiKey[0].totalOrders + 1,
+          totalRevenue: (parseFloat(currentApiKey[0].totalRevenue) + amount).toString()
+        })
+        .where(eq(apiKeys.id, req.apiUser.apiKeyId));
+    }
 
     res.json({
       order: orderId
     });
   } catch (error) {
     console.error('Create order error:', error);
-    res.json({
+    res.status(500).json({
       error: 'Internal server error'
     });
   }
