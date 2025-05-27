@@ -227,6 +227,44 @@ export const apiKeys = pgTable("api_keys", {
   balanceUpdatedAt: timestamp("balance_updated_at"),
 });
 
+// Telegram Bot Orders table for payment tracking
+export const telegramOrders = pgTable("telegram_orders", {
+  id: serial("id").primaryKey(),
+  orderId: text("order_id").notNull().unique(),
+  botToken: text("bot_token").notNull(),
+  telegramUserId: text("telegram_user_id").notNull(),
+  telegramUsername: text("telegram_username"),
+  serviceId: text("service_id").notNull(),
+  serviceName: text("service_name").notNull(),
+  quantity: integer("quantity").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("IDR"),
+  status: text("status").notNull().default("pending"), // pending, paid, completed, cancelled
+  midtransTransactionId: text("midtrans_transaction_id"),
+  qrisUrl: text("qris_url"),
+  targetLink: text("target_link"), // Link Instagram/TikTok yang akan diproses
+  resultLink: text("result_link"), // Link hasil (foto/bukti) yang dikirim ke user
+  paymentExpiredAt: timestamp("payment_expired_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Telegram Bot Services table
+export const telegramServices = pgTable("telegram_services", {
+  id: serial("id").primaryKey(),
+  botToken: text("bot_token").notNull(),
+  serviceId: text("service_id").notNull(),
+  serviceName: text("service_name").notNull(),
+  category: text("category").notNull(),
+  description: text("description"),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  minQuantity: integer("min_quantity").notNull().default(1),
+  maxQuantity: integer("max_quantity").notNull().default(10000),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertAutoBotSchema = createInsertSchema(autoBots).omit({
   id: true,
@@ -241,6 +279,18 @@ export const insertApiKeySchema = createInsertSchema(apiKeys).pick({
   isActive: true,
 });
 
+export const insertTelegramOrderSchema = createInsertSchema(telegramOrders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTelegramServiceSchema = createInsertSchema(telegramServices).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -248,6 +298,10 @@ export type Bot = typeof bots.$inferSelect;
 export type InsertBot = z.infer<typeof insertBotSchema>;
 export type Knowledge = typeof knowledge.$inferSelect;
 export type InsertKnowledge = z.infer<typeof insertKnowledgeSchema>;
+export type TelegramOrder = typeof telegramOrders.$inferSelect;
+export type InsertTelegramOrder = z.infer<typeof insertTelegramOrderSchema>;
+export type TelegramService = typeof telegramServices.$inferSelect;
+export type InsertTelegramService = z.infer<typeof insertTelegramServiceSchema>;
 export type Transaction = typeof transactions.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Setting = typeof settings.$inferSelect;
