@@ -47,13 +47,78 @@ export default function ServiceManagementPage() {
   const [editingCategory, setEditingCategory] = useState<ServiceCategory | null>(null);
   const [editingPackage, setEditingPackage] = useState<ServicePackage | null>(null);
 
-  // Mock data - dalam implementasi nyata akan diambil dari API
-  const mockCategories: ServiceCategory[] = [
+  // Categories state management
+  const [categories, setCategories] = useState<ServiceCategory[]>([
     { id: 1, name: 'Followers', icon: 'followers', description: 'Instagram/TikTok Followers', isActive: true, packagesCount: 3 },
     { id: 2, name: 'Likes', icon: 'likes', description: 'Instagram/TikTok Likes', isActive: true, packagesCount: 4 },
     { id: 3, name: 'Views', icon: 'views', description: 'YouTube/TikTok Views', isActive: true, packagesCount: 2 },
     { id: 4, name: 'Comments', icon: 'comments', description: 'Instagram Comments', isActive: false, packagesCount: 1 },
-  ];
+  ]);
+
+  // Delete category function
+  const deleteCategory = async (categoryId: number) => {
+    try {
+      const response = await fetch(`/api/service-categories/${categoryId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Gagal menghapus kategori');
+      }
+
+      // Update local state
+      setCategories(prev => prev.filter(cat => cat.id !== categoryId));
+      toast({
+        title: "Berhasil",
+        description: "Kategori berhasil dihapus",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Gagal menghapus kategori",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Toggle category status function
+  const toggleCategoryStatus = async (categoryId: number) => {
+    try {
+      const response = await fetch(`/api/service-categories/${categoryId}/toggle`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Gagal mengubah status kategori');
+      }
+
+      const result = await response.json();
+      
+      // Update local state
+      setCategories(prev => prev.map(cat => 
+        cat.id === categoryId ? { ...cat, isActive: result.isActive } : cat
+      ));
+      
+      toast({
+        title: "Berhasil",
+        description: result.message,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Gagal mengubah status kategori",
+        variant: "destructive",
+      });
+    }
+  };
 
   const mockPackages: ServicePackage[] = [
     { id: 1, categoryId: 1, name: '1K Followers', quantity: 1000, price: 5000, description: 'High quality followers', isActive: true },
@@ -347,7 +412,7 @@ export default function ServiceManagementPage() {
                 className="px-3 py-2 border rounded-md"
               >
                 <option value="">Semua Kategori</option>
-                {mockCategories.map(cat => (
+                {categories.map(cat => (
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>

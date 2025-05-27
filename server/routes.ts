@@ -1992,6 +1992,69 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Delete service category
+  app.delete("/api/service-categories/:id", requireAuth, async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      console.log(`🗑️ DELETE service category ${categoryId}`);
+      
+      // Check if category has packages
+      const packages = await storage.getServicePackages();
+      const categoryPackages = packages.filter(pkg => pkg.categoryId === categoryId);
+      
+      if (categoryPackages.length > 0) {
+        return res.status(400).json({ 
+          message: "Tidak dapat menghapus kategori yang masih memiliki paket. Hapus semua paket terlebih dahulu." 
+        });
+      }
+      
+      // Delete category
+      await storage.deleteServiceCategory(categoryId);
+      
+      res.json({ 
+        message: "Kategori berhasil dihapus",
+        success: true 
+      });
+    } catch (error) {
+      console.error("❌ Delete category error:", error);
+      res.status(500).json({ 
+        message: "Gagal menghapus kategori"
+      });
+    }
+  });
+
+  // Toggle service category status
+  app.patch("/api/service-categories/:id/toggle", requireAuth, async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      console.log(`🔄 TOGGLE service category ${categoryId}`);
+      
+      // Get current category
+      const [category] = await db.select().from(serviceCategories).where(eq(serviceCategories.id, categoryId));
+      
+      if (!category) {
+        return res.status(404).json({ message: "Kategori tidak ditemukan" });
+      }
+      
+      // Toggle status
+      const newStatus = !category.isActive;
+      await db.update(serviceCategories)
+        .set({ isActive: newStatus })
+        .where(eq(serviceCategories.id, categoryId));
+      
+      res.json({ 
+        message: `Kategori ${newStatus ? 'diaktifkan' : 'dinonaktifkan'}`,
+        success: true,
+        isActive: newStatus
+      });
+    } catch (error) {
+      console.error("❌ Toggle category error:", error);
+      res.status(500).json({ 
+        message: "Gagal mengubah status kategori"
+      });
+    }
+  });
+
   // Delete payment settings
   app.delete("/api/payment/settings", requireAuth, async (req, res) => {
     try {
