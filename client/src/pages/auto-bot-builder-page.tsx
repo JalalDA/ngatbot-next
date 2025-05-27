@@ -24,6 +24,7 @@ interface AutoBot {
   welcomeImageUrl?: string;
   isActive: boolean;
   keyboardConfig: InlineKeyboard[];
+  paymentIntegration: boolean; // Toggle untuk payment integration
   createdAt: string;
 }
 
@@ -48,6 +49,7 @@ export default function AutoBotBuilderPage() {
   const [welcomeMessage, setWelcomeMessage] = useState("Selamat datang! Silakan pilih opsi di bawah ini:");
   const [welcomeImageUrl, setWelcomeImageUrl] = useState("");
   const [keyboardButtons, setKeyboardButtons] = useState<InlineKeyboard[]>([]);
+  const [paymentIntegration, setPaymentIntegration] = useState(false); // State untuk payment integration toggle
   const [editingBot, setEditingBot] = useState<AutoBot | null>(null);
 
   // Reset state when component mounts
@@ -57,6 +59,7 @@ export default function AutoBotBuilderPage() {
     setBotUsername("");
     setWelcomeMessage("Selamat datang! Silakan pilih opsi di bawah ini:");
     setKeyboardButtons([]);
+    setPaymentIntegration(false);
     setEditingBot(null);
     setActiveTab("create");
   }, []);

@@ -2012,6 +2012,58 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Generate QRIS payment for telegram bot
+  app.post("/api/payment/generate-qris", requireAuth, async (req, res) => {
+    try {
+      if (!req.user?.id) {
+        return res.status(401).json({ message: "User tidak terotentikasi" });
+      }
+      
+      const userId = req.user.id;
+      const { amount, orderId, botToken, telegramUserId } = req.body;
+      
+      console.log(`💰 Generate QRIS for user ${userId}, amount: ${amount}`);
+      
+      // Get payment settings
+      const settings = await storage.getPaymentSettings(userId);
+      if (!settings || !settings.serverKey) {
+        return res.status(400).json({ 
+          message: "Pengaturan Midtrans belum dikonfigurasi" 
+        });
+      }
+
+      // Create Midtrans transaction
+      const transactionData = {
+        orderId: orderId,
+        userId: userId,
+        userName: req.user.username || 'User',
+        userEmail: req.user.email || `user${userId}@example.com`,
+        plan: 'custom' as any,
+        amount: amount
+      };
+
+      const transaction = await createMidtransTransaction({
+        ...transactionData,
+        customAmount: amount
+      });
+
+      res.json({
+        success: true,
+        qrString: transaction.qr_string,
+        transactionToken: transaction.token,
+        orderId: orderId,
+        amount: amount,
+        expiryTime: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+      });
+    } catch (error) {
+      console.error("❌ Generate QRIS error:", error);
+      res.status(500).json({ 
+        message: "Gagal membuat QRIS payment",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Helper function untuk mapping status provider ke system status
   function mapProviderStatus(providerStatus: string): string {
     const statusMap: { [key: string]: string } = {
