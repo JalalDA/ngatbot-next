@@ -209,11 +209,47 @@ export const autoBots = pgTable("auto_bots", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const apiKeys = pgTable("api_keys", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  keyName: text("key_name").notNull(),
+  apiKey: text("api_key").notNull().unique(),
+  isActive: boolean("is_active").notNull().default(true),
+  allowedDomains: json("allowed_domains").$type<string[]>().default([]),
+  requestCount: integer("request_count").notNull().default(0),
+  lastUsedAt: timestamp("last_used_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const apiUsageLogs = pgTable("api_usage_logs", {
+  id: serial("id").primaryKey(),
+  apiKeyId: integer("api_key_id").notNull().references(() => apiKeys.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull(),
+  method: text("method").notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  responseStatus: integer("response_status").notNull(),
+  responseTime: integer("response_time"), // milliseconds
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertAutoBotSchema = createInsertSchema(autoBots).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+});
+
+export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
+  id: true,
+  createdAt: true,
+  requestCount: true,
+  lastUsedAt: true,
+});
+
+export const insertApiUsageLogSchema = createInsertSchema(apiUsageLogs).omit({
+  id: true,
+  createdAt: true,
 });
 
 // Types
@@ -235,4 +271,8 @@ export type SmmOrder = typeof smmOrders.$inferSelect;
 export type InsertSmmOrder = z.infer<typeof insertSmmOrderSchema>;
 export type AutoBot = typeof autoBots.$inferSelect;
 export type InsertAutoBot = z.infer<typeof insertAutoBotSchema>;
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
+export type ApiUsageLog = typeof apiUsageLogs.$inferSelect;
+export type InsertApiUsageLog = z.infer<typeof insertApiUsageLogSchema>;
 
