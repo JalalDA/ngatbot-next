@@ -34,6 +34,23 @@ export class AutoBotManager {
   private activeBots: Map<string, { bot: TelegramBot; config: AutoBot }> = new Map();
 
   /**
+   * Stop all active bots to prevent conflicts
+   */
+  async stopAllBots(): Promise<void> {
+    console.log('Stopping all active bots...');
+    const tokens = Array.from(this.activeBots.keys());
+    
+    for (const token of tokens) {
+      await this.stopAutoBot(token);
+    }
+    
+    // Clear the map completely
+    this.activeBots.clear();
+    
+    console.log('All bots stopped successfully');
+  }
+
+  /**
    * Validate bot token by calling Telegram getMe API
    */
   async validateBotToken(token: string): Promise<{ valid: boolean; botInfo?: TelegramBotInfo; error?: string }> {
@@ -59,10 +76,26 @@ export class AutoBotManager {
       // Stop existing bot if running
       if (this.activeBots.has(autoBot.token)) {
         await this.stopAutoBot(autoBot.token);
+        // Wait a bit for the previous instance to fully stop
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
-      // Create bot instance
-      const bot = new TelegramBot(autoBot.token, { polling: true });
+      // Create bot instance with error handling
+      const bot = new TelegramBot(autoBot.token, { 
+        polling: {
+          interval: 1000,
+          autoStart: false
+        }
+      });
+
+      // Add error handler for polling errors
+      bot.on('polling_error', (error) => {
+        console.error('Bot polling error:', error);
+        // Don't restart automatically to prevent conflicts
+      });
+
+      // Start polling manually
+      await bot.startPolling();
       
       // Store bot
       this.activeBots.set(autoBot.token, { bot, config: autoBot });
@@ -224,12 +257,21 @@ export class AutoBotManager {
     try {
       const botInstance = this.activeBots.get(token);
       if (botInstance) {
-        await botInstance.bot.stopPolling();
+        try {
+          await botInstance.bot.stopPolling();
+        } catch (stopError) {
+          console.warn('Warning stopping bot polling:', stopError);
+          // Continue even if stop fails
+        }
+        
+        // Remove all listeners to prevent memory leaks
+        botInstance.bot.removeAllListeners();
         this.activeBots.delete(token);
       }
       return { success: true };
     } catch (error) {
       console.error('Error stopping auto bot:', error);
+      this.activeBots.delete(token); // Force remove even if error
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
