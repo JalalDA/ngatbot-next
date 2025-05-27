@@ -33,7 +33,11 @@ interface ApiResponse<T = any> {
  */
 export async function validateApiKey(req: Request, res: Response, next: NextFunction) {
   try {
+    console.log('[API DEBUG] Request body:', req.body);
+    console.log('[API DEBUG] Request query:', req.query);
+    
     const apiKey = req.body.key || req.query.key;
+    console.log('[API DEBUG] Extracted API key:', apiKey);
     
     if (!apiKey) {
       return res.status(400).json({
@@ -42,12 +46,13 @@ export async function validateApiKey(req: Request, res: Response, next: NextFunc
     }
 
     // Cari API key di database
+    console.log('[API DEBUG] Searching for API key in database...');
     const apiKeyRecord = await db
       .select({
         id: apiKeys.id,
         userId: apiKeys.userId,
         isActive: apiKeys.isActive,
-        keyName: apiKeys.name
+        keyName: apiKeys.keyName
       })
       .from(apiKeys)
       .where(and(
@@ -55,6 +60,8 @@ export async function validateApiKey(req: Request, res: Response, next: NextFunc
         eq(apiKeys.isActive, true)
       ))
       .limit(1);
+
+    console.log('[API DEBUG] Found API key records:', apiKeyRecord);
 
     if (apiKeyRecord.length === 0) {
       return res.status(401).json({
