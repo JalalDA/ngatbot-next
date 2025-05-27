@@ -76,26 +76,37 @@ export class AutoBotManager {
       // Stop existing bot if running
       if (this.activeBots.has(autoBot.token)) {
         await this.stopAutoBot(autoBot.token);
-        // Wait a bit for the previous instance to fully stop
-        await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
-      // Create bot instance with error handling
-      const bot = new TelegramBot(autoBot.token, { 
-        polling: {
-          interval: 1000,
-          autoStart: false
+      // Clear any existing webhook
+      try {
+        const response = await fetch(`https://api.telegram.org/bot${autoBot.token}/deleteWebhook`);
+        console.log('Webhook cleared');
+      } catch (error) {
+        console.log('Could not clear webhook, continuing...');
+      }
+
+      // Wait for clean state
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Create bot with minimal configuration
+      const bot = new TelegramBot(autoBot.token, { polling: false });
+
+      // Manually start polling with error handling
+      try {
+        await bot.startPolling({ restart: true });
+        console.log('Bot polling started successfully');
+      } catch (pollingError) {
+        console.error('Failed to start polling:', pollingError);
+        return { success: false, error: 'Failed to start bot polling' };
+      }
+
+      // Add error handler
+      bot.on('polling_error', (error) => {
+        if (!error.message?.includes('409') && !error.message?.includes('Conflict')) {
+          console.error('Bot polling error:', error.message);
         }
       });
-
-      // Add error handler for polling errors
-      bot.on('polling_error', (error) => {
-        console.error('Bot polling error:', error);
-        // Don't restart automatically to prevent conflicts
-      });
-
-      // Start polling manually
-      await bot.startPolling();
       
       // Store bot
       this.activeBots.set(autoBot.token, { bot, config: autoBot });
