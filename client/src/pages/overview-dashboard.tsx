@@ -232,40 +232,40 @@ export default function OverviewDashboard() {
         </div>
 
         {/* Recent Activity */}
-        <Card>
+        <Card className="bg-slate-900 dark:bg-slate-900 border-slate-800 dark:border-slate-800">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <BarChart3 className="w-5 h-5 text-slate-600" />
-              <span>Recent Activity</span>
+              <BarChart3 className="w-5 h-5 text-slate-300 dark:text-slate-300" />
+              <span className="text-white dark:text-white">Recent Activity</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+              <div className="flex items-center space-x-3 p-3 bg-slate-800 dark:bg-slate-800 rounded-lg border border-slate-700 dark:border-slate-700">
+                <div className="w-8 h-8 bg-blue-600 dark:bg-blue-600 rounded-full flex items-center justify-center">
                   <Bot className="w-4 h-4 text-white" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-900">Bot created successfully</p>
-                  <p className="text-xs text-slate-500">2 minutes ago</p>
+                  <p className="text-sm font-medium text-white dark:text-white">Bot created successfully</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-400">2 minutes ago</p>
                 </div>
               </div>
-              <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
-                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+              <div className="flex items-center space-x-3 p-3 bg-slate-800 dark:bg-slate-800 rounded-lg border border-slate-700 dark:border-slate-700">
+                <div className="w-8 h-8 bg-green-600 dark:bg-green-600 rounded-full flex items-center justify-center">
                   <ShoppingCart className="w-4 h-4 text-white" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-900">SMM services imported</p>
-                  <p className="text-xs text-slate-500">15 minutes ago</p>
+                  <p className="text-sm font-medium text-white dark:text-white">SMM services imported</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-400">15 minutes ago</p>
                 </div>
               </div>
-              <div className="flex items-center space-x-3 p-3 bg-amber-50 rounded-lg">
-                <div className="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center">
+              <div className="flex items-center space-x-3 p-3 bg-slate-800 dark:bg-slate-800 rounded-lg border border-slate-700 dark:border-slate-700">
+                <div className="w-8 h-8 bg-amber-600 dark:bg-amber-600 rounded-full flex items-center justify-center">
                   <Coins className="w-4 h-4 text-white" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-900">Credits used for AI responses</p>
-                  <p className="text-xs text-slate-500">1 hour ago</p>
+                  <p className="text-sm font-medium text-white dark:text-white">Credits used for AI responses</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-400">1 hour ago</p>
                 </div>
               </div>
             </div>
