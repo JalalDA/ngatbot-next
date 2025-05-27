@@ -2298,15 +2298,23 @@ export function registerRoutes(app: Express): Server {
 
   // Create new API key
   app.post("/api/api-keys", requireAuth, async (req, res) => {
+    console.log("=== API KEY CREATION ENDPOINT HIT ===");
+    console.log("Request body:", req.body);
+    console.log("User:", req.user);
+    
     try {
       const user = req.user!;
       const { keyName } = req.body;
+
+      console.log("Creating API key for user:", user.id, "with name:", keyName);
 
       if (!keyName || keyName.trim().length === 0) {
         return res.status(400).json({ message: "API key name is required" });
       }
 
       const apiKey = generateApiKey();
+      console.log("Generated API key:", apiKey);
+      
       const newApiKey = await storage.createUserApiKey({
         userId: user.id,
         keyName: keyName.trim(),
@@ -2314,6 +2322,7 @@ export function registerRoutes(app: Express): Server {
         isActive: true,
       });
 
+      console.log("Created API key:", newApiKey);
       res.json(newApiKey);
     } catch (error) {
       console.error("Create API key error:", error);
