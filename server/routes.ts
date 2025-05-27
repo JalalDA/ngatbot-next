@@ -2013,17 +2013,14 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Generate QRIS payment for telegram bot
-  app.post("/api/payment/generate-qris", async (req, res) => {
+  app.post("/api/payment/generate-qris", requireAuth, async (req, res) => {
     try {
-      const { amount, orderId, botToken, telegramUserId } = req.body;
-      
-      // Find the bot owner by bot token
-      const bot = await storage.getAutoBotByToken(botToken);
-      if (!bot) {
-        return res.status(401).json({ message: "Bot tidak ditemukan" });
+      if (!req.user?.id) {
+        return res.status(401).json({ message: "User tidak terotentikasi" });
       }
       
-      const userId = bot.userId;
+      const userId = req.user.id;
+      const { amount, orderId, botToken, telegramUserId } = req.body;
       
       console.log(`💰 Generate QRIS for user ${userId}, amount: ${amount}`);
       
@@ -2674,53 +2671,6 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Delete API key error:", error);
       res.status(500).json({ message: "Failed to delete API key" });
-    }
-  });
-
-  // Check payment status for telegram bot
-  app.post("/api/payment/check-status", async (req, res) => {
-    try {
-      const { orderId, botToken } = req.body;
-      
-      // Find the bot owner by bot token
-      const bot = await storage.getAutoBotByToken(botToken);
-      if (!bot) {
-        return res.status(401).json({ message: "Bot tidak ditemukan" });
-      }
-      
-      const userId = bot.userId;
-      
-      console.log(`🔍 Check payment status for user ${userId}, order: ${orderId}`);
-      
-      // Get payment settings
-      const paymentSettings = await storage.getPaymentSettings(userId);
-      if (!paymentSettings) {
-        return res.status(400).json({ message: "Pengaturan pembayaran belum dikonfigurasi" });
-      }
-      
-      // Check transaction status with Midtrans
-      const midtransConfig = {
-        serverKey: paymentSettings.serverKey,
-        clientKey: paymentSettings.clientKey,
-        isProduction: paymentSettings.isProduction || false
-      };
-      
-      const transactionStatus = await getTransactionStatus(orderId);
-      
-      return res.json({
-        orderId,
-        status: transactionStatus.transaction_status,
-        amount: `Rp ${parseInt(transactionStatus.gross_amount).toLocaleString('id-ID')}`,
-        paymentType: transactionStatus.payment_type,
-        transactionTime: transactionStatus.transaction_time
-      });
-      
-    } catch (error: any) {
-      console.error('❌ Error checking payment status:', error);
-      return res.status(500).json({ 
-        message: "Gagal mengecek status pembayaran",
-        error: error.message 
-      });
     }
   });
 
