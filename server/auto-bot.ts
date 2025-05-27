@@ -325,9 +325,15 @@ export class AutoBotManager {
               } else {
                 // Handle any level button (level 1, 2, 3, 4, 5)
                 const currentLevel = pressedButton.level || 0;
+                
+                console.log(`🔍 Button pressed: "${pressedButton.text}" (ID: ${pressedButton.id}, Level: ${currentLevel})`);
+                console.log(`🔍 Looking for child menus with level ${currentLevel + 1} and parentId: ${pressedButton.id}`);
+                
                 const childMenus = (autoBot.keyboardConfig || []).filter(btn => 
                   btn.level === currentLevel + 1 && btn.parentId === pressedButton.id
                 );
+                
+                console.log(`🔍 Found ${childMenus.length} child menus:`, childMenus.map(btn => `"${btn.text}" (ID: ${btn.id}, Level: ${btn.level}, ParentID: ${btn.parentId})`));
                 
                 if (childMenus.length > 0) {
                   // Find All Show button from config
