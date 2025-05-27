@@ -404,10 +404,10 @@ export class AutoBotManager {
                   const responseKeyboard = this.createInlineKeyboard([backButton]);
                   
                   // Check if button has responseImage
-                  if (pressedButton.responseImage && pressedButton.responseImage.trim()) {
+                  if ((pressedButton as any).responseImage && (pressedButton as any).responseImage.trim()) {
                     // Send photo with caption and keyboard
                     await bot.deleteMessage(chatId, msg.message_id);
-                    await bot.sendPhoto(chatId, pressedButton.responseImage, {
+                    await bot.sendPhoto(chatId, (pressedButton as any).responseImage, {
                       caption: responseText,
                       reply_markup: responseKeyboard,
                       parse_mode: 'Markdown'
