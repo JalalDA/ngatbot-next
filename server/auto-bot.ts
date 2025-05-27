@@ -196,10 +196,16 @@ export class AutoBotManager {
             );
             const keyboard = this.createInlineKeyboard(mainMenuButtons);
             
-            await bot.editMessageText(autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:", {
-              chat_id: chatId,
-              message_id: msg.message_id,
-              reply_markup: keyboard
+            // Always delete original message and send new one to avoid conflicts
+            try {
+              await bot.deleteMessage(chatId, msg.message_id);
+            } catch (deleteError) {
+              console.log('Could not delete message, continuing...');
+            }
+            
+            await bot.sendMessage(chatId, autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:", {
+              reply_markup: keyboard,
+              parse_mode: 'Markdown'
             });
             return;
           }
@@ -239,17 +245,8 @@ export class AutoBotManager {
                   const allShowButton = (autoBot.keyboardConfig || []).find(btn => btn.isAllShow);
                   console.log('🔍 Found All Show button:', allShowButton ? 'YES' : 'NO');
                   
-                  // Add "Menu Utama" and "All Show" buttons for level 1
-                  const navigationButtons = [
-                    {
-                      id: 'main_menu_button_level_1',
-                      text: '🏠 Menu Utama',
-                      callbackData: 'back_to_main',
-                      level: 1
-                    }
-                  ];
-                  
-                  // Add All Show button if it exists in config
+                  // Add only All Show button if it exists in config (remove duplicate Menu Utama)
+                  const navigationButtons = [];
                   if (allShowButton) {
                     navigationButtons.push({
                       id: 'all_show_sub_level',
@@ -260,9 +257,16 @@ export class AutoBotManager {
                     console.log('✅ Added All Show button to sub menu level');
                   }
                   
+                  // Add back button at the end
                   const subMenusWithNavigation = [
                     ...subMenus,
-                    ...navigationButtons
+                    ...navigationButtons,
+                    {
+                      id: 'back_to_main_from_submenu',
+                      text: '🔙 Kembali ke Menu Utama',
+                      callbackData: 'back_to_main',
+                      level: 1
+                    }
                   ];
                   
                   console.log('📋 Sub menu with navigation buttons:', subMenusWithNavigation.map(btn => btn.text));
