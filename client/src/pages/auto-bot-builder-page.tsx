@@ -49,11 +49,6 @@ export default function AutoBotBuilderPage() {
   const [welcomeImageUrl, setWelcomeImageUrl] = useState("");
   const [keyboardButtons, setKeyboardButtons] = useState<InlineKeyboard[]>([]);
   const [editingBot, setEditingBot] = useState<AutoBot | null>(null);
-  
-  // Service Management Integration
-  const [enableServiceManagement, setEnableServiceManagement] = useState(false);
-  const [enablePaymentIntegration, setEnablePaymentIntegration] = useState(false);
-  const [enableOrderTracking, setEnableOrderTracking] = useState(false);
 
   // Reset state when component mounts
   useEffect(() => {
@@ -64,9 +59,6 @@ export default function AutoBotBuilderPage() {
     setKeyboardButtons([]);
     setEditingBot(null);
     setActiveTab("create");
-    setEnableServiceManagement(false);
-    setEnablePaymentIntegration(false);
-    setEnableOrderTracking(false);
   }, []);
 
   // Reset state when switching to create tab
@@ -78,9 +70,6 @@ export default function AutoBotBuilderPage() {
       setWelcomeMessage("Selamat datang! Silakan pilih opsi di bawah ini:");
       setKeyboardButtons([]);
       setEditingBot(null);
-      setEnableServiceManagement(false);
-      setEnablePaymentIntegration(false);
-      setEnableOrderTracking(false);
     }
   }, [activeTab]);
   const [isValidatingToken, setIsValidatingToken] = useState(false);
@@ -536,10 +525,6 @@ export default function AutoBotBuilderPage() {
         welcomeMessage,
         welcomeImageUrl,
         keyboardConfig: keyboardButtons,
-        // Service Management Integration Settings
-        enableServiceManagement,
-        enablePaymentIntegration,
-        enableOrderTracking,
       });
     }
   };
@@ -641,95 +626,6 @@ export default function AutoBotBuilderPage() {
             </CardContent>
           </Card>
 
-          {/* Service Management Integration Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="w-5 h-5" />
-                Service Management Integration
-              </CardTitle>
-              <CardDescription>
-                Aktifkan integrasi dengan Service Management untuk menu otomatis dan payment QRIS
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="enableServiceManagement"
-                    checked={enableServiceManagement}
-                    onCheckedChange={(checked) => setEnableServiceManagement(checked as boolean)}
-                  />
-                  <div className="grid gap-1.5 leading-none">
-                    <Label 
-                      htmlFor="enableServiceManagement"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Enable Service Management
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Generate menu otomatis dari Service Management
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="enablePaymentIntegration"
-                    checked={enablePaymentIntegration}
-                    onCheckedChange={(checked) => setEnablePaymentIntegration(checked as boolean)}
-                  />
-                  <div className="grid gap-1.5 leading-none">
-                    <Label 
-                      htmlFor="enablePaymentIntegration"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Enable Payment Integration
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Aktifkan pembayaran QRIS via Midtrans
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="enableOrderTracking"
-                    checked={enableOrderTracking}
-                    onCheckedChange={(checked) => setEnableOrderTracking(checked as boolean)}
-                  />
-                  <div className="grid gap-1.5 leading-none">
-                    <Label 
-                      htmlFor="enableOrderTracking"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Enable Order Tracking
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Track status pesanan secara real-time
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {enableServiceManagement && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <div className="p-1 bg-green-100 rounded-full">
-                      <Settings className="w-4 h-4 text-green-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-green-900 mb-1">Service Management Active</h4>
-                      <p className="text-sm text-green-700">
-                        Bot akan menggunakan menu dari Service Management. Pastikan Anda sudah setup Categories dan Packages di halaman Service Management.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
           <Card>
             <CardHeader>
               <CardTitle>
@@ -737,10 +633,7 @@ export default function AutoBotBuilderPage() {
                 Keyboard Inline Bertingkat
               </CardTitle>
               <CardDescription>
-                {enableServiceManagement ? 
-                  "Menu akan diambil dari Service Management. Keyboard manual di bawah akan diabaikan jika Service Management aktif." :
-                  "Buat menu utama terlebih dahulu. Untuk konfigurasi sub menu yang lebih detail, gunakan tab 'Management Keyboard Inline' setelah bot dibuat."
-                }
+                Buat menu utama terlebih dahulu. Untuk konfigurasi sub menu yang lebih detail, gunakan tab "Management Keyboard Inline" setelah bot dibuat.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -1317,30 +1210,12 @@ export default function AutoBotBuilderPage() {
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="flex items-center gap-2 flex-wrap">
+                      <CardTitle className="flex items-center gap-2">
                         <Bot className="w-5 h-5" />
                         {bot.botName}
                         <Badge variant={bot.isActive ? "default" : "secondary"}>
                           {bot.isActive ? "Aktif" : "Nonaktif"}
                         </Badge>
-                        
-                        {/* Service Management Integration Badges */}
-                        {(bot as any).enableServiceManagement && (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                            <Settings className="w-3 h-3 mr-1" />
-                            Service Management
-                          </Badge>
-                        )}
-                        {(bot as any).enablePaymentIntegration && (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                            💳 Payment
-                          </Badge>
-                        )}
-                        {(bot as any).enableOrderTracking && (
-                          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-                            📊 Tracking
-                          </Badge>
-                        )}
                       </CardTitle>
                       <CardDescription>@{bot.botUsername}</CardDescription>
                     </div>
@@ -1392,31 +1267,6 @@ export default function AutoBotBuilderPage() {
                       <Label className="text-sm font-medium">Pesan Sambutan:</Label>
                       <p className="text-sm text-muted-foreground mt-1">{bot.welcomeMessage}</p>
                     </div>
-                    
-                    {/* Service Management Integration Status */}
-                    {((bot as any).enableServiceManagement || (bot as any).enablePaymentIntegration || (bot as any).enableOrderTracking) && (
-                      <div>
-                        <Label className="text-sm font-medium">Service Management Integration:</Label>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {(bot as any).enableServiceManagement && (
-                            <div className="flex items-center gap-1 text-xs text-green-700 bg-green-50 px-2 py-1 rounded">
-                              <Settings className="w-3 h-3" />
-                              Menu Otomatis Aktif
-                            </div>
-                          )}
-                          {(bot as any).enablePaymentIntegration && (
-                            <div className="flex items-center gap-1 text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded">
-                              💳 QRIS Payment
-                            </div>
-                          )}
-                          {(bot as any).enableOrderTracking && (
-                            <div className="flex items-center gap-1 text-xs text-purple-700 bg-purple-50 px-2 py-1 rounded">
-                              📊 Order Tracking
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
                     
                     {bot.keyboardConfig && bot.keyboardConfig.length > 0 && (
                       <div>

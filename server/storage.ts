@@ -1,4 +1,4 @@
-import { users, bots, knowledge, transactions, settings, smmProviders, smmServices, smmOrders, autoBots, apiKeys, paymentSettings, serviceCategories, servicePackages, type User, type InsertUser, type Bot, type InsertBot, type Knowledge, type InsertKnowledge, type Transaction, type InsertTransaction, type Setting, type InsertSetting, type SmmProvider, type InsertSmmProvider, type SmmService, type InsertSmmService, type SmmOrder, type InsertSmmOrder, type AutoBot, type InsertAutoBot, type PaymentSettings, type InsertPaymentSettings } from "@shared/schema";
+import { users, bots, knowledge, transactions, settings, smmProviders, smmServices, smmOrders, autoBots, apiKeys, paymentSettings, type User, type InsertUser, type Bot, type InsertBot, type Knowledge, type InsertKnowledge, type Transaction, type InsertTransaction, type Setting, type InsertSetting, type SmmProvider, type InsertSmmProvider, type SmmService, type InsertSmmService, type SmmOrder, type InsertSmmOrder, type AutoBot, type InsertAutoBot, type PaymentSettings, type InsertPaymentSettings } from "@shared/schema";
 import session from "express-session";
 import { db, pool } from "./db";
 import { eq, and, desc } from "drizzle-orm";
@@ -81,10 +81,6 @@ export interface IStorage {
   getPaymentSettings(userId: number): Promise<PaymentSettings | undefined>;
   savePaymentSettings(userId: number, settings: { serverKey: string; clientKey: string; isProduction: boolean }): Promise<PaymentSettings>;
   deletePaymentSettings(userId: number): Promise<boolean>;
-
-  // Service Management methods
-  getServiceCategories(): Promise<any[]>;
-  getServicePackages(): Promise<any[]>;
   
   sessionStore: any;
 }
@@ -607,17 +603,6 @@ export class DatabaseStorage implements IStorage {
       .delete(paymentSettings)
       .where(eq(paymentSettings.userId, userId));
     return true;
-  }
-
-  // Service Management methods
-  async getServiceCategories(): Promise<any[]> {
-    const categories = await db.select().from(serviceCategories);
-    return categories;
-  }
-
-  async getServicePackages(): Promise<any[]> {
-    const packages = await db.select().from(servicePackages);
-    return packages;
   }
 
 }

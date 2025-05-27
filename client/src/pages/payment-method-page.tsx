@@ -118,10 +118,7 @@ export default function PaymentMethodPage() {
 
   // Test connection mutation
   const testConnectionMutation = useMutation({
-    mutationFn: () => fetch('/api/payment/test-connection', { 
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    }).then(res => res.json()),
+    mutationFn: () => apiRequest('/api/payment/test-connection', { method: 'POST' }),
     onSuccess: (data) => {
       toast({
         title: 'Koneksi berhasil',
@@ -139,10 +136,7 @@ export default function PaymentMethodPage() {
 
   // Delete settings mutation
   const deleteSettingsMutation = useMutation({
-    mutationFn: () => fetch('/api/payment/settings', { 
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' }
-    }).then(res => res.json()),
+    mutationFn: () => apiRequest('/api/payment/settings', { method: 'DELETE' }),
     onSuccess: () => {
       toast({
         title: 'Konfigurasi berhasil dihapus',

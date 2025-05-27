@@ -204,10 +204,6 @@ export const autoBots = pgTable("auto_bots", {
     responseText?: string; // Teks respons yang dikirim ketika tombol diklik
     isAllShow?: boolean; // Property untuk tombol All Show
   }[]>(),
-  // Service Management Integration Settings
-  enableServiceManagement: boolean("enable_service_management").notNull().default(false),
-  enablePaymentIntegration: boolean("enable_payment_integration").notNull().default(false),
-  enableOrderTracking: boolean("enable_order_tracking").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -240,35 +236,6 @@ export const apiKeys = pgTable("api_keys", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   balanceUpdatedAt: timestamp("balance_updated_at"),
-});
-
-// Service Categories table for Service Management
-export const serviceCategories = pgTable("service_categories", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  icon: text("icon").notNull().default("package"),
-  description: text("description"),
-  isActive: boolean("is_active").notNull().default(true),
-  sortOrder: integer("sort_order").notNull().default(0),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-// Service Packages table for Service Management
-export const servicePackages = pgTable("service_packages", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  categoryId: integer("category_id").notNull().references(() => serviceCategories.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  quantity: integer("quantity").notNull(),
-  price: integer("price").notNull(), // in IDR
-  description: text("description"),
-  serviceId: text("service_id"), // Reference to SMM service
-  isActive: boolean("is_active").notNull().default(true),
-  sortOrder: integer("sort_order").notNull().default(0),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Telegram Bot Orders table for payment tracking
@@ -349,19 +316,6 @@ export const insertTelegramServiceSchema = createInsertSchema(telegramServices).
 });
 
 export const insertTelegramPaymentSettingsSchema = createInsertSchema(telegramPaymentSettings).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-// Service Management schemas
-export const insertServiceCategorySchema = createInsertSchema(serviceCategories).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertServicePackageSchema = createInsertSchema(servicePackages).omit({
   id: true,
   createdAt: true,
   updatedAt: true,

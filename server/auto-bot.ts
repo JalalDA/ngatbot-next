@@ -123,56 +123,26 @@ export class AutoBotManager {
         const welcomeMessage = autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:";
         const welcomeImageUrl = (autoBot as any).welcomeImageUrl;
         
-        let buttonsToShow: InlineKeyboard[] = [];
+        // Show main menu buttons (level 0) and check for All Show button
+        const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => 
+          (!btn.level || btn.level === 0) && !btn.isAllShow
+        );
         
-        // Check if Service Management Integration is enabled
-        if ((autoBot as any).enableServiceManagement) {
-          try {
-            // Get Service Management data using storage interface
-            const { storage } = await import('./storage');
-            const categories = await storage.getServiceCategories();
-            
-            // Create buttons from Service Management categories  
-            buttonsToShow = categories
-              .filter(category => category.isActive)
-              .sort((a, b) => a.name.localeCompare(b.name))
-              .map((category, index) => ({
-                id: `service_category_${category.id}`,
-                text: `${this.getCategoryIcon(category.icon)} ${category.name}`,
-                callbackData: `service_category_${category.id}`,
-                level: 0
-              }));
-            
-            console.log(`🎯 Service Management: Loaded ${buttonsToShow.length} categories for bot ${autoBot.botName}`);
-          } catch (error) {
-            console.error('❌ Error loading Service Management data:', error);
-            // Fallback to manual keyboard config
-            buttonsToShow = (autoBot.keyboardConfig || []).filter(btn => 
-              (!btn.level || btn.level === 0) && !btn.isAllShow
-            );
-          }
-        } else {
-          // Use manual keyboard configuration
-          const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => 
-            (!btn.level || btn.level === 0) && !btn.isAllShow
-          );
-          
-          // Check if there's an All Show button configured
-          const allShowButton = (autoBot.keyboardConfig || []).find(btn => btn.isAllShow);
-          buttonsToShow = [...mainMenuButtons];
-          
-          // Add All Show button if configured (but avoid duplicates)
-          if (allShowButton) {
-            // Check if there's already a button with the same text to avoid duplication
-            const existingButton = mainMenuButtons.find(btn => btn.text === allShowButton.text);
-            if (!existingButton) {
-              buttonsToShow.push({
-                id: 'all_show_button',
-                text: allShowButton.text || '📋 Lihat Semua Menu',
-                callbackData: 'show_all_menus',
-                level: 0
-              });
-            }
+        // Check if there's an All Show button configured
+        const allShowButton = (autoBot.keyboardConfig || []).find(btn => btn.isAllShow);
+        const buttonsToShow = [...mainMenuButtons];
+        
+        // Add All Show button if configured (but avoid duplicates)
+        if (allShowButton) {
+          // Check if there's already a button with the same text to avoid duplication
+          const existingButton = mainMenuButtons.find(btn => btn.text === allShowButton.text);
+          if (!existingButton) {
+            buttonsToShow.push({
+              id: 'all_show_button',
+              text: allShowButton.text || '📋 Lihat Semua Menu',
+              callbackData: 'show_all_menus',
+              level: 0
+            });
           }
         }
         
@@ -217,107 +187,9 @@ export class AutoBotManager {
           const chatId = msg.chat.id;
           
           console.log(`🎯 BOT ${autoBot.botName} - Callback received: "${data}" from chat ${chatId}`);
-          console.log(`🔧 Service Management enabled: ${(autoBot as any).enableServiceManagement}`);
-          
-          // Handle Service Management callbacks FIRST
-          if (data.startsWith('service_category_')) {
-            console.log(`🎯 Service Management: Category callback detected`);
-            
-            if ((autoBot as any).enableServiceManagement) {
-              const categoryId = data.replace('service_category_', '');
-              console.log(`🎯 Service Management: Category ${categoryId} clicked`);
-              
-              // Answer callback immediately
-              bot.answerCallbackQuery(callbackQuery.id, {
-                text: `Loading ${categoryId}...`
-              }).catch(() => {});
-              
-              try {
-                // Get category and packages data
-                const { storage } = await import('./storage');
-                const categories = await storage.getServiceCategories();
-                const packages = await storage.getServicePackages();
-                
-                const category = categories.find(cat => cat.id.toString() === categoryId);
-                const categoryPackages = packages.filter(pkg => pkg.categoryId && pkg.categoryId.toString() === categoryId);
-                
-                console.log(`📦 Found category: ${category?.name}, packages: ${categoryPackages.length}`);
-                
-                if (category) {
-                  if (categoryPackages.length > 0) {
-                    // Create package buttons
-                    const packageButtons = categoryPackages.map(pkg => ({
-                      id: `service_package_${pkg.id}`,
-                      text: `${pkg.name} - ${this.formatPrice(pkg.price)}`,
-                      callbackData: `service_package_${pkg.id}`,
-                      level: 1
-                    }));
-                    
-                    // Add back button
-                    packageButtons.push({
-                      id: 'back_to_main',
-                      text: '🏠 Kembali ke Menu Utama',
-                      callbackData: 'back_to_main',
-                      level: 1
-                    });
-                    
-                    const keyboard = this.createInlineKeyboard(packageButtons);
-                    const message = `*${this.getCategoryIcon(category.icon)} ${category.name}*\n\nSilakan pilih paket yang diinginkan:`;
-                    
-                    await bot.editMessageText(message, {
-                      chat_id: chatId,
-                      message_id: msg.message_id,
-                      reply_markup: keyboard,
-                      parse_mode: 'Markdown'
-                    });
-                    
-                    console.log(`✅ Showed ${categoryPackages.length} packages for category: ${category.name}`);
-                  } else {
-                    // No packages available - show message
-                    const message = `*${this.getCategoryIcon(category.icon)} ${category.name}*\n\n⚠️ Belum ada paket tersedia untuk kategori ini.\n\nSilakan hubungi admin untuk informasi lebih lanjut.`;
-                    
-                    await bot.editMessageText(message, {
-                      chat_id: chatId,
-                      message_id: msg.message_id,
-                      reply_markup: {
-                        inline_keyboard: [[{
-                          text: '🏠 Kembali ke Menu Utama',
-                          callback_data: 'back_to_main'
-                        }]]
-                      },
-                      parse_mode: 'Markdown'
-                    });
-                    
-                    console.log(`⚠️ No packages found for category: ${category.name}`);
-                  }
-                } else {
-                  console.log(`❌ Category not found: ${categoryId}`);
-                }
-              } catch (error) {
-                console.error('❌ Error handling Service Management callback:', error);
-                await bot.editMessageText(`❌ Terjadi kesalahan, silakan coba lagi`, {
-                  chat_id: chatId,
-                  message_id: msg.message_id,
-                  reply_markup: {
-                    inline_keyboard: [[{
-                      text: '🏠 Kembali ke Menu Utama', 
-                      callback_data: 'back_to_main'
-                    }]]
-                  }
-                });
-              }
-            } else {
-              // Service Management not enabled, answer with message
-              bot.answerCallbackQuery(callbackQuery.id, {
-                text: 'Service Management tidak aktif'
-              }).catch(() => {});
-            }
-            return;
-          }
-          
           console.log(`📋 ALL KEYBOARD CONFIG:`, JSON.stringify(autoBot.keyboardConfig, null, 2));
           
-          // Handle special navigation buttons
+          // Handle special navigation buttons FIRST
           if (data === 'back_to_main') {
             console.log(`🏠 Handling Menu Utama button`);
             // Show main menu again - exclude All Show buttons
@@ -361,9 +233,7 @@ export class AutoBotManager {
             return;
           }
           
-
-          
-          // Find the button that was pressed (for manual keyboard)
+          // Find the button that was pressed
           const pressedButton = autoBot.keyboardConfig?.find(btn => btn.callbackData === data);
           
           console.log(`🔍 Button search result:`, pressedButton ? 
@@ -656,35 +526,6 @@ export class AutoBotManager {
       console.error(`Failed to stop auto bot:`, error);
       return { success: false, error: error.message };
     }
-  }
-
-  /**
-   * Get category icon based on icon type
-   */
-  private getCategoryIcon(iconType: string): string {
-    const iconMap: { [key: string]: string } = {
-      'followers': '👥',
-      'likes': '❤️',
-      'views': '👁️',
-      'comments': '💬',
-      'instagram': '📷',
-      'tiktok': '🎵',
-      'youtube': '📺',
-      'facebook': '📘',
-      'twitter': '🐦'
-    };
-    return iconMap[iconType.toLowerCase()] || '📋';
-  }
-
-  /**
-   * Format price to Indonesian Rupiah
-   */
-  private formatPrice(price: number): string {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(price);
   }
 
   /**
