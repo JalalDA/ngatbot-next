@@ -22,24 +22,10 @@ async function hashPassword(password: string) {
 }
 
 async function comparePasswords(supplied: string, stored: string) {
-  try {
-    // Try bcrypt first (for development users)
-    if (stored.startsWith('$2b$') || stored.startsWith('$2a$')) {
-      return await bcrypt.compare(supplied, stored);
-    }
-    
-    // Fallback to old scrypt method (for existing users)
-    const [hashed, salt] = stored.split(".");
-    if (!hashed || !salt) {
-      return false;
-    }
-    const hashedBuf = Buffer.from(hashed, "hex");
-    const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-    return timingSafeEqual(hashedBuf, suppliedBuf);
-  } catch (error) {
-    console.log('Password comparison error:', error);
-    return false;
-  }
+  const [hashed, salt] = stored.split(".");
+  const hashedBuf = Buffer.from(hashed, "hex");
+  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+  return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
 export function setupAuth(app: Express) {
@@ -68,18 +54,8 @@ export function setupAuth(app: Express) {
 
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
-    try {
-      const user = await storage.getUser(id);
-      if (!user) {
-        // User not found in current database (likely due to database switch)
-        return done(null, false);
-      }
-      done(null, user);
-    } catch (error) {
-      // Handle database connection or query errors gracefully
-      console.log('Session deserialization error (clearing session):', error);
-      done(null, false);
-    }
+    const user = await storage.getUser(id);
+    done(null, user);
   });
 
   app.post("/api/register", async (req, res, next) => {
