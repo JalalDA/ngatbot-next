@@ -261,12 +261,7 @@ export class AutoBotManager {
                   const subMenusWithNavigation = [
                     ...subMenus,
                     ...navigationButtons,
-                    {
-                      id: 'back_to_main_from_submenu',
-                      text: '🏠 HOME',
-                      callbackData: 'back_to_main',
-                      level: 1
-                    }
+                    this.createHomeButton('submenu')
                   ];
                   
                   console.log('📋 Sub menu with navigation buttons:', subMenusWithNavigation.map(btn => btn.text));
@@ -305,12 +300,7 @@ export class AutoBotManager {
                   const responseText = pressedButton.responseText || `Anda memilih: ${pressedButton.text}`;
                   
                   // Create back button
-                  const backButton = {
-                    id: 'back_to_main_from_response',
-                    text: '🏠 HOME',
-                    callbackData: 'back_to_main',
-                    level: 0
-                  };
+                  const backButton = this.createHomeButton('response');
                   
                   const responseKeyboard = this.createInlineKeyboard([backButton]);
                   
@@ -413,12 +403,7 @@ export class AutoBotManager {
                   const responseText = pressedButton.responseText || `Anda memilih: ${pressedButton.text}`;
                   
                   // Create back button
-                  const backButton = {
-                    id: 'back_to_main_from_final_response',
-                    text: '🏠 HOME',
-                    callbackData: 'back_to_main',
-                    level: 0
-                  };
+                  const backButton = this.createHomeButton('final');
                   
                   const responseKeyboard = this.createInlineKeyboard([backButton]);
                   
@@ -496,6 +481,18 @@ export class AutoBotManager {
   }
 
   /**
+   * Create HOME button with unique ID for each context
+   */
+  private createHomeButton(context: string): InlineKeyboard {
+    return {
+      id: `home_${context}`,
+      text: '🏠 HOME',
+      callbackData: 'back_to_main',
+      level: 0
+    };
+  }
+
+  /**
    * Create All Show message with hierarchical menu structure
    */
   private createAllShowMessage(buttons: InlineKeyboard[]): string {
@@ -537,12 +534,7 @@ export class AutoBotManager {
     const availableButtons = buttons.filter(btn => !btn.isAllShow);
     const keyboardButtons = [
       ...availableButtons,
-      {
-        id: 'main_menu_from_all_show',
-        text: '🏠 Menu Utama',
-        callbackData: 'back_to_main',
-        level: 0
-      }
+      this.createHomeButton('allshow')
     ];
     
     return this.createInlineKeyboard(keyboardButtons);
