@@ -2358,13 +2358,29 @@ export function registerRoutes(app: Express): Server {
       const keyId = parseInt(req.params.id);
       const { isActive } = req.body;
 
-      // Verify ownership
-      const existingKey = await storage.getUserApiKey(keyId);
-      if (!existingKey || existingKey.userId !== user.id) {
+      // Verify ownership and update
+      const result = await pool.query(
+        'UPDATE api_keys SET is_active = $1 WHERE id = $2 AND user_id = $3 RETURNING *',
+        [isActive, keyId, user.id]
+      );
+
+      if (result.rows.length === 0) {
         return res.status(404).json({ message: "API key not found" });
       }
 
-      const updatedKey = await storage.updateUserApiKey(keyId, { isActive });
+      const row = result.rows[0];
+      const updatedKey = {
+        id: row.id,
+        keyName: row.name,
+        apiKey: row.api_key,
+        isActive: row.is_active,
+        lastUsed: row.last_used,
+        totalRequests: row.total_requests || 0,
+        totalOrders: row.total_orders || 0,
+        totalRevenue: row.total_revenue || "0",
+        createdAt: row.created_at
+      };
+
       res.json(updatedKey);
     } catch (error) {
       console.error("Toggle API key error:", error);
