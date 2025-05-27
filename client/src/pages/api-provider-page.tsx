@@ -34,6 +34,10 @@ export default function ApiProviderPage() {
   // Fetch API keys
   const { data: apiKeys, isLoading } = useQuery<ApiKey[]>({
     queryKey: ["/api/api-keys"],
+    select: (data) => {
+      console.log("Raw API keys data:", data);
+      return data;
+    }
   });
 
   // Create API key mutation
