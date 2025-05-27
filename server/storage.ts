@@ -1,4 +1,4 @@
-import { users, bots, knowledge, transactions, settings, smmProviders, smmServices, smmOrders, autoBots, type User, type InsertUser, type Bot, type InsertBot, type Knowledge, type InsertKnowledge, type Transaction, type InsertTransaction, type Setting, type InsertSetting, type SmmProvider, type InsertSmmProvider, type SmmService, type InsertSmmService, type SmmOrder, type InsertSmmOrder, type AutoBot, type InsertAutoBot } from "@shared/schema";
+import { users, bots, knowledge, transactions, settings, smmProviders, smmServices, smmOrders, autoBots, apiKeys, apiUsageLogs, type User, type InsertUser, type Bot, type InsertBot, type Knowledge, type InsertKnowledge, type Transaction, type InsertTransaction, type Setting, type InsertSetting, type SmmProvider, type InsertSmmProvider, type SmmService, type InsertSmmService, type SmmOrder, type InsertSmmOrder, type AutoBot, type InsertAutoBot, type ApiKey, type InsertApiKey, type ApiUsageLog, type InsertApiUsageLog } from "@shared/schema";
 import session from "express-session";
 import { db, pool } from "./db";
 import { eq, and, desc } from "drizzle-orm";
@@ -76,6 +76,18 @@ export interface IStorage {
   deleteAutoBot(id: number): Promise<boolean>;
   getAllAutoBots(): Promise<AutoBot[]>;
   getAutoBotByToken(token: string): Promise<AutoBot | undefined>;
+  
+  // API Key management
+  getApiKey(id: number): Promise<ApiKey | undefined>;
+  getApiKeysByUserId(userId: number): Promise<ApiKey[]>;
+  getApiKeyByKey(key: string): Promise<ApiKey | undefined>;
+  createApiKey(apiKey: InsertApiKey): Promise<ApiKey>;
+  updateApiKey(id: number, updates: Partial<ApiKey>): Promise<ApiKey | undefined>;
+  deleteApiKey(id: number): Promise<boolean>;
+  
+  // API Usage Log management
+  createApiUsageLog(log: InsertApiUsageLog): Promise<ApiUsageLog>;
+  getApiUsageLogs(apiKeyId: number): Promise<ApiUsageLog[]>;
   
   sessionStore: any;
 }
@@ -497,6 +509,58 @@ export class DatabaseStorage implements IStorage {
       .from(autoBots)
       .where(eq(autoBots.token, token));
     return autoBot;
+  }
+
+  // API Key methods
+  async getApiKey(id: number): Promise<ApiKey | undefined> {
+    const [apiKey] = await db.select().from(apiKeys).where(eq(apiKeys.id, id));
+    return apiKey || undefined;
+  }
+
+  async getApiKeysByUserId(userId: number): Promise<ApiKey[]> {
+    return await db
+      .select()
+      .from(apiKeys)
+      .where(eq(apiKeys.userId, userId))
+      .orderBy(desc(apiKeys.createdAt));
+  }
+
+  async getApiKeyByKey(key: string): Promise<ApiKey | undefined> {
+    const [apiKey] = await db.select().from(apiKeys).where(eq(apiKeys.apiKey, key));
+    return apiKey || undefined;
+  }
+
+  async createApiKey(apiKey: InsertApiKey): Promise<ApiKey> {
+    const [newApiKey] = await db.insert(apiKeys).values(apiKey).returning();
+    return newApiKey;
+  }
+
+  async updateApiKey(id: number, updates: Partial<ApiKey>): Promise<ApiKey | undefined> {
+    const [updatedApiKey] = await db
+      .update(apiKeys)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(apiKeys.id, id))
+      .returning();
+    return updatedApiKey || undefined;
+  }
+
+  async deleteApiKey(id: number): Promise<boolean> {
+    const result = await db.delete(apiKeys).where(eq(apiKeys.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  // API Usage Log methods
+  async createApiUsageLog(log: InsertApiUsageLog): Promise<ApiUsageLog> {
+    const [newLog] = await db.insert(apiUsageLogs).values(log).returning();
+    return newLog;
+  }
+
+  async getApiUsageLogs(apiKeyId: number): Promise<ApiUsageLog[]> {
+    return await db
+      .select()
+      .from(apiUsageLogs)
+      .where(eq(apiUsageLogs.apiKeyId, apiKeyId))
+      .orderBy(desc(apiUsageLogs.timestamp));
   }
 
 

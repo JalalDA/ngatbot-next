@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Coins, ChevronDown, LogOut, User, Menu, X, Home, LayoutDashboard, Bot, ShoppingCart, UserCircle, Wrench } from "lucide-react";
+import { Coins, ChevronDown, LogOut, User, Menu, X, Home, LayoutDashboard, Bot, ShoppingCart, UserCircle, Wrench, Key } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import type { User as UserType } from "@shared/schema";
@@ -33,6 +33,7 @@ export function Navigation() {
     { name: "AI Bots", href: "/bots", icon: Bot },
     { name: "Auto Bot", href: "/botauto", icon: Wrench },
     { name: "Digital Product", href: "/digitalproduct", icon: ShoppingCart },
+    { name: "API Management", href: "/api", icon: Key },
     { name: "Profile", href: "/profile", icon: UserCircle },
   ];
 
