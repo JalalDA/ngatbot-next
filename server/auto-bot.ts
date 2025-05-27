@@ -213,12 +213,23 @@ export class AutoBotManager {
             const allShowMessage = this.createAllShowMessage(autoBot.keyboardConfig || []);
             const keyboard = this.createAllShowKeyboard(autoBot.keyboardConfig || []);
             
-            await bot.editMessageText(allShowMessage, {
-              chat_id: chatId,
-              message_id: msg.message_id,
-              reply_markup: keyboard,
-              parse_mode: 'Markdown'
-            });
+            try {
+              // Try editing first
+              await bot.editMessageText(allShowMessage, {
+                chat_id: chatId,
+                message_id: msg.message_id,
+                reply_markup: keyboard,
+                parse_mode: 'Markdown'
+              });
+            } catch (error: any) {
+              console.log(`⚠️ Edit failed, using delete + send approach:`, error.message);
+              // If edit fails, delete and send new message
+              bot.deleteMessage(chatId, msg.message_id).catch(() => {});
+              await bot.sendMessage(chatId, allShowMessage, {
+                reply_markup: keyboard,
+                parse_mode: 'Markdown'
+              });
+            }
             return;
           }
           
@@ -257,8 +268,18 @@ export class AutoBotManager {
                 if (subMenus.length > 0) {
                   // Find All Show button from config
                   const allShowButton = (autoBot.keyboardConfig || []).find(btn => btn.isAllShow);
-                  // Add only All Show button if it exists in config
+                  // Add navigation buttons (Home + All Show)
                   const navigationButtons = [];
+                  
+                  // Always add Home button
+                  navigationButtons.push({
+                    id: 'home_sub_level',
+                    text: '🏠 Menu Utama',
+                    callbackData: 'back_to_main',
+                    level: 1
+                  });
+                  
+                  // Add All Show button if available
                   if (allShowButton) {
                     navigationButtons.push({
                       id: 'all_show_sub_level',
@@ -368,8 +389,18 @@ export class AutoBotManager {
                   const allShowButton = (autoBot.keyboardConfig || []).find(btn => btn.isAllShow);
                   console.log(`🔍 Level ${currentLevel + 1} - Found All Show button:`, allShowButton ? 'YES' : 'NO');
                   
-                  // Add All Show button if available (no back button)
+                  // Add navigation buttons (Home + All Show)
                   const navigationButtons = [];
+                  
+                  // Always add Home button
+                  navigationButtons.push({
+                    id: `home_level_${currentLevel + 1}`,
+                    text: '🏠 Menu Utama',
+                    callbackData: 'back_to_main',
+                    level: currentLevel + 1
+                  });
+                  
+                  // Add All Show button if available
                   if (allShowButton) {
                     navigationButtons.push({
                       id: `all_show_level_${currentLevel + 1}`,
@@ -377,7 +408,7 @@ export class AutoBotManager {
                       callbackData: 'show_all_menus',
                       level: currentLevel + 1
                     });
-                    console.log(`✅ Added All Show button to level ${currentLevel + 1}`);
+                    console.log(`✅ Added navigation buttons to level ${currentLevel + 1}`);
                   }
                   
                   const childMenusWithNavigation = [
