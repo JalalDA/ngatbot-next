@@ -123,26 +123,53 @@ export class AutoBotManager {
         const welcomeMessage = autoBot.welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:";
         const welcomeImageUrl = (autoBot as any).welcomeImageUrl;
         
-        // Show main menu buttons (level 0) and check for All Show button
-        const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => 
-          (!btn.level || btn.level === 0) && !btn.isAllShow
-        );
+        let buttonsToShow: InlineKeyboard[] = [];
         
-        // Check if there's an All Show button configured
-        const allShowButton = (autoBot.keyboardConfig || []).find(btn => btn.isAllShow);
-        const buttonsToShow = [...mainMenuButtons];
-        
-        // Add All Show button if configured (but avoid duplicates)
-        if (allShowButton) {
-          // Check if there's already a button with the same text to avoid duplication
-          const existingButton = mainMenuButtons.find(btn => btn.text === allShowButton.text);
-          if (!existingButton) {
-            buttonsToShow.push({
-              id: 'all_show_button',
-              text: allShowButton.text || '📋 Lihat Semua Menu',
-              callbackData: 'show_all_menus',
+        // Check if Service Management Integration is enabled
+        if ((autoBot as any).enableServiceManagement) {
+          try {
+            // Get Service Management data
+            const { db } = await import('./db');
+            const categories = await db.query('SELECT * FROM service_categories WHERE is_active = true ORDER BY display_order, name');
+            
+            // Create buttons from Service Management categories
+            buttonsToShow = categories.rows.map((category: any, index: number) => ({
+              id: `category_${category.id}`,
+              text: `${category.icon} ${category.name}`,
+              callbackData: `category_${category.id}`,
               level: 0
-            });
+            }));
+            
+            console.log(`🎯 Service Management: Loaded ${buttonsToShow.length} categories for bot ${autoBot.botName}`);
+          } catch (error) {
+            console.error('❌ Error loading Service Management data:', error);
+            // Fallback to manual keyboard config
+            buttonsToShow = (autoBot.keyboardConfig || []).filter(btn => 
+              (!btn.level || btn.level === 0) && !btn.isAllShow
+            );
+          }
+        } else {
+          // Use manual keyboard configuration
+          const mainMenuButtons = (autoBot.keyboardConfig || []).filter(btn => 
+            (!btn.level || btn.level === 0) && !btn.isAllShow
+          );
+          
+          // Check if there's an All Show button configured
+          const allShowButton = (autoBot.keyboardConfig || []).find(btn => btn.isAllShow);
+          buttonsToShow = [...mainMenuButtons];
+          
+          // Add All Show button if configured (but avoid duplicates)
+          if (allShowButton) {
+            // Check if there's already a button with the same text to avoid duplication
+            const existingButton = mainMenuButtons.find(btn => btn.text === allShowButton.text);
+            if (!existingButton) {
+              buttonsToShow.push({
+                id: 'all_show_button',
+                text: allShowButton.text || '📋 Lihat Semua Menu',
+                callbackData: 'show_all_menus',
+                level: 0
+              });
+            }
           }
         }
         
