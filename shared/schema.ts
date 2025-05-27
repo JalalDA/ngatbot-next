@@ -29,12 +29,10 @@ export const bots = pgTable("bots", {
 export const knowledge = pgTable("knowledge", {
   id: serial("id").primaryKey(),
   botId: integer("bot_id").notNull().references(() => bots.id, { onDelete: "cascade" }),
-  type: text("type").notNull(), // text, link, file, product
+  type: text("type").notNull(), // text, link, file
   content: text("content").notNull(),
   url: text("url"), // for link type
   fileName: text("file_name"), // for file type
-  productName: text("product_name"), // for product type
-  productPrice: text("product_price"), // for product type
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -132,8 +130,6 @@ export const insertKnowledgeSchema = createInsertSchema(knowledge).pick({
   content: true,
   url: true,
   fileName: true,
-  productName: true,
-  productPrice: true,
 });
 
 export const insertTransactionSchema = createInsertSchema(transactions).pick({

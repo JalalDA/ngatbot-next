@@ -19,8 +19,7 @@ import {
   Trash2, 
   FileText, 
   Link as LinkIcon, 
-  Upload, 
-  Package,
+  Upload,
   Loader2,
   Edit2,
   Save,
@@ -49,8 +48,6 @@ export function KnowledgeModal({ botId, onClose }: KnowledgeModalProps) {
       content: "",
       url: "",
       fileName: "",
-      productName: "",
-      productPrice: "",
     },
   });
 
@@ -73,8 +70,6 @@ export function KnowledgeModal({ botId, onClose }: KnowledgeModalProps) {
         content: "",
         url: "",
         fileName: "",
-        productName: "",
-        productPrice: "",
       });
       toast({
         title: "Knowledge added",
@@ -100,14 +95,13 @@ export function KnowledgeModal({ botId, onClose }: KnowledgeModalProps) {
       queryClient.invalidateQueries({ queryKey: [`/api/knowledge/${botId}`] });
       setIsEditing(false);
       setEditingKnowledge(null);
+      setKnowledgeType("text");
       knowledgeForm.reset({
         botId,
         type: "text",
         content: "",
         url: "",
         fileName: "",
-        productName: "",
-        productPrice: "",
       });
       toast({
         title: "Knowledge updated",
@@ -125,15 +119,15 @@ export function KnowledgeModal({ botId, onClose }: KnowledgeModalProps) {
 
   // Delete knowledge mutation
   const deleteKnowledgeMutation = useMutation({
-    mutationFn: async (knowledgeId: number) => {
-      const res = await apiRequest("DELETE", `/api/knowledge/${knowledgeId}`);
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/knowledge/${id}`);
       return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/knowledge/${botId}`] });
       toast({
         title: "Knowledge deleted",
-        description: "The knowledge item has been removed from your bot.",
+        description: "The knowledge has been deleted successfully.",
       });
     },
     onError: (error: Error) => {
@@ -156,22 +150,12 @@ export function KnowledgeModal({ botId, onClose }: KnowledgeModalProps) {
       case "text":
         knowledgeData.url = "";
         knowledgeData.fileName = "";
-        knowledgeData.productName = "";
-        knowledgeData.productPrice = "";
         break;
       case "link":
         knowledgeData.fileName = "";
-        knowledgeData.productName = "";
-        knowledgeData.productPrice = "";
         break;
       case "file":
         knowledgeData.url = "";
-        knowledgeData.productName = "";
-        knowledgeData.productPrice = "";
-        break;
-      case "product":
-        knowledgeData.url = "";
-        knowledgeData.fileName = "";
         break;
     }
     
@@ -196,8 +180,6 @@ export function KnowledgeModal({ botId, onClose }: KnowledgeModalProps) {
       content: knowledge.content || "",
       url: knowledge.url || "",
       fileName: knowledge.fileName || "",
-      productName: knowledge.productName || "",
-      productPrice: knowledge.productPrice || "",
     });
   };
 
@@ -211,8 +193,6 @@ export function KnowledgeModal({ botId, onClose }: KnowledgeModalProps) {
       content: "",
       url: "",
       fileName: "",
-      productName: "",
-      productPrice: "",
     });
   };
 
@@ -230,8 +210,6 @@ export function KnowledgeModal({ botId, onClose }: KnowledgeModalProps) {
         return <LinkIcon className="h-4 w-4" />;
       case "file":
         return <Upload className="h-4 w-4" />;
-      case "product":
-        return <Package className="h-4 w-4" />;
       default:
         return <FileText className="h-4 w-4" />;
     }
@@ -245,8 +223,6 @@ export function KnowledgeModal({ botId, onClose }: KnowledgeModalProps) {
         return "bg-green-100 text-green-800";
       case "file":
         return "bg-purple-100 text-purple-800";
-      case "product":
-        return "bg-orange-100 text-orange-800";
       default:
         return "bg-slate-100 text-slate-800";
     }
@@ -263,176 +239,154 @@ export function KnowledgeModal({ botId, onClose }: KnowledgeModalProps) {
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Add Knowledge Form */}
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Add New Knowledge</h3>
-            
-            <form onSubmit={knowledgeForm.handleSubmit(onAddKnowledge)} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Knowledge Type</Label>
-                <Select value={knowledgeType} onValueChange={setKnowledgeType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select knowledge type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="text">Text Content</SelectItem>
-                    <SelectItem value="link">Website Link</SelectItem>
-                    <SelectItem value="file">File Upload (Mock)</SelectItem>
-                    <SelectItem value="product">Product Information</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* Add/Edit Knowledge Form */}
+          <form onSubmit={knowledgeForm.handleSubmit(onAddKnowledge)} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Knowledge Type</Label>
+              <Select value={knowledgeType} onValueChange={setKnowledgeType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select knowledge type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="text">
+                    <div className="flex items-center space-x-2">
+                      <FileText className="h-4 w-4" />
+                      <span>Text Content</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="link">
+                    <div className="flex items-center space-x-2">
+                      <LinkIcon className="h-4 w-4" />
+                      <span>Website Link</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="file">
+                    <div className="flex items-center space-x-2">
+                      <Upload className="h-4 w-4" />
+                      <span>File Upload (Mock)</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-              {/* Text Knowledge Input */}
-              {knowledgeType === "text" && (
+            {/* Text Knowledge Input */}
+            {knowledgeType === "text" && (
+              <div className="space-y-2">
+                <Label htmlFor="content">Content</Label>
+                <Textarea
+                  id="content"
+                  rows={6}
+                  placeholder="Enter the knowledge content that your bot should know..."
+                  {...knowledgeForm.register("content")}
+                  disabled={addKnowledgeMutation.isPending}
+                />
+                {knowledgeForm.formState.errors.content && (
+                  <p className="text-sm text-destructive">
+                    {knowledgeForm.formState.errors.content.message}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Link Knowledge Input */}
+            {knowledgeType === "link" && (
+              <>
                 <div className="space-y-2">
-                  <Label htmlFor="content">Content</Label>
-                  <Textarea
-                    id="content"
-                    rows={6}
-                    placeholder="Enter the knowledge content that your bot should know..."
-                    {...knowledgeForm.register("content")}
+                  <Label htmlFor="url">Website URL</Label>
+                  <Input
+                    id="url"
+                    type="url"
+                    placeholder="https://example.com"
+                    {...knowledgeForm.register("url")}
                     disabled={addKnowledgeMutation.isPending}
                   />
-                  {knowledgeForm.formState.errors.content && (
+                  {knowledgeForm.formState.errors.url && (
                     <p className="text-sm text-destructive">
-                      {knowledgeForm.formState.errors.content.message}
+                      {knowledgeForm.formState.errors.url.message}
                     </p>
                   )}
                 </div>
-              )}
+                <div className="space-y-2">
+                  <Label htmlFor="content">Content Description</Label>
+                  <Textarea
+                    id="content"
+                    rows={3}
+                    placeholder="Describe what this website contains..."
+                    {...knowledgeForm.register("content")}
+                    disabled={addKnowledgeMutation.isPending}
+                  />
+                </div>
+              </>
+            )}
 
-              {/* Link Knowledge Input */}
-              {knowledgeType === "link" && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="url">Website URL</Label>
-                    <Input
-                      id="url"
-                      type="url"
-                      placeholder="https://example.com"
-                      {...knowledgeForm.register("url")}
-                      disabled={addKnowledgeMutation.isPending}
-                    />
-                    {knowledgeForm.formState.errors.url && (
-                      <p className="text-sm text-destructive">
-                        {knowledgeForm.formState.errors.url.message}
-                      </p>
+            {/* File Knowledge Input */}
+            {knowledgeType === "file" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="fileName">File Name</Label>
+                  <Input
+                    id="fileName"
+                    placeholder="document.pdf"
+                    {...knowledgeForm.register("fileName")}
+                    disabled={addKnowledgeMutation.isPending}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="content">File Content/Summary</Label>
+                  <Textarea
+                    id="content"
+                    rows={4}
+                    placeholder="Describe what this file contains or paste the content..."
+                    {...knowledgeForm.register("content")}
+                    disabled={addKnowledgeMutation.isPending}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex items-center space-x-2">
+              <Button 
+                type="submit" 
+                disabled={addKnowledgeMutation.isPending || updateKnowledgeMutation.isPending}
+                className="bg-primary text-white hover:bg-primary/90"
+              >
+                {(addKnowledgeMutation.isPending || updateKnowledgeMutation.isPending) ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isEditing ? "Updating..." : "Adding..."}
+                  </>
+                ) : (
+                  <>
+                    {isEditing ? (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Update Knowledge
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Knowledge
+                      </>
                     )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="content">Content Description</Label>
-                    <Textarea
-                      id="content"
-                      rows={3}
-                      placeholder="Describe what this website contains..."
-                      {...knowledgeForm.register("content")}
-                      disabled={addKnowledgeMutation.isPending}
-                    />
-                  </div>
-                </>
-              )}
-
-              {/* File Upload (Mock) */}
-              {knowledgeType === "file" && (
-                <>
-                  <div className="space-y-2">
-                    <Label>File Upload (Mock)</Label>
-                    <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
-                      <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-                      <p className="text-slate-600">File upload feature coming soon</p>
-                      <p className="text-sm text-slate-500 mt-1">For now, please use text content</p>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="content">File Content</Label>
-                    <Textarea
-                      id="content"
-                      rows={4}
-                      placeholder="Paste the file content here for now..."
-                      {...knowledgeForm.register("content")}
-                      disabled={addKnowledgeMutation.isPending}
-                    />
-                  </div>
-                </>
-              )}
-
-              {/* Product Information */}
-              {knowledgeType === "product" && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="productName">Product Name</Label>
-                    <Input
-                      id="productName"
-                      placeholder="Enter product name"
-                      {...knowledgeForm.register("productName")}
-                      disabled={addKnowledgeMutation.isPending}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="content">Product Description</Label>
-                    <Textarea
-                      id="content"
-                      rows={4}
-                      placeholder="Describe the product features, benefits, etc..."
-                      {...knowledgeForm.register("content")}
-                      disabled={addKnowledgeMutation.isPending}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="productPrice">Price</Label>
-                    <Input
-                      id="productPrice"
-                      placeholder="e.g., $99.99"
-                      {...knowledgeForm.register("productPrice")}
-                      disabled={addKnowledgeMutation.isPending}
-                    />
-                  </div>
-                </>
-              )}
-
-              <div className="flex items-center space-x-2">
-                <Button 
-                  type="submit" 
-                  disabled={addKnowledgeMutation.isPending || updateKnowledgeMutation.isPending}
-                  className="bg-primary text-white hover:bg-primary/90"
-                >
-                  {(addKnowledgeMutation.isPending || updateKnowledgeMutation.isPending) ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {isEditing ? "Updating..." : "Adding..."}
-                    </>
-                  ) : (
-                    <>
-                      {isEditing ? (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Update Knowledge
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="mr-2 h-4 w-4" />
-                          Add Knowledge
-                        </>
-                      )}
-                    </>
-                  )}
-                </Button>
-                
-                {isEditing && (
-                  <Button 
-                    type="button"
-                    variant="outline"
-                    onClick={handleCancelEdit}
-                    disabled={addKnowledgeMutation.isPending || updateKnowledgeMutation.isPending}
-                  >
-                    <X className="mr-2 h-4 w-4" />
-                    Cancel
-                  </Button>
+                  </>
                 )}
-              </div>
-            </form>
-          </div>
+              </Button>
+              
+              {isEditing && (
+                <Button 
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  disabled={addKnowledgeMutation.isPending || updateKnowledgeMutation.isPending}
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Cancel
+                </Button>
+              )}
+            </div>
+          </form>
 
           {/* Existing Knowledge List */}
           <div>
@@ -464,50 +418,49 @@ export function KnowledgeModal({ botId, onClose }: KnowledgeModalProps) {
                             </span>
                           </div>
                           
-                          {item.type === "product" && item.productName && (
-                            <h4 className="font-medium text-slate-900 mb-1">{item.productName}</h4>
-                          )}
-                          
-                          {item.type === "link" && item.url && (
-                            <p className="text-sm text-primary mb-1">{item.url}</p>
-                          )}
-                          
-                          {item.type === "file" && item.fileName && (
-                            <p className="text-sm text-slate-600 mb-1">File: {item.fileName}</p>
-                          )}
-                          
-                          <p className="text-sm text-slate-700 line-clamp-3">
-                            {item.content}
-                          </p>
-                          
-                          {item.type === "product" && item.productPrice && (
-                            <p className="text-sm font-medium text-green-600 mt-1">
-                              Price: {item.productPrice}
-                            </p>
-                          )}
+                          <div className="space-y-2">
+                            {item.url && (
+                              <div>
+                                <span className="text-sm font-medium text-slate-700">URL: </span>
+                                <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
+                                  {item.url}
+                                </a>
+                              </div>
+                            )}
+                            {item.fileName && (
+                              <div>
+                                <span className="text-sm font-medium text-slate-700">File: </span>
+                                <span className="text-sm text-slate-600">{item.fileName}</span>
+                              </div>
+                            )}
+                            <div>
+                              <span className="text-sm font-medium text-slate-700">Content: </span>
+                              <p className="text-sm text-slate-600 line-clamp-3">{item.content}</p>
+                            </div>
+                          </div>
                         </div>
                         
-                        {/* Action buttons - responsive layout */}
-                        <div className="flex flex-col space-y-1 sm:flex-row sm:space-y-0 sm:space-x-1 ml-2">
+                        <div className="flex space-x-1 ml-4">
                           <Button
-                            variant="ghost"
                             size="sm"
+                            variant="ghost"
                             onClick={() => handleEditKnowledge(item)}
-                            disabled={updateKnowledgeMutation.isPending || deleteKnowledgeMutation.isPending}
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 w-full sm:w-auto"
+                            disabled={deleteKnowledgeMutation.isPending}
                           >
-                            <Edit2 className="h-4 w-4 sm:mr-1" />
-                            <span className="hidden sm:inline">Edit</span>
+                            <Edit2 className="h-4 w-4" />
                           </Button>
                           <Button
-                            variant="ghost"
                             size="sm"
+                            variant="ghost"
                             onClick={() => handleDeleteKnowledge(item.id)}
-                            disabled={deleteKnowledgeMutation.isPending || updateKnowledgeMutation.isPending}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 w-full sm:w-auto"
+                            disabled={deleteKnowledgeMutation.isPending}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
                           >
-                            <Trash2 className="h-4 w-4 sm:mr-1" />
-                            <span className="hidden sm:inline">Delete</span>
+                            {deleteKnowledgeMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
                           </Button>
                         </div>
                       </div>
