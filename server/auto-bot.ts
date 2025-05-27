@@ -263,7 +263,66 @@ export class AutoBotManager {
             return;
           }
           
-          // Find the button that was pressed
+          // Check if this is a Service Management callback
+          if (data.startsWith('service_category_') && (autoBot as any).enableServiceManagement) {
+            const categoryId = data.replace('service_category_', '');
+            console.log(`🎯 Service Management: Category ${categoryId} clicked`);
+            
+            try {
+              // Get category and packages data
+              const { storage } = await import('./storage');
+              const categories = await storage.getServiceCategories();
+              const packages = await storage.getServicePackages();
+              
+              const category = categories.find(cat => cat.id.toString() === categoryId);
+              const categoryPackages = packages.filter(pkg => pkg.categoryId.toString() === categoryId);
+              
+              if (category && categoryPackages.length > 0) {
+                // Create package buttons
+                const packageButtons = categoryPackages.map(pkg => ({
+                  id: `service_package_${pkg.id}`,
+                  text: `${pkg.name} - ${this.formatPrice(pkg.price)}`,
+                  callbackData: `service_package_${pkg.id}`,
+                  level: 1
+                }));
+                
+                // Add back button
+                packageButtons.push({
+                  id: 'back_to_main',
+                  text: '🏠 Kembali ke Menu Utama',
+                  callbackData: 'back_to_main',
+                  level: 1
+                });
+                
+                const keyboard = this.createInlineKeyboard(packageButtons);
+                const message = `*${this.getCategoryIcon(category.icon)} ${category.name}*\n\nSilakan pilih paket yang diinginkan:`;
+                
+                // Answer callback and edit message
+                bot.answerCallbackQuery(callbackQuery.id).catch(() => {});
+                await bot.editMessageText(message, {
+                  chat_id: chatId,
+                  message_id: msg.message_id,
+                  reply_markup: keyboard,
+                  parse_mode: 'Markdown'
+                });
+                
+                console.log(`✅ Showed ${categoryPackages.length} packages for category: ${category.name}`);
+              } else {
+                // No packages available
+                bot.answerCallbackQuery(callbackQuery.id, {
+                  text: `Belum ada paket tersedia untuk ${category?.name || 'kategori ini'}`
+                });
+              }
+            } catch (error) {
+              console.error('❌ Error handling Service Management callback:', error);
+              bot.answerCallbackQuery(callbackQuery.id, {
+                text: 'Terjadi kesalahan, silakan coba lagi'
+              });
+            }
+            return;
+          }
+          
+          // Find the button that was pressed (for manual keyboard)
           const pressedButton = autoBot.keyboardConfig?.find(btn => btn.callbackData === data);
           
           console.log(`🔍 Button search result:`, pressedButton ? 
@@ -574,6 +633,17 @@ export class AutoBotManager {
       'twitter': '🐦'
     };
     return iconMap[iconType.toLowerCase()] || '📋';
+  }
+
+  /**
+   * Format price to Indonesian Rupiah
+   */
+  private formatPrice(price: number): string {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(price);
   }
 
   /**
