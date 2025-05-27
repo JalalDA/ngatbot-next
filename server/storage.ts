@@ -509,10 +509,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUserApiKey(data: any): Promise<any> {
+    console.log("Storage: Creating API key with data:", data);
+    
     const result = await pool.query(
-      'INSERT INTO api_keys (name, user_id, api_key, is_active) VALUES ($1, $2, $3, $4) RETURNING *',
-      [data.keyName, data.userId, data.apiKey, data.isActive ?? true]
+      'INSERT INTO api_keys (name, user_id, api_key, api_endpoint, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING *',
+      [data.keyName, data.userId, data.apiKey, 'https://your-domain.replit.app/api/v2', data.isActive ?? true]
     );
+    
+    console.log("Storage: API key created:", result.rows[0]);
     return result.rows[0];
   }
 
