@@ -273,12 +273,24 @@ export class AutoBotManager {
                   // Use response text if available, otherwise use default format
                   const menuText = pressedButton.responseText || `📋 Menu ${pressedButton.text}:`;
                   
-                  await bot.editMessageText(menuText, {
-                    chat_id: chatId,
-                    message_id: msg.message_id,
-                    reply_markup: subMenuKeyboard,
-                    parse_mode: 'Markdown'
-                  });
+                  // Check if button has responseImage
+                  if ((pressedButton as any).responseImage && (pressedButton as any).responseImage.trim()) {
+                    // Send photo with caption and keyboard for menu with sub-menus
+                    await bot.deleteMessage(chatId, msg.message_id);
+                    await bot.sendPhoto(chatId, (pressedButton as any).responseImage, {
+                      caption: menuText,
+                      reply_markup: subMenuKeyboard,
+                      parse_mode: 'Markdown'
+                    });
+                  } else {
+                    // No image, just edit text
+                    await bot.editMessageText(menuText, {
+                      chat_id: chatId,
+                      message_id: msg.message_id,
+                      reply_markup: subMenuKeyboard,
+                      parse_mode: 'Markdown'
+                    });
+                  }
                 } else {
                   // No sub-menus, show response text inline with back button
                   const responseText = pressedButton.responseText || `Anda memilih: ${pressedButton.text}`;
@@ -294,10 +306,10 @@ export class AutoBotManager {
                   const responseKeyboard = this.createInlineKeyboard([backButton]);
                   
                   // Check if button has responseImage
-                  if (pressedButton.responseImage && pressedButton.responseImage.trim()) {
+                  if ((pressedButton as any).responseImage && (pressedButton as any).responseImage.trim()) {
                     // Send photo with caption and keyboard
                     await bot.deleteMessage(chatId, msg.message_id);
-                    await bot.sendPhoto(chatId, pressedButton.responseImage, {
+                    await bot.sendPhoto(chatId, (pressedButton as any).responseImage, {
                       caption: responseText,
                       reply_markup: responseKeyboard,
                       parse_mode: 'Markdown'
@@ -359,12 +371,24 @@ export class AutoBotManager {
                   const levelName = levelNames[currentLevel] || `Level ${currentLevel + 1} Menu`;
                   const menuText = pressedButton.responseText || `📋 ${levelName} ${pressedButton.text}:`;
                   
-                  await bot.editMessageText(menuText, {
-                    chat_id: chatId,
-                    message_id: msg.message_id,
-                    reply_markup: childMenuKeyboard,
-                    parse_mode: 'Markdown'
-                  });
+                  // Check if button has responseImage
+                  if ((pressedButton as any).responseImage && (pressedButton as any).responseImage.trim()) {
+                    // Send photo with caption and keyboard for sub-menu with children
+                    await bot.deleteMessage(chatId, msg.message_id);
+                    await bot.sendPhoto(chatId, (pressedButton as any).responseImage, {
+                      caption: menuText,
+                      reply_markup: childMenuKeyboard,
+                      parse_mode: 'Markdown'
+                    });
+                  } else {
+                    // No image, just edit text
+                    await bot.editMessageText(menuText, {
+                      chat_id: chatId,
+                      message_id: msg.message_id,
+                      reply_markup: childMenuKeyboard,
+                      parse_mode: 'Markdown'
+                    });
+                  }
                 } else {
                   // No child menus, this is a final button - show response text inline with back button
                   const responseText = pressedButton.responseText || `Anda memilih: ${pressedButton.text}`;
