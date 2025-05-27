@@ -186,8 +186,19 @@ export class AutoBotManager {
         if (msg && data) {
           const chatId = msg.chat.id;
           
+          console.log(`🎯 BOT ${autoBot.botName} - Callback received: "${data}" from chat ${chatId}`);
+          
           // Find the button that was pressed
           const pressedButton = autoBot.keyboardConfig?.find(btn => btn.callbackData === data);
+          
+          console.log(`🔍 Button search result:`, pressedButton ? 
+            `Found: "${pressedButton.text}" (ID: ${pressedButton.id}, Level: ${pressedButton.level}, ParentID: ${pressedButton.parentId})` : 
+            'NOT FOUND');
+          
+          if (!pressedButton) {
+            console.log(`❌ No button found for callback data: "${data}"`);
+            console.log(`📋 Available buttons:`, autoBot.keyboardConfig?.map(btn => `"${btn.text}" -> "${btn.callbackData}"`));
+          }
           
           // Answer callback query immediately for fast response
           bot.answerCallbackQuery(callbackQuery.id).catch(() => {});
