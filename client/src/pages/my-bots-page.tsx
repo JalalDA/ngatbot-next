@@ -160,7 +160,7 @@ export default function MyBotsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">My Bots</h1>
+            <h1 className="text-3xl font-bold text-foreground mb-2">AI Bots</h1>
             <p className="text-muted-foreground">Manage your Telegram bots and their AI capabilities</p>
           </div>
           <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
