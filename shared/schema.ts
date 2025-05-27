@@ -265,6 +265,19 @@ export const telegramServices = pgTable("telegram_services", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Telegram Bot Payment Settings table
+export const telegramPaymentSettings = pgTable("telegram_payment_settings", {
+  id: serial("id").primaryKey(),
+  botToken: text("bot_token").notNull().unique(),
+  botOwnerId: text("bot_owner_id").notNull(), // Telegram user ID of bot owner
+  midtransServerKey: text("midtrans_server_key"),
+  midtransClientKey: text("midtrans_client_key"),
+  midtransIsProduction: boolean("midtrans_is_production").notNull().default(false),
+  isConfigured: boolean("is_configured").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertAutoBotSchema = createInsertSchema(autoBots).omit({
   id: true,
@@ -291,6 +304,12 @@ export const insertTelegramServiceSchema = createInsertSchema(telegramServices).
   updatedAt: true,
 });
 
+export const insertTelegramPaymentSettingsSchema = createInsertSchema(telegramPaymentSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -302,6 +321,8 @@ export type TelegramOrder = typeof telegramOrders.$inferSelect;
 export type InsertTelegramOrder = z.infer<typeof insertTelegramOrderSchema>;
 export type TelegramService = typeof telegramServices.$inferSelect;
 export type InsertTelegramService = z.infer<typeof insertTelegramServiceSchema>;
+export type TelegramPaymentSettings = typeof telegramPaymentSettings.$inferSelect;
+export type InsertTelegramPaymentSettings = z.infer<typeof insertTelegramPaymentSettingsSchema>;
 export type Transaction = typeof transactions.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Setting = typeof settings.$inferSelect;

@@ -1,6 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { db } from './db.js';
-import { telegramOrders, telegramServices } from '@/shared/schema';
+import { telegramOrders, telegramServices, telegramPaymentSettings } from '../shared/schema.js';
 import { createMidtransTransaction, getTransactionStatus } from './midtrans.js';
 import { eq, and } from 'drizzle-orm';
 
@@ -20,6 +20,8 @@ export class TelegramSmmBot {
   private bot: TelegramBot;
   private services: Map<string, any> = new Map();
   private token: string;
+  private botOwnerId: string | null = null;
+  private pendingPaymentSetup: Map<number, { step: string; data: any }> = new Map();
 
   constructor(config: SmmBotConfig) {
     this.token = config.token;
@@ -40,12 +42,17 @@ export class TelegramSmmBot {
       this.handleStartCommand(msg);
     });
 
+    // Handle /payment command
+    this.bot.onText(/\/payment/, (msg) => {
+      this.handlePaymentCommand(msg);
+    });
+
     // Handle callback queries (inline keyboard button clicks)
     this.bot.on('callback_query', (query) => {
       this.handleCallbackQuery(query);
     });
 
-    // Handle text messages for link input
+    // Handle text messages for link input and payment setup
     this.bot.on('message', (msg) => {
       if (msg.text && !msg.text.startsWith('/')) {
         this.handleTextMessage(msg);
@@ -71,6 +78,83 @@ Pilih layanan yang Anda inginkan dari menu di bawah ini:`;
         inline_keyboard: mainMenuKeyboard
       }
     });
+
+    // Set bot owner on first interaction
+    if (!this.botOwnerId) {
+      this.botOwnerId = userId;
+      console.log(`👑 Bot owner set to: ${username} (${userId})`);
+    }
+  }
+
+  private async handlePaymentCommand(msg: any) {
+    const chatId = msg.chat.id;
+    const userId = msg.from?.id.toString();
+    const username = msg.from?.username || 'Unknown';
+
+    console.log(`💳 Payment command from ${username} (${userId})`);
+
+    // Check if user is bot owner
+    if (this.botOwnerId && userId !== this.botOwnerId) {
+      await this.bot.sendMessage(chatId, '❌ Anda tidak memiliki akses untuk mengatur payment method. Hanya owner bot yang dapat melakukan konfigurasi ini.');
+      return;
+    }
+
+    // If not set yet, set as owner
+    if (!this.botOwnerId) {
+      this.botOwnerId = userId;
+      console.log(`👑 Bot owner set via payment command: ${username} (${userId})`);
+    }
+
+    try {
+      // Check current payment settings
+      const [currentSettings] = await db.select()
+        .from(telegramPaymentSettings)
+        .where(eq(telegramPaymentSettings.botToken, this.token))
+        .limit(1);
+
+      let message = '💳 Konfigurasi Payment Method Midtrans\n\n';
+
+      if (currentSettings && currentSettings.isConfigured) {
+        message += '✅ Status: Terkonfigurasi\n';
+        message += `🔧 Mode: ${currentSettings.midtransIsProduction ? 'Production' : 'Sandbox'}\n`;
+        message += `🔑 Server Key: ${currentSettings.midtransServerKey ? `${currentSettings.midtransServerKey.substring(0, 10)}...` : 'Tidak diset'}\n`;
+        message += `🔐 Client Key: ${currentSettings.midtransClientKey ? `${currentSettings.midtransClientKey.substring(0, 10)}...` : 'Tidak diset'}\n\n`;
+        message += '⚙️ Pilih aksi yang ingin dilakukan:';
+      } else {
+        message += '❌ Status: Belum dikonfigurasi\n\n';
+        message += '📋 Untuk menggunakan fitur pembayaran, Anda perlu mengatur kredensial Midtrans:\n';
+        message += '• Server Key\n';
+        message += '• Client Key\n';
+        message += '• Mode (Sandbox/Production)\n\n';
+        message += '🔗 Dapatkan kredensial dari dashboard Midtrans Anda:\n';
+        message += '• Sandbox: https://dashboard.sandbox.midtrans.com/\n';
+        message += '• Production: https://dashboard.midtrans.com/\n\n';
+        message += '⚙️ Pilih aksi untuk melakukan konfigurasi:';
+      }
+
+      const keyboard = [
+        [{ text: '🔧 Setup/Update Kredensial', callback_data: 'payment_setup' }],
+      ];
+
+      if (currentSettings && currentSettings.isConfigured) {
+        keyboard.push(
+          [{ text: '🔄 Test Koneksi', callback_data: 'payment_test' }],
+          [{ text: '🗑️ Hapus Konfigurasi', callback_data: 'payment_delete' }]
+        );
+      }
+
+      keyboard.push([{ text: '🔙 Menu Utama', callback_data: 'back_to_main' }]);
+
+      await this.bot.sendMessage(chatId, message, {
+        reply_markup: {
+          inline_keyboard: keyboard
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ Error handling payment command:', error);
+      await this.bot.sendMessage(chatId, '❌ Terjadi kesalahan saat mengakses pengaturan pembayaran.');
+    }
   }
 
   private createMainMenuKeyboard() {
