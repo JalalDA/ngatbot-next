@@ -92,8 +92,32 @@ export class SecurityLogger {
     const threats: string[] = [];
     let riskLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
 
-    // Check URL for suspicious patterns
+    // Whitelist legitimate API endpoints
     const fullUrl = req.originalUrl || req.url;
+    const legitimatePatterns = [
+      /^\/api\/smm\/providers\/\d+\/services$/,
+      /^\/api\/smm\/providers\/\d+\/import-services$/,
+      /^\/api\/smm\/providers\/\d+\/update-balance$/,
+      /^\/api\/smm\/orders/,
+      /^\/api\/smm\/services/,
+      /^\/api\/smm\/providers/,
+      /^\/api\/api-keys/,
+      /^\/api\/bots/,
+      /^\/api\/user/,
+      /^\/api\/autobots/
+    ];
+
+    // Skip security check for legitimate endpoints
+    const isLegitimate = legitimatePatterns.some(pattern => pattern.test(fullUrl));
+    if (isLegitimate) {
+      return {
+        isSuspicious: false,
+        threats: [],
+        riskLevel: 'low'
+      };
+    }
+
+    // Check URL for suspicious patterns
     this.suspiciousPatterns.forEach((pattern, index) => {
       if (pattern.test(fullUrl)) {
         threats.push(`Suspicious URL pattern detected: ${this.getPatternName(index)}`);
