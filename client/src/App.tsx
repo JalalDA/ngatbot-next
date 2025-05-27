@@ -54,7 +54,7 @@ function Router() {
         )} 
       />
       <ProtectedRoute 
-        path="/smm" 
+        path="/digitalproduct" 
         component={() => (
           <>
             <Navigation />

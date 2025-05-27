@@ -32,7 +32,7 @@ export function Navigation() {
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "AI Bots", href: "/bots", icon: Bot },
     { name: "Auto Bot", href: "/botauto", icon: Wrench },
-    { name: "SMM Services", href: "/smm", icon: ShoppingCart },
+    { name: "Digital Product", href: "/digitalproduct", icon: ShoppingCart },
     { name: "Profile", href: "/profile", icon: UserCircle },
   ];
 
