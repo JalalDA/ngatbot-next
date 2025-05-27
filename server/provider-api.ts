@@ -158,7 +158,7 @@ export async function getServices(req: Request, res: Response) {
       });
     }
 
-    // Get active services for this user
+    // Get all active services (accessible to all API key holders)
     const services = await db
       .select({
         id: smmServices.id,
@@ -172,10 +172,7 @@ export async function getServices(req: Request, res: Response) {
         isActive: smmServices.isActive
       })
       .from(smmServices)
-      .where(and(
-        eq(smmServices.userId, req.apiUser.id),
-        eq(smmServices.isActive, true)
-      ));
+      .where(eq(smmServices.isActive, true));
 
     // Format services sesuai dengan format API idcdigitals.com
     const formattedServices = services.map(service => ({
