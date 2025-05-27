@@ -273,11 +273,16 @@ export class AutoBotManager {
                   // Use response text if available, otherwise use default format
                   const menuText = pressedButton.responseText || `📋 Menu ${pressedButton.text}:`;
                   
+                  // Always delete original message and send new one to avoid conflicts
+                  try {
+                    await bot.deleteMessage(chatId, msg.message_id);
+                  } catch (deleteError) {
+                    console.log('Could not delete message, continuing...');
+                  }
+                  
                   // Check if button has image URL
                   const buttonWithImage = pressedButton as any;
                   if (buttonWithImage.responseImage && buttonWithImage.responseImage.trim()) {
-                    // Delete the original message
-                    await bot.deleteMessage(chatId, msg.message_id);
                     // Send new photo with caption and keyboard
                     await bot.sendPhoto(chatId, buttonWithImage.responseImage, {
                       caption: menuText,
@@ -285,22 +290,11 @@ export class AutoBotManager {
                       reply_markup: subMenuKeyboard
                     });
                   } else {
-                    // Send text only
-                    try {
-                      await bot.editMessageText(menuText, {
-                        chat_id: chatId,
-                        message_id: msg.message_id,
-                        reply_markup: subMenuKeyboard,
-                        parse_mode: 'Markdown'
-                      });
-                    } catch (editError: any) {
-                      // If edit fails, delete and send new message
-                      await bot.deleteMessage(chatId, msg.message_id);
-                      await bot.sendMessage(chatId, menuText, {
-                        reply_markup: subMenuKeyboard,
-                        parse_mode: 'Markdown'
-                      });
-                    }
+                    // Send text message
+                    await bot.sendMessage(chatId, menuText, {
+                      reply_markup: subMenuKeyboard,
+                      parse_mode: 'Markdown'
+                    });
                   }
                 } else {
                   // No sub-menus, show response text inline with back button
@@ -316,11 +310,16 @@ export class AutoBotManager {
                   
                   const responseKeyboard = this.createInlineKeyboard([backButton]);
                   
+                  // Always delete original message and send new one to avoid conflicts
+                  try {
+                    await bot.deleteMessage(chatId, msg.message_id);
+                  } catch (deleteError) {
+                    console.log('Could not delete message, continuing...');
+                  }
+                  
                   // Check if button has image URL
                   const buttonWithImage = pressedButton as any;
                   if (buttonWithImage.responseImage && buttonWithImage.responseImage.trim()) {
-                    // Delete the original message
-                    await bot.deleteMessage(chatId, msg.message_id);
                     // Send new photo with caption and keyboard
                     await bot.sendPhoto(chatId, buttonWithImage.responseImage, {
                       caption: responseText,
@@ -328,10 +327,8 @@ export class AutoBotManager {
                       reply_markup: responseKeyboard
                     });
                   } else {
-                    // Send text only
-                    await bot.editMessageText(responseText, {
-                      chat_id: chatId,
-                      message_id: msg.message_id,
+                    // Send text message
+                    await bot.sendMessage(chatId, responseText, {
                       reply_markup: responseKeyboard,
                       parse_mode: 'Markdown'
                     });
@@ -384,11 +381,16 @@ export class AutoBotManager {
                   const levelName = levelNames[currentLevel] || `Level ${currentLevel + 1} Menu`;
                   const menuText = pressedButton.responseText || `📋 ${levelName} ${pressedButton.text}:`;
                   
+                  // Always delete original message and send new one to avoid conflicts
+                  try {
+                    await bot.deleteMessage(chatId, msg.message_id);
+                  } catch (deleteError) {
+                    console.log('Could not delete message, continuing...');
+                  }
+                  
                   // Check if button has image URL
                   const buttonWithImage = pressedButton as any;
                   if (buttonWithImage.responseImage && buttonWithImage.responseImage.trim()) {
-                    // Delete the original message
-                    await bot.deleteMessage(chatId, msg.message_id);
                     // Send new photo with caption and keyboard
                     await bot.sendPhoto(chatId, buttonWithImage.responseImage, {
                       caption: menuText,
@@ -396,10 +398,8 @@ export class AutoBotManager {
                       reply_markup: childMenuKeyboard
                     });
                   } else {
-                    // Send text only
-                    await bot.editMessageText(menuText, {
-                      chat_id: chatId,
-                      message_id: msg.message_id,
+                    // Send text message
+                    await bot.sendMessage(chatId, menuText, {
                       reply_markup: childMenuKeyboard,
                       parse_mode: 'Markdown'
                     });
