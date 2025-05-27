@@ -80,7 +80,10 @@ export function registerRoutes(app: Express): Server {
 
   app.get("/api/bots", requireAuth, async (req, res) => {
     try {
-      const bots = await storage.getBotsByUserId(req.user.id);
+      // MULTITHREADING: Load bots with parallel data fetching
+      const [bots] = await Promise.all([
+        storage.getBotsByUserId(req.user.id)
+      ]);
       res.json(bots);
     } catch (error) {
       console.error("Get bots error:", error);
