@@ -45,6 +45,7 @@ export default function AutoBotBuilderPage() {
   const [botName, setBotName] = useState("");
   const [botUsername, setBotUsername] = useState("");
   const [welcomeMessage, setWelcomeMessage] = useState("Selamat datang! Silakan pilih opsi di bawah ini:");
+  const [welcomeImage, setWelcomeImage] = useState("");
   const [keyboardButtons, setKeyboardButtons] = useState<InlineKeyboard[]>([]);
   const [editingBot, setEditingBot] = useState<AutoBot | null>(null);
 
@@ -493,6 +494,7 @@ export default function AutoBotBuilderPage() {
     console.log('🔧 Starting to edit bot:', bot);
     setEditingBot(bot);
     setWelcomeMessage(bot.welcomeMessage);
+    setWelcomeImage((bot as any).welcomeImage || "");
     setKeyboardButtons(bot.keyboardConfig || []);
     setShowEditDialog(true);
   };
@@ -502,6 +504,7 @@ export default function AutoBotBuilderPage() {
       updateBotMutation.mutate({
         id: editingBot.id,
         welcomeMessage,
+        welcomeImage,
         keyboardConfig: keyboardButtons,
       });
     } else {
@@ -519,6 +522,7 @@ export default function AutoBotBuilderPage() {
         botName,
         botUsername,
         welcomeMessage,
+        welcomeImage,
         keyboardConfig: keyboardButtons,
       });
     }
@@ -594,15 +598,30 @@ export default function AutoBotBuilderPage() {
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="welcomeMessage">Pesan Sambutan</Label>
-                <Textarea
-                  id="welcomeMessage"
-                  placeholder="Pesan yang akan ditampilkan saat pengguna mengetik /start"
-                  value={welcomeMessage}
-                  onChange={(e) => setWelcomeMessage(e.target.value)}
-                  rows={3}
-                />
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="welcomeMessage">Pesan Sambutan</Label>
+                  <Textarea
+                    id="welcomeMessage"
+                    placeholder="Pesan yang akan ditampilkan saat pengguna mengetik /start"
+                    value={welcomeMessage}
+                    onChange={(e) => setWelcomeMessage(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="welcomeImage">URL Gambar Sambutan (Opsional)</Label>
+                  <Input
+                    id="welcomeImage"
+                    placeholder="https://example.com/image.jpg"
+                    value={welcomeImage}
+                    onChange={(e) => setWelcomeImage(e.target.value)}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Masukkan URL gambar yang akan ditampilkan bersama pesan sambutan
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1365,15 +1384,30 @@ export default function AutoBotBuilderPage() {
               <CardContent className="space-y-6">
                 {/* Welcome Message */}
                 <div className="grid gap-4">
-                  <div>
-                    <Label htmlFor="welcomeMessageKeyboard">Pesan Sambutan</Label>
-                    <Textarea
-                      id="welcomeMessageKeyboard"
-                      placeholder="Pesan sambutan bot"
-                      value={welcomeMessage}
-                      onChange={(e) => setWelcomeMessage(e.target.value)}
-                      className="min-h-[100px]"
-                    />
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="welcomeMessageKeyboard">Pesan Sambutan</Label>
+                      <Textarea
+                        id="welcomeMessageKeyboard"
+                        placeholder="Pesan sambutan bot"
+                        value={welcomeMessage}
+                        onChange={(e) => setWelcomeMessage(e.target.value)}
+                        className="min-h-[100px]"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="welcomeImageKeyboard">URL Gambar Sambutan (Opsional)</Label>
+                      <Input
+                        id="welcomeImageKeyboard"
+                        placeholder="https://example.com/image.jpg"
+                        value={welcomeImage}
+                        onChange={(e) => setWelcomeImage(e.target.value)}
+                      />
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Masukkan URL gambar yang akan ditampilkan bersama pesan sambutan
+                      </p>
+                    </div>
                   </div>
                 </div>
 

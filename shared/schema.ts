@@ -197,6 +197,7 @@ export const autoBots = pgTable("auto_bots", {
   botName: text("bot_name").notNull(),
   botUsername: text("bot_username").notNull(),
   welcomeMessage: text("welcome_message").notNull().default("Selamat datang! Silakan pilih opsi di bawah ini:"),
+  welcomeImage: text("welcome_image"), // URL gambar sambutan (opsional)
   keyboardConfig: json("keyboard_config").$type<{
     id: string;
     text: string;
@@ -205,6 +206,7 @@ export const autoBots = pgTable("auto_bots", {
     level?: number;
     parentId?: string;
     responseText?: string; // Teks respons yang dikirim ketika tombol diklik
+    responseImage?: string; // URL gambar yang dikirim ketika tombol diklik
     isAllShow?: boolean; // Property untuk tombol All Show
   }[]>(),
   isActive: boolean("is_active").notNull().default(true),
