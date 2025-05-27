@@ -12,15 +12,15 @@ const getDatabaseUrl = () => {
   
   if (nodeEnv === 'production') {
     // Production: Menggunakan Neon database yang fresh
-    const prodUrl = process.env.DATABASE_URL_PROD || 'postgresql://neondb_owner:npg_Qvh3W8YfkaKZ@ep-quiet-bird-a5oij1nj.us-east-2.aws.neon.tech/neondb?sslmode=require';
+    const prodUrl = process.env.DATABASE_URL_PROD;
     console.log('🚀 PRODUCTION MODE: Using Neon database (fresh)');
-    console.log(`🔗 Production DB: ${prodUrl.substring(0, 50)}...`);
+    console.log(`🔗 Production DB: ${prodUrl?.substring(0, 50)}...`);
     return prodUrl;
   } else {
     // Development: Menggunakan database development terpisah
-    const devUrl = process.env.DATABASE_URL_DEV || process.env.DATABASE_URL;
+    const devUrl = process.env.DATABASE_URL_DEV;
     console.log('🔧 DEVELOPMENT MODE: Using development database');
-    console.log(`🔗 Development DB: ${devUrl.substring(0, 50)}...`);
+    console.log(`🔗 Development DB: ${devUrl?.substring(0, 50)}...`);
     return devUrl;
   }
 };
