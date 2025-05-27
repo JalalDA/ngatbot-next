@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Copy, Eye, EyeOff, Plus, Key, DollarSign, Activity, Users } from "lucide-react";
+import { Copy, Eye, EyeOff, Plus, Key, DollarSign, Activity, Users, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -99,6 +99,35 @@ export default function ApiProviderPage() {
       toast({
         title: "API Key Updated",
         description: "API key status has been updated successfully.",
+      });
+    },
+  });
+
+  // Delete API key
+  const deleteApiKeyMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/api-keys/${id}`, {
+        method: "DELETE",
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to delete API key");
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/api-keys"] });
+      toast({
+        title: "API Key Deleted",
+        description: "API key has been deleted successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete API key. Please try again.",
+        variant: "destructive",
       });
     },
   });
