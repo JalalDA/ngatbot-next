@@ -42,12 +42,9 @@ import {
 import { z } from "zod";
 
 function requireAuth(req: any, res: any, next: any) {
-  console.log(`🔐 Auth check for ${req.method} ${req.url} - isAuthenticated: ${req.isAuthenticated()}`);
   if (!req.isAuthenticated()) {
-    console.log(`❌ Auth failed for ${req.method} ${req.url}`);
     return res.status(401).json({ message: "Authentication required" });
   }
-  console.log(`✅ Auth passed for ${req.method} ${req.url}`);
   next();
 }
 
@@ -59,12 +56,6 @@ function requireAdmin(req: any, res: any, next: any) {
 }
 
 export function registerRoutes(app: Express): Server {
-  // Global request logging
-  app.use((req, res, next) => {
-    console.log(`📥 REQUEST: ${req.method} ${req.url}`);
-    next();
-  });
-
   // Setup authentication routes
   setupAuth(app);
 
@@ -1024,43 +1015,25 @@ export function registerRoutes(app: Express): Server {
 
   // Get services from SMM provider (without importing)
   app.get("/api/smm/providers/:id/services", requireAuth, async (req, res) => {
-    console.log(`🔄 START: Loading services for provider ID: ${req.params.id}`);
     try {
       const user = req.user!;
       const providerId = parseInt(req.params.id);
 
-      console.log(`🔍 Loading services for provider ID: ${providerId}, User ID: ${user.id}`);
-
       // Check if provider exists and belongs to user
       const provider = await storage.getSmmProvider(providerId);
       if (!provider || provider.userId !== user.id) {
-        console.error(`❌ Provider not found or access denied. Provider: ${JSON.stringify(provider)}`);
         return res.status(404).json({ message: "Provider not found" });
       }
 
-      console.log(`✅ Provider found: ${provider.name} - ${provider.apiEndpoint}`);
-      console.log(`🔑 Using API Key: ${provider.apiKey.substring(0, 10)}...`);
-
       const smmApi = new SmmPanelAPI(provider.apiKey, provider.apiEndpoint);
-      
-      console.log(`📡 Calling getServices() from SmmPanelAPI...`);
       const services = await smmApi.getServices();
-      
-      console.log(`✅ Successfully fetched ${services.length} services`);
+
       res.json({ services });
     } catch (error) {
-      console.error("❌ Fetch services error:", error);
-      console.error("Error details:", {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : 'No stack trace',
-        name: error instanceof Error ? error.name : 'Unknown error type'
-      });
+      console.error("Fetch services error:", error);
       res
         .status(500)
-        .json({ 
-          message: "Failed to fetch services from provider",
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
+        .json({ message: "Failed to fetch services from provider" });
     }
   });
 
@@ -1878,189 +1851,6 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Cleanup stuck operations error:", error);
       res.status(500).json({ message: "Failed to cleanup stuck operations" });
-    }
-  });
-
-  // PAYMENT METHOD SETTINGS ENDPOINTS
-  // Get current payment settings
-  app.get("/api/payment/settings", requireAuth, async (req, res) => {
-    try {
-      const userId = req.user?.id;
-      console.log(`💳 GET payment settings for user ${userId}`);
-      
-      const settings = await storage.getPaymentSettings(userId);
-      
-      res.json({
-        id: settings?.id || null,
-        serverKey: settings?.serverKey ? `${settings.serverKey.substring(0, 15)}...` : '',
-        clientKey: settings?.clientKey ? `${settings.clientKey.substring(0, 15)}...` : '',
-        isProduction: settings?.isProduction || false,
-        isConfigured: !!(settings?.serverKey && settings?.clientKey),
-        createdAt: settings?.createdAt || null,
-        updatedAt: settings?.updatedAt || null,
-      });
-    } catch (error) {
-      console.error("❌ Get payment settings error:", error);
-      res.status(500).json({ 
-        message: "Gagal mengambil pengaturan pembayaran",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  // Save/Update payment settings
-  app.post("/api/payment/settings", requireAuth, async (req, res) => {
-    try {
-      if (!req.user?.id) {
-        return res.status(401).json({ message: "User tidak terotentikasi" });
-      }
-      
-      const userId = req.user.id;
-      const { serverKey, clientKey, isProduction } = req.body;
-      
-      console.log(`💳 POST payment settings for user ${userId}`);
-      
-      // Validate input
-      const paymentSchema = z.object({
-        serverKey: z.string().min(1, 'Server Key wajib diisi'),
-        clientKey: z.string().min(1, 'Client Key wajib diisi'),
-        isProduction: z.boolean().default(false),
-      });
-
-      const validData = paymentSchema.parse({ serverKey, clientKey, isProduction });
-      
-      // Save settings
-      const settings = await storage.savePaymentSettings(userId, validData);
-      
-      res.json({
-        success: true,
-        message: "Pengaturan pembayaran berhasil disimpan",
-        settings: {
-          id: settings.id,
-          isProduction: settings.isProduction,
-          isConfigured: true,
-          updatedAt: settings.updatedAt,
-        }
-      });
-    } catch (error) {
-      console.error("❌ Save payment settings error:", error);
-      res.status(500).json({ 
-        message: "Gagal menyimpan pengaturan pembayaran",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  // Test Midtrans connection
-  app.post("/api/payment/test-connection", requireAuth, async (req, res) => {
-    try {
-      const userId = req.user?.id;
-      console.log(`🔄 Test Midtrans connection for user ${userId}`);
-      
-      const settings = await storage.getPaymentSettings(userId);
-      
-      if (!settings || !settings.serverKey) {
-        return res.status(400).json({ 
-          message: "Pengaturan Midtrans belum dikonfigurasi" 
-        });
-      }
-
-      // Test connection with basic validation
-      if (settings.isProduction) {
-        if (!settings.serverKey.startsWith('Mid-server-')) {
-          throw new Error('Server Key production harus dimulai dengan "Mid-server-"');
-        }
-      } else {
-        if (!settings.serverKey.startsWith('SB-Mid-server-')) {
-          throw new Error('Server Key sandbox harus dimulai dengan "SB-Mid-server-"');
-        }
-      }
-      
-      res.json({
-        success: true,
-        message: "Koneksi Midtrans berhasil",
-        environment: settings.isProduction ? 'Production' : 'Sandbox',
-        serverKeyValid: true,
-        clientKeyValid: !!settings.clientKey,
-      });
-    } catch (error) {
-      console.error("❌ Test Midtrans connection error:", error);
-      res.status(400).json({ 
-        message: error instanceof Error ? error.message : "Koneksi Midtrans gagal"
-      });
-    }
-  });
-
-  // Delete payment settings
-  app.delete("/api/payment/settings", requireAuth, async (req, res) => {
-    try {
-      const userId = req.user?.id;
-      console.log(`🗑️ DELETE payment settings for user ${userId}`);
-      
-      await storage.deletePaymentSettings(userId);
-      
-      res.json({
-        success: true,
-        message: "Pengaturan pembayaran berhasil dihapus"
-      });
-    } catch (error) {
-      console.error("❌ Delete payment settings error:", error);
-      res.status(500).json({ 
-        message: "Gagal menghapus pengaturan pembayaran",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  // Generate QRIS payment for telegram bot
-  app.post("/api/payment/generate-qris", requireAuth, async (req, res) => {
-    try {
-      if (!req.user?.id) {
-        return res.status(401).json({ message: "User tidak terotentikasi" });
-      }
-      
-      const userId = req.user.id;
-      const { amount, orderId, botToken, telegramUserId } = req.body;
-      
-      console.log(`💰 Generate QRIS for user ${userId}, amount: ${amount}`);
-      
-      // Get payment settings
-      const settings = await storage.getPaymentSettings(userId);
-      if (!settings || !settings.serverKey) {
-        return res.status(400).json({ 
-          message: "Pengaturan Midtrans belum dikonfigurasi" 
-        });
-      }
-
-      // Create Midtrans transaction
-      const transactionData = {
-        orderId: orderId,
-        userId: userId,
-        userName: req.user.username || 'User',
-        userEmail: req.user.email || `user${userId}@example.com`,
-        plan: 'custom' as any,
-        amount: amount
-      };
-
-      const transaction = await createMidtransTransaction({
-        ...transactionData,
-        customAmount: amount
-      });
-
-      res.json({
-        success: true,
-        qrString: transaction.qr_string,
-        transactionToken: transaction.token,
-        orderId: orderId,
-        amount: amount,
-        expiryTime: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
-      });
-    } catch (error) {
-      console.error("❌ Generate QRIS error:", error);
-      res.status(500).json({ 
-        message: "Gagal membuat QRIS payment",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
     }
   });
 

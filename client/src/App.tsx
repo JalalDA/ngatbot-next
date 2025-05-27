@@ -15,7 +15,6 @@ import ProfilePage from "@/pages/profile-page";
 import AdminPage from "@/pages/admin-page";
 import AutoBotBuilderPage from "@/pages/auto-bot-builder-page";
 import ApiProviderPage from "@/pages/api-provider-page";
-import PaymentMethodPage from "@/pages/payment-method-page";
 import NotFound from "@/pages/not-found";
 
 function RootRedirect() {
@@ -88,15 +87,6 @@ function Router() {
           <>
             <Navigation />
             <ApiProviderPage />
-          </>
-        )} 
-      />
-      <ProtectedRoute 
-        path="/payment" 
-        component={() => (
-          <>
-            <Navigation />
-            <PaymentMethodPage />
           </>
         )} 
       />

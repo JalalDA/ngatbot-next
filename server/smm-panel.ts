@@ -79,35 +79,12 @@ export class SmmPanelAPI {
         timeout: 30000
       });
 
-      console.log(`📊 Raw response from provider:`, JSON.stringify(response.data, null, 2));
-
-      // Handle different response formats from various SMM Panel providers
-      let services: any[] = [];
-      
-      if (Array.isArray(response.data)) {
-        // Direct array format (common)
-        services = response.data;
-      } else if (response.data && response.data.services && Array.isArray(response.data.services)) {
-        // Wrapped in services property
-        services = response.data.services;
-      } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
-        // Wrapped in data property
-        services = response.data.data;
-      } else if (response.data && response.data.result && Array.isArray(response.data.result)) {
-        // Wrapped in result property
-        services = response.data.result;
-      } else if (response.data && typeof response.data === 'object') {
-        // Object with services as values
-        services = Object.values(response.data).filter(item => 
-          item && typeof item === 'object' && 'service' in item
-        );
+      if (response.data && Array.isArray(response.data)) {
+        console.log(`✅ Successfully fetched ${response.data.length} services`);
+        return response.data;
       } else {
-        console.error('❌ Unrecognized response format:', response.data);
         throw new Error('Invalid response format from SMM Panel');
       }
-
-      console.log(`✅ Successfully parsed ${services.length} services`);
-      return services as SmmService[];
     } catch (error: any) {
       console.error('❌ Error fetching services from SMM Panel:', error.message);
       throw new Error(`Failed to fetch services: ${error.message}`);
