@@ -377,10 +377,8 @@ export class AutoBotManager {
                   // No child menus, this is a final button - show response text inline with back button
                   const responseText = pressedButton.responseText || `Anda memilih: ${pressedButton.text}`;
                   
-                  // Create back button
-                  const backButton = this.createHomeButton('final');
-                  
-                  const responseKeyboard = this.createInlineKeyboard([backButton]);
+                  // No keyboard for final response
+                  const responseKeyboard = undefined;
                   
                   // Check if button has image URL
                   const buttonWithImage = pressedButton as any;
