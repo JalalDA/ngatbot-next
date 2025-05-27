@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { 
   User, 
   Bot, 
@@ -14,14 +15,19 @@ import {
   Crown,
   Star,
   Zap,
-  BarChart3
+  BarChart3,
+  Brain,
+  Cpu
 } from "lucide-react";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { useState } from "react";
+import { useLocation } from "wouter";
 
 export default function OverviewDashboard() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showCreateBotModal, setShowCreateBotModal] = useState(false);
 
   // Fetch bots data
   const { data: bots = [] } = useQuery({
@@ -182,7 +188,7 @@ export default function OverviewDashboard() {
                   <h4 className="font-medium text-white dark:text-white">Create New Bot</h4>
                   <p className="text-sm text-slate-400 dark:text-slate-400">Set up a new Telegram bot with AI</p>
                 </div>
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => setShowCreateBotModal(true)}>
                   <Bot className="w-4 h-4 mr-2" />
                   Create
                 </Button>
@@ -192,7 +198,7 @@ export default function OverviewDashboard() {
                   <h4 className="font-medium text-white dark:text-white">Manage Existing Bots</h4>
                   <p className="text-sm text-slate-400 dark:text-slate-400">Edit settings and knowledge base</p>
                 </div>
-                <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white">
+                <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white" onClick={() => setLocation('/bots')}>
                   View All
                 </Button>
               </div>
@@ -213,7 +219,7 @@ export default function OverviewDashboard() {
                   <h4 className="font-medium text-white dark:text-white">Add Provider</h4>
                   <p className="text-sm text-slate-400 dark:text-slate-400">Connect new SMM service provider</p>
                 </div>
-                <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => setLocation('/smm')}>
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   Add
                 </Button>
@@ -223,7 +229,7 @@ export default function OverviewDashboard() {
                   <h4 className="font-medium text-white dark:text-white">Manage Services</h4>
                   <p className="text-sm text-slate-400 dark:text-slate-400">View and edit imported services</p>
                 </div>
-                <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white">
+                <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white" onClick={() => setLocation('/smm')}>
                   View All
                 </Button>
               </div>
@@ -278,6 +284,49 @@ export default function OverviewDashboard() {
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
       />
+
+      {/* Create Bot Modal */}
+      <Dialog open={showCreateBotModal} onOpenChange={setShowCreateBotModal}>
+        <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-white">Pilih Jenis Bot</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Pilih jenis bot yang ingin Anda buat
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Button 
+              variant="outline" 
+              className="w-full h-20 flex flex-col items-center justify-center space-y-2 bg-slate-800 border-slate-700 hover:bg-slate-700 text-white"
+              onClick={() => {
+                setShowCreateBotModal(false);
+                setLocation('/bots/create?type=ai');
+              }}
+            >
+              <Brain className="w-8 h-8 text-blue-400" />
+              <div className="text-center">
+                <div className="font-medium">Create AI Bot</div>
+                <div className="text-xs text-slate-400">Bot dengan kecerdasan buatan</div>
+              </div>
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="w-full h-20 flex flex-col items-center justify-center space-y-2 bg-slate-800 border-slate-700 hover:bg-slate-700 text-white"
+              onClick={() => {
+                setShowCreateBotModal(false);
+                setLocation('/auto-bots/create');
+              }}
+            >
+              <Cpu className="w-8 h-8 text-green-400" />
+              <div className="text-center">
+                <div className="font-medium">Create Auto Bot Non AI</div>
+                <div className="text-xs text-slate-400">Bot otomatis dengan keyboard inline</div>
+              </div>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
