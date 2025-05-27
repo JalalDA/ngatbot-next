@@ -47,23 +47,18 @@ export async function validateApiKey(req: Request, res: Response, next: NextFunc
 
     // Cari API key di database
     console.log('[API DEBUG] Searching for API key in database...');
-    const apiKeyRecord = await db
-      .select({
-        id: apiKeys.id,
-        userId: apiKeys.userId,
-        isActive: apiKeys.isActive,
-        keyName: apiKeys.keyName
-      })
-      .from(apiKeys)
-      .where(and(
-        eq(apiKeys.apiKey, apiKey),
-        eq(apiKeys.isActive, true)
-      ))
-      .limit(1);
+    // Query menggunakan raw SQL untuk kompatibilitas dengan database production
+    const result = await db.execute(sql`
+      SELECT id, user_id as "userId", is_active as "isActive", name as "keyName"
+      FROM api_keys 
+      WHERE api_key = ${apiKey} AND is_active = true
+      LIMIT 1
+    `);
 
-    console.log('[API DEBUG] Found API key records:', apiKeyRecord);
+    console.log('[API DEBUG] Found API key records:', result);
+    const apiKeyRecord = result.rows || result;
 
-    if (apiKeyRecord.length === 0) {
+    if (!apiKeyRecord || apiKeyRecord.length === 0) {
       return res.status(401).json({
         error: 'Invalid API key'
       });
