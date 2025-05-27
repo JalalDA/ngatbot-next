@@ -276,15 +276,12 @@ export class AutoBotManager {
                   // Check if button has image URL
                   const buttonWithImage = pressedButton as any;
                   if (buttonWithImage.responseImage && buttonWithImage.responseImage.trim()) {
-                    // Send photo with caption and keyboard
-                    await bot.editMessageMedia({
-                      type: 'photo',
-                      media: buttonWithImage.responseImage,
+                    // Delete the original message
+                    await bot.deleteMessage(chatId, msg.message_id);
+                    // Send new photo with caption and keyboard
+                    await bot.sendPhoto(chatId, buttonWithImage.responseImage, {
                       caption: menuText,
-                      parse_mode: 'Markdown'
-                    }, {
-                      chat_id: chatId,
-                      message_id: msg.message_id,
+                      parse_mode: 'Markdown',
                       reply_markup: subMenuKeyboard
                     });
                   } else {
@@ -313,15 +310,12 @@ export class AutoBotManager {
                   // Check if button has image URL
                   const buttonWithImage = pressedButton as any;
                   if (buttonWithImage.responseImage && buttonWithImage.responseImage.trim()) {
-                    // Send photo with caption and keyboard
-                    await bot.editMessageMedia({
-                      type: 'photo',
-                      media: buttonWithImage.responseImage,
+                    // Delete the original message
+                    await bot.deleteMessage(chatId, msg.message_id);
+                    // Send new photo with caption and keyboard
+                    await bot.sendPhoto(chatId, buttonWithImage.responseImage, {
                       caption: responseText,
-                      parse_mode: 'Markdown'
-                    }, {
-                      chat_id: chatId,
-                      message_id: msg.message_id,
+                      parse_mode: 'Markdown',
                       reply_markup: responseKeyboard
                     });
                   } else {
@@ -384,15 +378,12 @@ export class AutoBotManager {
                   // Check if button has image URL
                   const buttonWithImage = pressedButton as any;
                   if (buttonWithImage.responseImage && buttonWithImage.responseImage.trim()) {
-                    // Send photo with caption and keyboard
-                    await bot.editMessageMedia({
-                      type: 'photo',
-                      media: buttonWithImage.responseImage,
+                    // Delete the original message
+                    await bot.deleteMessage(chatId, msg.message_id);
+                    // Send new photo with caption and keyboard
+                    await bot.sendPhoto(chatId, buttonWithImage.responseImage, {
                       caption: menuText,
-                      parse_mode: 'Markdown'
-                    }, {
-                      chat_id: chatId,
-                      message_id: msg.message_id,
+                      parse_mode: 'Markdown',
                       reply_markup: childMenuKeyboard
                     });
                   } else {
@@ -421,15 +412,12 @@ export class AutoBotManager {
                   // Check if button has image URL
                   const buttonWithImage = pressedButton as any;
                   if (buttonWithImage.responseImage && buttonWithImage.responseImage.trim()) {
-                    // Send photo with caption and keyboard
-                    await bot.editMessageMedia({
-                      type: 'photo',
-                      media: buttonWithImage.responseImage,
+                    // Delete the original message
+                    await bot.deleteMessage(chatId, msg.message_id);
+                    // Send new photo with caption and keyboard
+                    await bot.sendPhoto(chatId, buttonWithImage.responseImage, {
                       caption: responseText,
-                      parse_mode: 'Markdown'
-                    }, {
-                      chat_id: chatId,
-                      message_id: msg.message_id,
+                      parse_mode: 'Markdown',
                       reply_markup: responseKeyboard
                     });
                   } else {
