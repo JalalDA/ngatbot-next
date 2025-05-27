@@ -35,16 +35,12 @@ export default function ApiManagementPage() {
   // Fetch API keys
   const { data: apiKeys = [], isLoading } = useQuery({
     queryKey: ["/api/api-keys"],
-  });
+  }) as { data: ApiKey[]; isLoading: boolean };
 
   // Create API key mutation
   const createApiKeyMutation = useMutation({
     mutationFn: async (data: { keyName: string; allowedDomains: string[] }) => {
-      return apiRequest("/api/api-keys", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      return apiRequest("/api/api-keys", "POST", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/api-keys"] });
@@ -68,9 +64,7 @@ export default function ApiManagementPage() {
   // Delete API key mutation
   const deleteApiKeyMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/api-keys/${id}`, {
-        method: "DELETE",
-      });
+      return apiRequest(`/api/api-keys/${id}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/api-keys"] });
@@ -91,11 +85,7 @@ export default function ApiManagementPage() {
   // Toggle API key mutation
   const toggleApiKeyMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
-      return apiRequest(`/api/api-keys/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive }),
-      });
+      return apiRequest(`/api/api-keys/${id}`, "PATCH", { isActive });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/api-keys"] });
