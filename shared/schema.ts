@@ -204,6 +204,10 @@ export const autoBots = pgTable("auto_bots", {
     responseText?: string; // Teks respons yang dikirim ketika tombol diklik
     isAllShow?: boolean; // Property untuk tombol All Show
   }[]>(),
+  // Service Management Integration Settings
+  enableServiceManagement: boolean("enable_service_management").notNull().default(false),
+  enablePaymentIntegration: boolean("enable_payment_integration").notNull().default(false),
+  enableOrderTracking: boolean("enable_order_tracking").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
