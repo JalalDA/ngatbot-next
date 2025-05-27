@@ -222,7 +222,19 @@ export class AutoBotManager {
             return;
           }
 
-          // All Show button removed
+          // Handle All Show button
+          if (data === 'show_all_menus') {
+            const allShowMessage = this.createAllShowMessage(autoBot.keyboardConfig || []);
+            const keyboard = this.createAllShowKeyboard(autoBot.keyboardConfig || []);
+            
+            await bot.editMessageText(allShowMessage, {
+              chat_id: chatId,
+              message_id: msg.message_id,
+              reply_markup: keyboard,
+              parse_mode: 'Markdown'
+            });
+            return;
+          }
 
 
           
@@ -239,10 +251,24 @@ export class AutoBotManager {
                 );
                 
                 if (subMenus.length > 0) {
-                  // No navigation buttons needed
+                  // Find All Show button from config
+                  const allShowButton = (autoBot.keyboardConfig || []).find(btn => btn.isAllShow);
+                  // Add only All Show button if it exists in config
+                  const navigationButtons = [];
+                  if (allShowButton) {
+                    navigationButtons.push({
+                      id: 'all_show_sub_level',
+                      text: allShowButton.text || '📋 Lihat Semua Menu',
+                      callbackData: 'show_all_menus',
+                      level: 1
+                    });
+                  }
                   
-                  // Show sub menus only - no navigation buttons
-                  const subMenusWithNavigation = [...subMenus];
+                  // Show sub menus with All Show button only (no back button)
+                  const subMenusWithNavigation = [
+                    ...subMenus,
+                    ...navigationButtons
+                  ];
                   
 
                   
@@ -338,8 +364,22 @@ export class AutoBotManager {
                   const allShowButton = (autoBot.keyboardConfig || []).find(btn => btn.isAllShow);
                   console.log(`🔍 Level ${currentLevel + 1} - Found All Show button:`, allShowButton ? 'YES' : 'NO');
                   
-                  // Show child menus only - no navigation buttons
-                  const childMenusWithNavigation = [...childMenus];
+                  // Add All Show button if available (no back button)
+                  const navigationButtons = [];
+                  if (allShowButton) {
+                    navigationButtons.push({
+                      id: `all_show_level_${currentLevel + 1}`,
+                      text: allShowButton.text || '📋 Lihat Semua Menu',
+                      callbackData: 'show_all_menus',
+                      level: currentLevel + 1
+                    });
+                    console.log(`✅ Added All Show button to level ${currentLevel + 1}`);
+                  }
+                  
+                  const childMenusWithNavigation = [
+                    ...childMenus,
+                    ...navigationButtons
+                  ];
                   
                   console.log(`📋 Level ${currentLevel + 1} menu buttons:`, childMenusWithNavigation.map(btn => btn.text));
                   
