@@ -930,13 +930,15 @@ export function registerRoutes(app: Express): Server {
 
       console.log(`Processing ${selectedServices.length} services in ${batches.length} batches of ${batchSize}`);
 
+      // MULTITHREADING: Process batches with parallel operations
       for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
         const batch = batches[batchIndex];
-        console.log(`Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} services`);
+        console.log(`🚀 Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} services using multithreading...`);
 
-        for (const service of batch) {
+        // PARALLEL: Process services in current batch simultaneously
+        const batchPromises = batch.map(async (service) => {
           try {
-            // Auto-assign MID (1-10)
+            // Auto-assign MID (1-10) - thread-safe
             const mid = generateMid(usedMids);
             if (mid) {
               usedMids.push(mid);
@@ -955,18 +957,33 @@ export function registerRoutes(app: Express): Server {
                 isActive: true
               });
 
-              importedCount++;
+              return { success: true, serviceName: service.name };
             } else {
-              errors.push(`No available MID for service: ${service.name}`);
+              return { success: false, serviceName: service.name, error: 'No available MID' };
             }
           } catch (error) {
-            errors.push(`Failed to import ${service.name}: ${(error as Error).message}`);
+            return { success: false, serviceName: service.name, error: (error as Error).message };
           }
-        }
+        });
+
+        // ASYNC: Wait for all services in batch to complete
+        const batchResults = await Promise.allSettled(batchPromises);
+        
+        batchResults.forEach((result) => {
+          if (result.status === 'fulfilled') {
+            if (result.value.success) {
+              importedCount++;
+            } else {
+              errors.push(`${result.value.serviceName}: ${result.value.error}`);
+            }
+          } else {
+            errors.push(`Unknown error: ${result.reason}`);
+          }
+        });
 
         // Small delay between batches to prevent overwhelming the database
         if (batchIndex < batches.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 50)); // Reduced delay
         }
       }
 
@@ -1273,37 +1290,55 @@ export function registerRoutes(app: Express): Server {
         order.providerOrderId
       );
 
-      // Sync status dengan provider untuk setiap order yang perlu di-sync
-      for (const order of ordersToSync) {
-        try {
-          // Get provider info
-          const provider = await storage.getSmmProvider(order.providerId);
-          if (!provider) continue;
+      // MULTITHREADING: Sync status dengan provider menggunakan parallel processing
+      if (ordersToSync.length > 0) {
+        const syncPromises = ordersToSync.map(async (order) => {
+          try {
+            // Get provider info asynchronously
+            const provider = await storage.getSmmProvider(order.providerId);
+            if (!provider) return null;
 
-          // Check status dari provider
-          const statusResponse = await fetch(`${provider.apiEndpoint}?key=${provider.apiKey}&action=status&order=${order.providerOrderId}`);
-          if (statusResponse.ok) {
-            const statusData = await statusResponse.json();
-            
-            if (statusData && statusData.status) {
-              // Map provider status ke system status
-              const systemStatus = mapProviderStatus(statusData.status);
+            // Check status dari provider dengan timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+
+            const statusResponse = await fetch(`${provider.apiEndpoint}?key=${provider.apiKey}&action=status&order=${order.providerOrderId}`, {
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            if (statusResponse.ok) {
+              const statusData = await statusResponse.json();
               
-              // Update status jika berbeda
-              if (systemStatus !== order.status) {
-                await storage.updateSmmOrder(order.id, {
-                  status: systemStatus,
-                  startCount: statusData.start_count || order.startCount,
-                  remains: statusData.remains || order.remains
-                });
+              if (statusData && statusData.status) {
+                // Map provider status ke system status
+                const systemStatus = mapProviderStatus(statusData.status);
                 
-                console.log(`✅ Updated order ${order.id} status: ${order.status} -> ${systemStatus}`);
+                // Update status jika berbeda
+                if (systemStatus !== order.status) {
+                  await storage.updateSmmOrder(order.id, {
+                    status: systemStatus,
+                    startCount: statusData.start_count || order.startCount,
+                    remains: statusData.remains || order.remains
+                  });
+                  
+                  return { orderId: order.id, updated: true, oldStatus: order.status, newStatus: systemStatus };
+                }
               }
             }
+            return { orderId: order.id, updated: false };
+          } catch (syncError) {
+            return { orderId: order.id, error: syncError.message };
           }
-        } catch (syncError) {
-          console.error(`❌ Failed to sync order ${order.id}:`, syncError);
-        }
+        });
+
+        // ASYNC: Execute all sync operations in parallel
+        const syncResults = await Promise.allSettled(syncPromises);
+        syncResults.forEach((result) => {
+          if (result.status === 'fulfilled' && result.value?.updated) {
+            console.log(`✅ Auto-sync updated order ${result.value.orderId}: ${result.value.oldStatus} -> ${result.value.newStatus}`);
+          }
+        });
       }
       
       // Fetch updated orders setelah sync
