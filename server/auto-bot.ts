@@ -340,9 +340,12 @@ export class AutoBotManager {
                 console.log(`🔍 Button pressed: "${pressedButton.text}" (ID: ${pressedButton.id}, Level: ${currentLevel})`);
                 console.log(`🔍 Looking for child menus with level ${currentLevel + 1} and parentId: ${pressedButton.id}`);
                 
-                const childMenus = (autoBot.keyboardConfig || []).filter(btn => 
-                  btn.level === currentLevel + 1 && btn.parentId === pressedButton.id
-                );
+                const childMenus = (autoBot.keyboardConfig || []).filter(btn => {
+                  const isCorrectLevel = btn.level === currentLevel + 1;
+                  const hasMatchingParent = btn.parentId === pressedButton.id;
+                  console.log(`🔍 Checking button "${btn.text}": Level ${btn.level} (need ${currentLevel + 1}), ParentID "${btn.parentId}" (need "${pressedButton.id}") → Level Match: ${isCorrectLevel}, Parent Match: ${hasMatchingParent}`);
+                  return isCorrectLevel && hasMatchingParent;
+                });
                 
                 console.log(`🔍 Found ${childMenus.length} child menus:`, childMenus.map(btn => `"${btn.text}" (ID: ${btn.id}, Level: ${btn.level}, ParentID: ${btn.parentId})`));
                 
