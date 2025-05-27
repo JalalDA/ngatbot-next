@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
+import { pool } from "./db";
 import { telegramBotManager } from "./telegram";
 import {
   insertBotSchema,
@@ -2288,7 +2289,24 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/api-keys", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
-      const apiKeys = await storage.getUserApiKeys(user.id);
+      const result = await pool.query(
+        'SELECT * FROM api_keys WHERE user_id = $1 ORDER BY created_at DESC',
+        [user.id]
+      );
+      
+      // Transform data untuk frontend
+      const apiKeys = result.rows.map(row => ({
+        id: row.id,
+        keyName: row.name,
+        apiKey: row.api_key,
+        isActive: row.is_active,
+        lastUsed: row.last_used,
+        totalRequests: row.total_requests || 0,
+        totalOrders: row.total_orders || 0,
+        totalRevenue: row.total_revenue || "0",
+        createdAt: row.created_at
+      }));
+      
       res.json(apiKeys);
     } catch (error) {
       console.error("Get API keys error:", error);

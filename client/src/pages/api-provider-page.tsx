@@ -124,9 +124,9 @@ export default function ApiProviderPage() {
   // Calculate total statistics
   const totalStats = apiKeys?.reduce(
     (acc, key) => ({
-      totalRequests: acc.totalRequests + key.totalRequests,
-      totalOrders: acc.totalOrders + key.totalOrders,
-      totalRevenue: acc.totalRevenue + parseFloat(key.totalRevenue),
+      totalRequests: acc.totalRequests + (key.totalRequests || 0),
+      totalOrders: acc.totalOrders + (key.totalOrders || 0),
+      totalRevenue: acc.totalRevenue + parseFloat(key.totalRevenue || "0"),
     }),
     { totalRequests: 0, totalOrders: 0, totalRevenue: 0 }
   ) || { totalRequests: 0, totalOrders: 0, totalRevenue: 0 };
