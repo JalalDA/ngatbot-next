@@ -127,7 +127,7 @@ export default function OverviewDashboard() {
           {/* SMM Services */}
           <Card className="interactive-card hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">SMM Services</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Digital Product</CardTitle>
               <ShoppingCart className="h-5 w-5 text-green-400 animate-float" />
             </CardHeader>
             <CardContent>
