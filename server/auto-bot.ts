@@ -147,14 +147,21 @@ export class AutoBotManager {
         
         const keyboard = this.createInlineKeyboard(buttonsToShow);
         
-        const options: any = {
-          reply_markup: keyboard
-        };
+        // Check if welcome image is configured
+        if ((autoBot as any).welcomeImage && (autoBot as any).welcomeImage.trim()) {
+          // Send photo with caption and keyboard
+          await bot.sendPhoto(chatId, (autoBot as any).welcomeImage, {
+            caption: welcomeMessage,
+            parse_mode: 'Markdown',
+            reply_markup: keyboard
+          });
+        } else {
+          // Send text only
+          const options: any = {
+            reply_markup: keyboard
+          };
 
-        try {
           await bot.sendMessage(chatId, welcomeMessage, options);
-        } catch (error) {
-          console.error(`Error sending message for bot ${autoBot.botName}:`, error);
         }
       });
 

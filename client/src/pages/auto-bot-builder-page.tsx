@@ -21,6 +21,7 @@ interface AutoBot {
   botName: string;
   botUsername: string;
   welcomeMessage: string;
+  welcomeImage?: string;
   isActive: boolean;
   keyboardConfig: InlineKeyboard[];
   createdAt: string;
