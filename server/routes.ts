@@ -3,9 +3,31 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { telegramBotManager } from "./telegram";
-import { insertBotSchema, insertKnowledgeSchema, insertSettingSchema, insertSmmProviderSchema, insertSmmServiceSchema, insertSmmOrderSchema, insertAutoBotSchema } from "@shared/schema";
-import { createMidtransTransaction, generateOrderId, verifySignatureKey, getTransactionStatus, UPGRADE_PLANS, type PlanType } from "./midtrans";
-import { SmmPanelAPI, generateSmmOrderId, generateMid, parseRate, calculateOrderAmount, mapProviderStatus } from "./smm-panel";
+import {
+  insertBotSchema,
+  insertKnowledgeSchema,
+  insertSettingSchema,
+  insertSmmProviderSchema,
+  insertSmmServiceSchema,
+  insertSmmOrderSchema,
+  insertAutoBotSchema,
+} from "@shared/schema";
+import {
+  createMidtransTransaction,
+  generateOrderId,
+  verifySignatureKey,
+  getTransactionStatus,
+  UPGRADE_PLANS,
+  type PlanType,
+} from "./midtrans";
+import {
+  SmmPanelAPI,
+  generateSmmOrderId,
+  generateMid,
+  parseRate,
+  calculateOrderAmount,
+  mapProviderStatus,
+} from "./smm-panel";
 import { autoBotManager } from "./auto-bot";
 import { threadingMonitor } from "./monitoring";
 import { z } from "zod";
@@ -33,12 +55,14 @@ export function registerRoutes(app: Express): Server {
     try {
       // Create a custom schema that includes systemPrompt
       const createBotSchema = insertBotSchema.extend({
-        systemPrompt: z.string().optional()
+        systemPrompt: z.string().optional(),
       });
       const validatedData = createBotSchema.parse(req.body);
-      
+
       // Validate bot token with Telegram
-      const validation = await telegramBotManager.validateBotToken(validatedData.token);
+      const validation = await telegramBotManager.validateBotToken(
+        validatedData.token,
+      );
       if (!validation.valid) {
         return res.status(400).json({ message: "Invalid bot token" });
       }
@@ -62,7 +86,7 @@ export function registerRoutes(app: Express): Server {
         await storage.createKnowledge({
           botId: bot.id,
           type: "text",
-          content: validatedData.systemPrompt
+          content: validatedData.systemPrompt,
         });
       }
 
@@ -73,7 +97,9 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Create bot error:", error);
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+        return res
+          .status(400)
+          .json({ message: "Invalid input", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to create bot" });
     }
@@ -82,9 +108,7 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/bots", requireAuth, async (req, res) => {
     try {
       // MULTITHREADING: Load bots with parallel data fetching
-      const [bots] = await Promise.all([
-        storage.getBotsByUserId(req.user.id)
-      ]);
+      const [bots] = await Promise.all([storage.getBotsByUserId(req.user.id)]);
       res.json(bots);
     } catch (error) {
       console.error("Get bots error:", error);
@@ -96,21 +120,23 @@ export function registerRoutes(app: Express): Server {
     try {
       const botId = parseInt(req.params.id);
       const bot = await storage.getBot(botId);
-      
+
       if (!bot) {
         return res.status(404).json({ message: "Bot not found" });
       }
-      
+
       if (bot.userId !== req.user.id) {
-        return res.status(403).json({ message: "Not authorized to delete this bot" });
+        return res
+          .status(403)
+          .json({ message: "Not authorized to delete this bot" });
       }
 
       // Stop the bot
       await telegramBotManager.stopBot(bot.token);
-      
+
       // Delete from storage
       await storage.deleteBot(botId);
-      
+
       res.json({ message: "Bot deleted successfully" });
     } catch (error) {
       console.error("Delete bot error:", error);
@@ -122,11 +148,13 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/knowledge", requireAuth, async (req, res) => {
     try {
       const validatedData = insertKnowledgeSchema.parse(req.body);
-      
+
       // Verify bot ownership
       const bot = await storage.getBot(validatedData.botId);
       if (!bot || bot.userId !== req.user.id) {
-        return res.status(403).json({ message: "Not authorized to add knowledge to this bot" });
+        return res
+          .status(403)
+          .json({ message: "Not authorized to add knowledge to this bot" });
       }
 
       const knowledge = await storage.createKnowledge(validatedData);
@@ -134,7 +162,9 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Create knowledge error:", error);
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+        return res
+          .status(400)
+          .json({ message: "Invalid input", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to create knowledge" });
     }
@@ -143,11 +173,13 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/knowledge/:botId", requireAuth, async (req, res) => {
     try {
       const botId = parseInt(req.params.botId);
-      
+
       // Verify bot ownership
       const bot = await storage.getBot(botId);
       if (!bot || bot.userId !== req.user.id) {
-        return res.status(403).json({ message: "Not authorized to view this bot's knowledge" });
+        return res
+          .status(403)
+          .json({ message: "Not authorized to view this bot's knowledge" });
       }
 
       const knowledge = await storage.getKnowledgeByBotId(botId);
@@ -163,7 +195,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const knowledgeId = parseInt(req.params.id);
       const updateData = insertKnowledgeSchema.parse(req.body);
-      
+
       const knowledge = await storage.getKnowledge(knowledgeId);
       if (!knowledge) {
         return res.status(404).json({ message: "Knowledge not found" });
@@ -172,10 +204,15 @@ export function registerRoutes(app: Express): Server {
       // Verify bot ownership
       const bot = await storage.getBot(knowledge.botId);
       if (!bot || bot.userId !== req.user.id) {
-        return res.status(403).json({ message: "Not authorized to update this knowledge" });
+        return res
+          .status(403)
+          .json({ message: "Not authorized to update this knowledge" });
       }
 
-      const updatedKnowledge = await storage.updateKnowledge(knowledgeId, updateData);
+      const updatedKnowledge = await storage.updateKnowledge(
+        knowledgeId,
+        updateData,
+      );
       res.json(updatedKnowledge);
     } catch (error) {
       console.error("Update knowledge error:", error);
@@ -187,7 +224,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const knowledgeId = parseInt(req.params.id);
       const knowledge = await storage.getKnowledge(knowledgeId);
-      
+
       if (!knowledge) {
         return res.status(404).json({ message: "Knowledge not found" });
       }
@@ -195,7 +232,9 @@ export function registerRoutes(app: Express): Server {
       // Verify bot ownership
       const bot = await storage.getBot(knowledge.botId);
       if (!bot || bot.userId !== req.user.id) {
-        return res.status(403).json({ message: "Not authorized to delete this knowledge" });
+        return res
+          .status(403)
+          .json({ message: "Not authorized to delete this knowledge" });
       }
 
       await storage.deleteKnowledge(knowledgeId);
@@ -213,7 +252,7 @@ export function registerRoutes(app: Express): Server {
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      
+
       // Don't send password
       const { password, ...userProfile } = user;
       res.json(userProfile);
@@ -245,7 +284,9 @@ export function registerRoutes(app: Express): Server {
         req.session.isAdmin = true;
         res.json({ success: true, user: { username: "ilmi", role: "admin" } });
       } else {
-        res.status(400).json({ success: false, message: "Invalid admin credentials" });
+        res
+          .status(400)
+          .json({ success: false, message: "Invalid admin credentials" });
       }
     } catch (error) {
       res.status(500).json({ message: "Failed to login as admin" });
@@ -257,7 +298,7 @@ export function registerRoutes(app: Express): Server {
       if (!req.session.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
-      
+
       const users = await storage.getAllUsers();
       const usersWithBotCount = await Promise.all(
         users.map(async (user) => {
@@ -267,9 +308,9 @@ export function registerRoutes(app: Express): Server {
             ...userWithoutPassword,
             botCount: bots.length,
           };
-        })
+        }),
       );
-      
+
       res.json(usersWithBotCount);
     } catch (error) {
       console.error("Get admin users error:", error);
@@ -282,15 +323,15 @@ export function registerRoutes(app: Express): Server {
       if (!req.session.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
-      
+
       const userId = parseInt(req.params.id);
       const { level, credits } = req.body;
-      
+
       const updatedUser = await storage.updateUser(userId, { level, credits });
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
       }
-      
+
       const { password, ...userWithoutPassword } = updatedUser;
       res.json(userWithoutPassword);
     } catch (error) {
@@ -304,16 +345,16 @@ export function registerRoutes(app: Express): Server {
       if (!req.session.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
-      
+
       const userId = parseInt(req.params.id);
-      
+
       // Delete user's bots first
       const userBots = await storage.getBotsByUserId(userId);
       for (const bot of userBots) {
         await telegramBotManager.stopBot(bot.token);
         await storage.deleteBot(bot.id);
       }
-      
+
       await storage.deleteUser(userId);
       res.json({ message: "User deleted successfully" });
     } catch (error) {
@@ -327,10 +368,10 @@ export function registerRoutes(app: Express): Server {
       if (!req.session.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
-      
+
       const hasApiKey = !!process.env.OPENAI_API_KEY;
       let isConnected = false;
-      
+
       if (hasApiKey) {
         try {
           const { checkOpenAIConnection } = await import("./openai");
@@ -339,11 +380,15 @@ export function registerRoutes(app: Express): Server {
           console.error("OpenAI connection check failed:", error);
         }
       }
-      
-      res.json({ 
+
+      res.json({
         hasApiKey,
         isConnected,
-        status: hasApiKey ? (isConnected ? "connected" : "key_invalid") : "not_configured"
+        status: hasApiKey
+          ? isConnected
+            ? "connected"
+            : "key_invalid"
+          : "not_configured",
       });
     } catch (error) {
       console.error("Check OpenAI status error:", error);
@@ -356,17 +401,17 @@ export function registerRoutes(app: Express): Server {
       if (!req.session.isAdmin) {
         return res.status(403).json({ message: "Admin access required" });
       }
-      
+
       const users = await storage.getAllUsers();
       const bots = await storage.getAllBots();
-      
+
       const stats = {
         totalUsers: users.length,
-        activeBots: bots.filter(bot => bot.isActive).length,
+        activeBots: bots.filter((bot) => bot.isActive).length,
         messagesCount: bots.reduce((sum, bot) => sum + bot.messageCount, 0),
         revenue: 0, // Mock value as payment is not implemented
       };
-      
+
       res.json(stats);
     } catch (error) {
       console.error("Get admin stats error:", error);
@@ -388,7 +433,7 @@ export function registerRoutes(app: Express): Server {
     try {
       console.log("Upgrade endpoint called with plan:", req.body.plan);
       const { plan } = req.body;
-      
+
       if (!plan || !UPGRADE_PLANS[plan as PlanType]) {
         console.log("Invalid plan:", plan);
         return res.status(400).json({ message: "Invalid plan selected" });
@@ -428,21 +473,24 @@ export function registerRoutes(app: Express): Server {
       });
     } catch (error) {
       console.error("Upgrade endpoint error:", error);
-      res.status(500).json({ message: "Failed to create payment transaction", error: error.message });
+      res.status(500).json({
+        message: "Failed to create payment transaction",
+        error: error.message,
+      });
     }
   });
 
-  // Payment routes (mock implementation) 
+  // Payment routes (mock implementation)
   app.post("/api/payments/upgrade", requireAuth, async (req, res) => {
     try {
       const { plan } = req.body;
-      
+
       // Mock payment redirect URL
       const paymentUrl = `https://app.midtrans.com/snap/v1/payment-page?plan=${plan}&user_id=${req.user.id}`;
-      
-      res.json({ 
+
+      res.json({
         paymentUrl,
-        message: "Redirecting to payment gateway (Mock)" 
+        message: "Redirecting to payment gateway (Mock)",
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to create payment" });
@@ -453,7 +501,7 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/upgrade-plan", requireAuth, async (req, res) => {
     try {
       const { plan } = req.body;
-      
+
       if (!plan || !UPGRADE_PLANS[plan as PlanType]) {
         return res.status(400).json({ message: "Invalid plan selected" });
       }
@@ -464,8 +512,13 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Check if user already has this plan or higher
-      if (user.level === plan || (user.level === 'business' && plan === 'pro')) {
-        return res.status(400).json({ message: "You already have this plan or higher" });
+      if (
+        user.level === plan ||
+        (user.level === "business" && plan === "pro")
+      ) {
+        return res
+          .status(400)
+          .json({ message: "You already have this plan or higher" });
       }
 
       const orderId = generateOrderId(user.id, plan as PlanType);
@@ -478,7 +531,7 @@ export function registerRoutes(app: Express): Server {
         amount: planConfig.price,
         status: "pending",
         midtransOrderId: orderId,
-        paymentInfo: JSON.stringify({ plan, credits: planConfig.credits })
+        paymentInfo: JSON.stringify({ plan, credits: planConfig.credits }),
       });
 
       // Create Midtrans transaction
@@ -487,7 +540,7 @@ export function registerRoutes(app: Express): Server {
         userId: user.id,
         userName: user.fullName,
         userEmail: user.email,
-        plan: plan as PlanType
+        plan: plan as PlanType,
       });
 
       res.json({
@@ -495,9 +548,8 @@ export function registerRoutes(app: Express): Server {
         token: midtransResult.token,
         redirectUrl: midtransResult.redirectUrl,
         orderId: orderId,
-        plan: planConfig
+        plan: planConfig,
       });
-
     } catch (error) {
       console.error("Upgrade plan error:", error);
       res.status(500).json({ message: "Failed to create upgrade plan" });
@@ -508,24 +560,25 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/payment-callback", async (req, res) => {
     try {
       console.log("Midtrans callback received:", req.body);
-      
+
       const {
         order_id,
         status_code,
         gross_amount,
         signature_key,
         transaction_status,
-        fraud_status
+        fraud_status,
       } = req.body;
 
       // For development/sandbox, skip signature validation or make it optional
-      const isValidSignature = process.env.NODE_ENV === 'development' || 
+      const isValidSignature =
+        process.env.NODE_ENV === "development" ||
         verifySignatureKey(order_id, status_code, gross_amount, signature_key);
 
       if (!isValidSignature) {
         console.error("Invalid signature for order:", order_id);
         // In development, log but don't reject
-        if (process.env.NODE_ENV !== 'development') {
+        if (process.env.NODE_ENV !== "development") {
           return res.status(400).json({ message: "Invalid signature" });
         }
         console.log("Signature validation skipped in development mode");
@@ -533,47 +586,55 @@ export function registerRoutes(app: Express): Server {
 
       // Get transaction from database
       const transaction = await storage.getTransactionByOrderId(order_id);
-      
+
       if (!transaction) {
         console.error("Transaction not found for order:", order_id);
         return res.status(404).json({ message: "Transaction not found" });
       }
 
       let newStatus = "pending";
-      
+
       // Handle payment status - more comprehensive status handling
-      console.log(`Processing payment status: ${transaction_status}, fraud_status: ${fraud_status}`);
-      
+      console.log(
+        `Processing payment status: ${transaction_status}, fraud_status: ${fraud_status}`,
+      );
+
       // Define successful payment statuses for Midtrans
-      const successStatuses = ['capture', 'settlement', 'success'];
-      const pendingStatuses = ['pending', 'authorize'];
-      const failedStatuses = ['cancel', 'deny', 'expire', 'failure'];
-      
+      const successStatuses = ["capture", "settlement", "success"];
+      const pendingStatuses = ["pending", "authorize"];
+      const failedStatuses = ["cancel", "deny", "expire", "failure"];
+
       if (successStatuses.includes(transaction_status)) {
-        if (!fraud_status || fraud_status === 'accept') {
+        if (!fraud_status || fraud_status === "accept") {
           newStatus = "success";
-          
+
           // Update user level and credits
           const planConfig = UPGRADE_PLANS[transaction.plan as PlanType];
           const currentUser = await storage.getUser(transaction.userId);
-          
+
           if (currentUser && planConfig) {
-            console.log(`✅ Upgrading user ${currentUser.id} from ${currentUser.level} to ${planConfig.level}`);
-            console.log(`✅ Adding ${planConfig.credits} credits to current ${currentUser.credits} credits`);
-            
+            console.log(
+              `✅ Upgrading user ${currentUser.id} from ${currentUser.level} to ${planConfig.level}`,
+            );
+            console.log(
+              `✅ Adding ${planConfig.credits} credits to current ${currentUser.credits} credits`,
+            );
+
             const newCredits = currentUser.credits + planConfig.credits;
-            
+
             const updatedUser = await storage.updateUser(transaction.userId, {
               level: planConfig.level,
-              credits: newCredits
+              credits: newCredits,
             });
-            
+
             console.log(`✅ User upgrade completed successfully!`);
             console.log(`   - New level: ${planConfig.level}`);
             console.log(`   - Total credits: ${newCredits}`);
             console.log(`   - Updated user:`, updatedUser);
           } else {
-            console.error(`❌ Failed to upgrade user - User: ${currentUser ? 'found' : 'not found'}, Plan: ${planConfig ? 'found' : 'not found'}`);
+            console.error(
+              `❌ Failed to upgrade user - User: ${currentUser ? "found" : "not found"}, Plan: ${planConfig ? "found" : "not found"}`,
+            );
           }
         } else {
           console.log(`⚠️ Payment success but fraud detected: ${fraud_status}`);
@@ -586,7 +647,9 @@ export function registerRoutes(app: Express): Server {
         newStatus = "failed";
         console.log(`❌ Payment failed: ${transaction_status}`);
       } else {
-        console.log(`⚠️ Unknown payment status: ${transaction_status}, keeping as pending`);
+        console.log(
+          `⚠️ Unknown payment status: ${transaction_status}, keeping as pending`,
+        );
         newStatus = "pending";
       }
 
@@ -594,13 +657,12 @@ export function registerRoutes(app: Express): Server {
       await storage.updateTransaction(transaction.id, {
         status: newStatus,
         paymentInfo: JSON.stringify({
-          ...JSON.parse(transaction.paymentInfo || '{}'),
-          midtrans_response: req.body
-        })
+          ...JSON.parse(transaction.paymentInfo || "{}"),
+          midtrans_response: req.body,
+        }),
       });
 
       res.json({ success: true });
-
     } catch (error) {
       console.error("Payment callback error:", error);
       res.status(500).json({ message: "Payment callback failed" });
@@ -611,53 +673,59 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/payment-status/:orderId", requireAuth, async (req, res) => {
     try {
       const { orderId } = req.params;
-      
+
       // Get transaction from database
       const transaction = await storage.getTransactionByOrderId(orderId);
-      
+
       if (!transaction) {
         return res.status(404).json({ message: "Transaction not found" });
       }
-      
+
       // Check if transaction belongs to current user
       if (transaction.userId !== req.user!.id) {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       console.log(`🔍 Checking payment status for order: ${orderId}`);
-      
+
       // Get status from Midtrans
       const midtransStatus = await getTransactionStatus(orderId);
-      
+
       if (midtransStatus && midtransStatus.transaction_status) {
         const transactionStatus = midtransStatus.transaction_status;
         let newStatus = transaction.status;
-        
+
         console.log(`💳 Midtrans status for ${orderId}: ${transactionStatus}`);
-        
+
         // Process payment status similar to callback with improved logic
-        const successStatuses = ['capture', 'settlement', 'success'];
-        const failedStatuses = ['cancel', 'deny', 'expire', 'failure'];
-        
+        const successStatuses = ["capture", "settlement", "success"];
+        const failedStatuses = ["cancel", "deny", "expire", "failure"];
+
         if (successStatuses.includes(transactionStatus)) {
-          if (!midtransStatus.fraud_status || midtransStatus.fraud_status === 'accept') {
+          if (
+            !midtransStatus.fraud_status ||
+            midtransStatus.fraud_status === "accept"
+          ) {
             newStatus = "success";
-            
+
             // Update user level and credits if not already done
-            if (transaction.status !== 'success') {
+            if (transaction.status !== "success") {
               console.log(`🎉 Payment successful! Upgrading user account...`);
-              
+
               const planConfig = UPGRADE_PLANS[transaction.plan as PlanType];
               const currentUser = await storage.getUser(transaction.userId);
-              
+
               if (currentUser && planConfig) {
                 const newCredits = currentUser.credits + planConfig.credits;
-                
-                const updatedUser = await storage.updateUser(transaction.userId, {
-                  level: planConfig.level,
-                  credits: newCredits
-                });
-                
+
+                const updatedUser = await storage.updateUser(
+                  transaction.userId,
+                  {
+                    level: planConfig.level,
+                    credits: newCredits,
+                  },
+                );
+
                 console.log(`✅ User ${currentUser.id} upgraded successfully!`);
                 console.log(`   - New level: ${planConfig.level}`);
                 console.log(`   - Total credits: ${newCredits}`);
@@ -668,27 +736,33 @@ export function registerRoutes(app: Express): Server {
           newStatus = "failed";
           console.log(`❌ Payment failed with status: ${transactionStatus}`);
         }
-        
+
         // Update transaction status if changed
         if (newStatus !== transaction.status) {
-          await storage.updateTransaction(transaction.id, { status: newStatus });
-          console.log(`📝 Transaction ${orderId} status updated to: ${newStatus}`);
+          await storage.updateTransaction(transaction.id, {
+            status: newStatus,
+          });
+          console.log(
+            `📝 Transaction ${orderId} status updated to: ${newStatus}`,
+          );
         }
-        
+
         res.json({
           orderId,
           status: newStatus,
           midtransStatus: transactionStatus,
           amount: transaction.amount,
-          plan: transaction.plan
+          plan: transaction.plan,
         });
       } else {
-        console.log(`⚠️ No Midtrans status found for ${orderId}, using database status: ${transaction.status}`);
+        console.log(
+          `⚠️ No Midtrans status found for ${orderId}, using database status: ${transaction.status}`,
+        );
         res.json({
           orderId,
           status: transaction.status,
           amount: transaction.amount,
-          plan: transaction.plan
+          plan: transaction.plan,
         });
       }
     } catch (error) {
@@ -708,21 +782,20 @@ export function registerRoutes(app: Express): Server {
       const availablePlans = Object.entries(UPGRADE_PLANS)
         .filter(([planKey, planConfig]) => {
           // Don't show plans user already has or lower plans
-          if (user.level === 'business') return false;
-          if (user.level === 'pro' && planKey === 'pro') return false;
+          if (user.level === "business") return false;
+          if (user.level === "pro" && planKey === "pro") return false;
           return true;
         })
         .map(([key, config]) => ({
           key,
-          ...config
+          ...config,
         }));
 
       res.json({
         currentLevel: user.level,
         currentCredits: user.credits,
-        availablePlans
+        availablePlans,
       });
-
     } catch (error) {
       console.error("Get upgrade plans error:", error);
       res.status(500).json({ message: "Failed to get upgrade plans" });
@@ -750,12 +823,14 @@ export function registerRoutes(app: Express): Server {
     try {
       const user = req.user!;
       console.log("Request body:", req.body);
-      
+
       const { name, apiKey, apiEndpoint, isActive = true } = req.body;
 
       // Validate required fields
       if (!name || !apiKey || !apiEndpoint) {
-        return res.status(400).json({ message: "Name, API key, and endpoint are required" });
+        return res
+          .status(400)
+          .json({ message: "Name, API key, and endpoint are required" });
       }
 
       // Simple validation instead of Zod
@@ -764,15 +839,20 @@ export function registerRoutes(app: Express): Server {
       const trimmedEndpoint = String(apiEndpoint).trim();
 
       if (trimmedName.length < 1) {
-        return res.status(400).json({ message: "Provider name cannot be empty" });
+        return res
+          .status(400)
+          .json({ message: "Provider name cannot be empty" });
       }
 
       if (trimmedApiKey.length < 1) {
         return res.status(400).json({ message: "API key cannot be empty" });
       }
 
-      if (!trimmedEndpoint.startsWith('http')) {
-        return res.status(400).json({ message: "API endpoint must be a valid URL starting with http or https" });
+      if (!trimmedEndpoint.startsWith("http")) {
+        return res.status(400).json({
+          message:
+            "API endpoint must be a valid URL starting with http or https",
+        });
       }
 
       const provider = await storage.createSmmProvider({
@@ -780,14 +860,16 @@ export function registerRoutes(app: Express): Server {
         name: trimmedName,
         apiKey: trimmedApiKey,
         apiEndpoint: trimmedEndpoint,
-        isActive: Boolean(isActive)
+        isActive: Boolean(isActive),
       });
 
       console.log("Provider created successfully:", provider);
       res.status(201).json(provider);
     } catch (error) {
       console.error("Create SMM provider error:", error);
-      res.status(500).json({ message: "Failed to create SMM provider: " + (error as Error).message });
+      res.status(500).json({
+        message: "Failed to create SMM provider: " + (error as Error).message,
+      });
     }
   });
 
@@ -808,12 +890,14 @@ export function registerRoutes(app: Express): Server {
       if (apiKey || apiEndpoint) {
         const testKey = apiKey || existingProvider.apiKey;
         const testEndpoint = apiEndpoint || existingProvider.apiEndpoint;
-        
+
         const smmApi = new SmmPanelAPI(testKey, testEndpoint);
         const connectionTest = await smmApi.testConnection();
-        
+
         if (!connectionTest) {
-          return res.status(400).json({ message: "Failed to connect to SMM provider with new credentials" });
+          return res.status(400).json({
+            message: "Failed to connect to SMM provider with new credentials",
+          });
         }
       }
 
@@ -821,7 +905,7 @@ export function registerRoutes(app: Express): Server {
         name,
         apiKey,
         apiEndpoint,
-        isActive
+        isActive,
       });
 
       res.json(updatedProvider);
@@ -868,7 +952,7 @@ export function registerRoutes(app: Express): Server {
         name,
         apiKey,
         apiEndpoint,
-        isActive
+        isActive,
       });
 
       res.json(updatedProvider);
@@ -896,232 +980,277 @@ export function registerRoutes(app: Express): Server {
       res.json({ services });
     } catch (error) {
       console.error("Fetch services error:", error);
-      res.status(500).json({ message: "Failed to fetch services from provider" });
+      res
+        .status(500)
+        .json({ message: "Failed to fetch services from provider" });
     }
   });
 
   // Import services from SMM provider with batch processing + MONITORING
-  app.post("/api/smm/providers/:id/import-services", requireAuth, async (req, res) => {
-    const operationId = `import_services_${Date.now()}_${req.params.id}`;
-    
-    try {
-      const user = req.user!;
-      const providerId = parseInt(req.params.id);
-      const { services: selectedServices, batchSize = 10 } = req.body;
+  app.post(
+    "/api/smm/providers/:id/import-services",
+    requireAuth,
+    async (req, res) => {
+      const operationId = `import_services_${Date.now()}_${req.params.id}`;
 
-      // SAFETY CHECK: Monitor system health before starting
-      const healthCheck = threadingMonitor.getSystemHealth();
-      if (healthCheck.status === 'critical') {
-        return res.status(503).json({ 
-          success: false,
-          message: "Sistem sedang overload. Import dibatalkan untuk menjaga stabilitas.",
-          recommendations: healthCheck.recommendations
-        });
-      }
+      try {
+        const user = req.user!;
+        const providerId = parseInt(req.params.id);
+        const { services: selectedServices, batchSize = 10 } = req.body;
 
-      // Check if provider belongs to user
-      const provider = await storage.getSmmProvider(providerId);
-      if (!provider || provider.userId !== user.id) {
-        return res.status(404).json({ message: "SMM provider not found" });
-      }
+        // SAFETY CHECK: Monitor system health before starting
+        // const healthCheck = threadingMonitor.getSystemHealth();
+        // if (healthCheck.status === 'critical') {
+        //   return res.status(503).json({
+        //     success: false,
+        //     message: "Sistem sedang overload. Import dibatalkan untuk menjaga stabilitas.",
+        //     recommendations: healthCheck.recommendations
+        //   });
+        // }
 
-      if (!selectedServices || !Array.isArray(selectedServices)) {
-        return res.status(400).json({ message: "No services provided for import" });
-      }
-
-      // SAFETY CHECK: Monitor operation start
-      if (!threadingMonitor.startOperation(operationId, 'service_import', selectedServices.length)) {
-        return res.status(503).json({ 
-          success: false,
-          message: "Sistem sedang busy. Import ditolak untuk menjaga stabilitas.",
-          currentOperations: threadingMonitor.getSystemHealth().metrics.currentConcurrency
-        });
-      }
-
-      // Get used MIDs for this user
-      const usedMids = await storage.getUsedMids(user.id);
-      
-      let importedCount = 0;
-      const errors: string[] = [];
-
-      // Process services in batches to avoid request size limits
-      const batches = [];
-      for (let i = 0; i < selectedServices.length; i += batchSize) {
-        batches.push(selectedServices.slice(i, i + batchSize));
-      }
-
-      console.log(`Processing ${selectedServices.length} services in ${batches.length} batches of ${batchSize}`);
-
-      // MULTITHREADING: Process batches with parallel operations
-      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
-        const batch = batches[batchIndex];
-        console.log(`🚀 Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} services using multithreading...`);
-
-        // PARALLEL: Process services in current batch simultaneously
-        const batchPromises = batch.map(async (service) => {
-          try {
-            // Auto-assign MID (1-10) - thread-safe
-            const mid = generateMid(usedMids);
-            if (mid) {
-              usedMids.push(mid);
-
-              await storage.createSmmService({
-                userId: user.id,
-                providerId: provider.id,
-                mid,
-                name: service.name,
-                description: service.category || "",
-                min: service.min,
-                max: service.max,
-                rate: parseRate(service.rate).toString(),
-                category: service.category,
-                serviceIdApi: (service.service || service.id).toString(),
-                isActive: true
-              });
-
-              return { success: true, serviceName: service.name };
-            } else {
-              return { success: false, serviceName: service.name, error: 'No available MID' };
-            }
-          } catch (error) {
-            return { success: false, serviceName: service.name, error: (error as Error).message };
-          }
-        });
-
-        // ASYNC: Wait for all services in batch to complete
-        const batchResults = await Promise.allSettled(batchPromises);
-        
-        batchResults.forEach((result) => {
-          if (result.status === 'fulfilled') {
-            if (result.value.success) {
-              importedCount++;
-            } else {
-              errors.push(`${result.value.serviceName}: ${result.value.error}`);
-            }
-          } else {
-            errors.push(`Unknown error: ${result.reason}`);
-          }
-        });
-
-        // Small delay between batches to prevent overwhelming the database
-        if (batchIndex < batches.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 50)); // Reduced delay
+        // Check if provider belongs to user
+        const provider = await storage.getSmmProvider(providerId);
+        if (!provider || provider.userId !== user.id) {
+          return res.status(404).json({ message: "SMM provider not found" });
         }
+
+        if (!selectedServices || !Array.isArray(selectedServices)) {
+          return res
+            .status(400)
+            .json({ message: "No services provided for import" });
+        }
+
+        // SAFETY CHECK: Monitor operation start
+        // if (!threadingMonitor.startOperation(operationId, 'service_import', selectedServices.length)) {
+        //   return res.status(503).json({
+        //     success: false,
+        //     message: "Sistem sedang busy. Import ditolak untuk menjaga stabilitas.",
+        //     currentOperations: threadingMonitor.getSystemHealth().metrics.currentConcurrency
+        //   });
+        // }
+
+        // Get used MIDs for this user
+        const usedMids = await storage.getUsedMids(user.id);
+
+        let importedCount = 0;
+        const errors: string[] = [];
+
+        // Process services in batches to avoid request size limits
+        const batches = [];
+        for (let i = 0; i < selectedServices.length; i += batchSize) {
+          batches.push(selectedServices.slice(i, i + batchSize));
+        }
+
+        console.log(
+          `Processing ${selectedServices.length} services in ${batches.length} batches of ${batchSize}`,
+        );
+
+        // MULTITHREADING: Process batches with parallel operations
+        for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+          const batch = batches[batchIndex];
+          console.log(
+            `🚀 Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} services using multithreading...`,
+          );
+
+          // PARALLEL: Process services in current batch simultaneously
+          const batchPromises = batch.map(async (service) => {
+            try {
+              // Auto-assign MID (1-10) - thread-safe
+              const mid = generateMid(usedMids);
+              if (mid) {
+                usedMids.push(mid);
+
+                await storage.createSmmService({
+                  userId: user.id,
+                  providerId: provider.id,
+                  mid,
+                  name: service.name,
+                  description: service.category || "",
+                  min: service.min,
+                  max: service.max,
+                  rate: parseRate(service.rate).toString(),
+                  category: service.category,
+                  serviceIdApi: (service.service || service.id).toString(),
+                  isActive: true,
+                });
+
+                return { success: true, serviceName: service.name };
+              } else {
+                return {
+                  success: false,
+                  serviceName: service.name,
+                  error: "No available MID",
+                };
+              }
+            } catch (error) {
+              return {
+                success: false,
+                serviceName: service.name,
+                error: (error as Error).message,
+              };
+            }
+          });
+
+          // ASYNC: Wait for all services in batch to complete
+          const batchResults = await Promise.allSettled(batchPromises);
+
+          batchResults.forEach((result) => {
+            if (result.status === "fulfilled") {
+              if (result.value.success) {
+                importedCount++;
+              } else {
+                errors.push(
+                  `${result.value.serviceName}: ${result.value.error}`,
+                );
+              }
+            } else {
+              errors.push(`Unknown error: ${result.reason}`);
+            }
+          });
+
+          // Small delay between batches to prevent overwhelming the database
+          if (batchIndex < batches.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 50)); // Reduced delay
+          }
+        }
+
+        // MONITORING: Complete operation successfully
+        threadingMonitor.completeOperation(operationId, importedCount);
+
+        res.json({
+          message: `Successfully imported ${importedCount} services`,
+          importedCount,
+          totalRequested: selectedServices.length,
+          batchesProcessed: batches.length,
+          errors: errors.length > 0 ? errors : undefined,
+          systemHealth: threadingMonitor.getSystemHealth().status,
+        });
+      } catch (error) {
+        console.error("Import services error:", error);
+
+        // MONITORING: Fail operation
+        threadingMonitor.failOperation(
+          operationId,
+          error instanceof Error ? error.message : "Unknown error",
+        );
+
+        res
+          .status(500)
+          .json({ message: "Failed to import services from provider" });
       }
-
-      // MONITORING: Complete operation successfully
-      threadingMonitor.completeOperation(operationId, importedCount);
-
-      res.json({
-        message: `Successfully imported ${importedCount} services`,
-        importedCount,
-        totalRequested: selectedServices.length,
-        batchesProcessed: batches.length,
-        errors: errors.length > 0 ? errors : undefined,
-        systemHealth: threadingMonitor.getSystemHealth().status
-      });
-    } catch (error) {
-      console.error("Import services error:", error);
-      
-      // MONITORING: Fail operation
-      threadingMonitor.failOperation(operationId, error instanceof Error ? error.message : 'Unknown error');
-      
-      res.status(500).json({ message: "Failed to import services from provider" });
-    }
-  });
+    },
+  );
 
   // Batch import endpoint for very large service imports
-  app.post("/api/smm/providers/:id/import-services-batch", requireAuth, async (req, res) => {
-    try {
-      const user = req.user!;
-      const providerId = parseInt(req.params.id);
-      const { servicesBatch, batchIndex, totalBatches } = req.body;
+  app.post(
+    "/api/smm/providers/:id/import-services-batch",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const user = req.user!;
+        const providerId = parseInt(req.params.id);
+        const { servicesBatch, batchIndex, totalBatches } = req.body;
 
-      // Check if provider belongs to user
-      const provider = await storage.getSmmProvider(providerId);
-      if (!provider || provider.userId !== user.id) {
-        return res.status(404).json({ message: "SMM provider not found" });
-      }
+        // Check if provider belongs to user
+        const provider = await storage.getSmmProvider(providerId);
+        if (!provider || provider.userId !== user.id) {
+          return res.status(404).json({ message: "SMM provider not found" });
+        }
 
-      if (!servicesBatch || !Array.isArray(servicesBatch)) {
-        return res.status(400).json({ message: "No services batch provided" });
-      }
+        if (!servicesBatch || !Array.isArray(servicesBatch)) {
+          return res
+            .status(400)
+            .json({ message: "No services batch provided" });
+        }
 
-      // Get used MIDs for this user
-      const usedMids = await storage.getUsedMids(user.id);
-      
-      let importedCount = 0;
-      const errors: string[] = [];
+        // Get used MIDs for this user
+        const usedMids = await storage.getUsedMids(user.id);
 
-      console.log(`🚀 Processing batch ${batchIndex + 1}/${totalBatches} with ${servicesBatch.length} services using multithreading...`);
+        let importedCount = 0;
+        const errors: string[] = [];
 
-      // MULTITHREADING: Process services in parallel chunks
-      const chunkSize = 5; // Process 5 services simultaneously
-      const chunks = [];
-      for (let i = 0; i < servicesBatch.length; i += chunkSize) {
-        chunks.push(servicesBatch.slice(i, i + chunkSize));
-      }
+        console.log(
+          `🚀 Processing batch ${batchIndex + 1}/${totalBatches} with ${servicesBatch.length} services using multithreading...`,
+        );
 
-      for (const chunk of chunks) {
-        const chunkPromises = chunk.map(async (service) => {
-          try {
-            // Auto-assign MID (1-10) - thread-safe
-            const mid = generateMid(usedMids);
-            if (mid) {
-              usedMids.push(mid);
+        // MULTITHREADING: Process services in parallel chunks
+        const chunkSize = 5; // Process 5 services simultaneously
+        const chunks = [];
+        for (let i = 0; i < servicesBatch.length; i += chunkSize) {
+          chunks.push(servicesBatch.slice(i, i + chunkSize));
+        }
 
-              await storage.createSmmService({
-                userId: user.id,
-                providerId: provider.id,
-                mid,
-                name: service.name,
-                description: service.category || "",
-                min: service.min,
-                max: service.max,
-                rate: parseRate(service.rate).toString(),
-                category: service.category,
-                serviceIdApi: (service.service || service.id).toString(),
-                isActive: true
-              });
+        for (const chunk of chunks) {
+          const chunkPromises = chunk.map(async (service) => {
+            try {
+              // Auto-assign MID (1-10) - thread-safe
+              const mid = generateMid(usedMids);
+              if (mid) {
+                usedMids.push(mid);
 
-              return { success: true, serviceName: service.name };
-            } else {
-              return { success: false, serviceName: service.name, error: 'No available MID' };
+                await storage.createSmmService({
+                  userId: user.id,
+                  providerId: provider.id,
+                  mid,
+                  name: service.name,
+                  description: service.category || "",
+                  min: service.min,
+                  max: service.max,
+                  rate: parseRate(service.rate).toString(),
+                  category: service.category,
+                  serviceIdApi: (service.service || service.id).toString(),
+                  isActive: true,
+                });
+
+                return { success: true, serviceName: service.name };
+              } else {
+                return {
+                  success: false,
+                  serviceName: service.name,
+                  error: "No available MID",
+                };
+              }
+            } catch (error) {
+              return {
+                success: false,
+                serviceName: service.name,
+                error: (error as Error).message,
+              };
             }
-          } catch (error) {
-            return { success: false, serviceName: service.name, error: (error as Error).message };
-          }
-        });
+          });
 
-        // ASYNC: Wait for chunk to complete
-        const chunkResults = await Promise.allSettled(chunkPromises);
-        
-        chunkResults.forEach((result) => {
-          if (result.status === 'fulfilled') {
-            if (result.value.success) {
-              importedCount++;
+          // ASYNC: Wait for chunk to complete
+          const chunkResults = await Promise.allSettled(chunkPromises);
+
+          chunkResults.forEach((result) => {
+            if (result.status === "fulfilled") {
+              if (result.value.success) {
+                importedCount++;
+              } else {
+                errors.push(
+                  `${result.value.serviceName}: ${result.value.error}`,
+                );
+              }
             } else {
-              errors.push(`${result.value.serviceName}: ${result.value.error}`);
+              errors.push(`Unknown error: ${result.reason}`);
             }
-          } else {
-            errors.push(`Unknown error: ${result.reason}`);
-          }
-        });
-      }
+          });
+        }
 
-      res.json({
-        message: `Batch ${batchIndex + 1}/${totalBatches} processed successfully`,
-        importedCount,
-        batchIndex,
-        totalBatches,
-        isLastBatch: batchIndex === totalBatches - 1,
-        errors: errors.length > 0 ? errors : undefined
-      });
-    } catch (error) {
-      console.error("Import services batch error:", error);
-      res.status(500).json({ message: "Failed to import services batch" });
-    }
-  });
+        res.json({
+          message: `Batch ${batchIndex + 1}/${totalBatches} processed successfully`,
+          importedCount,
+          batchIndex,
+          totalBatches,
+          isLastBatch: batchIndex === totalBatches - 1,
+          errors: errors.length > 0 ? errors : undefined,
+        });
+      } catch (error) {
+        console.error("Import services batch error:", error);
+        res.status(500).json({ message: "Failed to import services batch" });
+      }
+    },
+  );
 
   // Get all SMM services for current user
   app.get("/api/smm/services", requireAuth, async (req, res) => {
@@ -1140,7 +1269,17 @@ export function registerRoutes(app: Express): Server {
     try {
       const user = req.user!;
       const serviceId = parseInt(req.params.id);
-      const { name, description, min, max, rate, syncProvider, priceType, priceValue, isActive } = req.body;
+      const {
+        name,
+        description,
+        min,
+        max,
+        rate,
+        syncProvider,
+        priceType,
+        priceValue,
+        isActive,
+      } = req.body;
 
       // Check if service belongs to user
       const existingService = await storage.getSmmService(serviceId);
@@ -1163,7 +1302,7 @@ export function registerRoutes(app: Express): Server {
         min: syncProvider ? existingService.min : min,
         max: syncProvider ? existingService.max : max,
         rate: finalRate,
-        isActive
+        isActive,
       });
 
       res.json(updatedService);
@@ -1204,13 +1343,17 @@ export function registerRoutes(app: Express): Server {
       const { serviceIds } = req.body;
 
       if (!Array.isArray(serviceIds) || serviceIds.length === 0) {
-        return res.status(400).json({ message: "Invalid service IDs provided" });
+        return res
+          .status(400)
+          .json({ message: "Invalid service IDs provided" });
       }
 
       let deletedCount = 0;
       const errors: string[] = [];
 
-      console.log(`🚀 Bulk deleting ${serviceIds.length} services using multithreading...`);
+      console.log(
+        `🚀 Bulk deleting ${serviceIds.length} services using multithreading...`,
+      );
 
       // MULTITHREADING: Process deletions in parallel batches
       const batchSize = 10; // Process 10 deletions simultaneously
@@ -1229,25 +1372,35 @@ export function registerRoutes(app: Express): Server {
               if (success) {
                 return { success: true, serviceId };
               } else {
-                return { success: false, serviceId, error: 'Failed to delete' };
+                return { success: false, serviceId, error: "Failed to delete" };
               }
             } else {
-              return { success: false, serviceId, error: 'Not found or access denied' };
+              return {
+                success: false,
+                serviceId,
+                error: "Not found or access denied",
+              };
             }
           } catch (error) {
-            return { success: false, serviceId, error: (error as Error).message };
+            return {
+              success: false,
+              serviceId,
+              error: (error as Error).message,
+            };
           }
         });
 
         // ASYNC: Wait for batch to complete
         const batchResults = await Promise.allSettled(batchPromises);
-        
+
         batchResults.forEach((result) => {
-          if (result.status === 'fulfilled') {
+          if (result.status === "fulfilled") {
             if (result.value.success) {
               deletedCount++;
             } else {
-              errors.push(`Service ID ${result.value.serviceId}: ${result.value.error}`);
+              errors.push(
+                `Service ID ${result.value.serviceId}: ${result.value.error}`,
+              );
             }
           } else {
             errors.push(`Unknown error: ${result.reason}`);
@@ -1259,7 +1412,7 @@ export function registerRoutes(app: Express): Server {
         message: `Successfully deleted ${deletedCount} services`,
         deletedCount,
         totalRequested: serviceIds.length,
-        errors: errors.length > 0 ? errors : undefined
+        errors: errors.length > 0 ? errors : undefined,
       });
     } catch (error) {
       console.error("Bulk delete SMM services error:", error);
@@ -1268,38 +1421,42 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Update provider balance
-  app.post("/api/smm/providers/:id/update-balance", requireAuth, async (req, res) => {
-    try {
-      const user = req.user!;
-      const providerId = parseInt(req.params.id);
+  app.post(
+    "/api/smm/providers/:id/update-balance",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const user = req.user!;
+        const providerId = parseInt(req.params.id);
 
-      // Check if provider belongs to user
-      const provider = await storage.getSmmProvider(providerId);
-      if (!provider || provider.userId !== user.id) {
-        return res.status(404).json({ message: "Provider not found" });
+        // Check if provider belongs to user
+        const provider = await storage.getSmmProvider(providerId);
+        if (!provider || provider.userId !== user.id) {
+          return res.status(404).json({ message: "Provider not found" });
+        }
+
+        // Get balance from SMM API
+        const smmAPI = new SmmPanelAPI(provider.apiKey, provider.apiEndpoint);
+        const balanceInfo = await smmAPI.getBalance();
+
+        // Update provider with new balance
+        const updatedProvider = await storage.updateSmmProvider(providerId, {
+          balance: balanceInfo.balance.toString(),
+          currency: balanceInfo.currency,
+          balanceUpdatedAt: new Date(),
+        });
+
+        res.json({
+          balance: balanceInfo.balance,
+          currency: balanceInfo.currency,
+          updatedAt: new Date(),
+        });
+      } catch (error) {
+        console.error("Update provider balance error:", error);
+        res.status(500).json({ message: "Failed to update provider balance" });
       }
-
-      // Get balance from SMM API
-      const smmAPI = new SmmPanelAPI(provider.apiKey, provider.apiEndpoint);
-      const balanceInfo = await smmAPI.getBalance();
-
-      // Update provider with new balance
-      const updatedProvider = await storage.updateSmmProvider(providerId, {
-        balance: balanceInfo.balance.toString(),
-        currency: balanceInfo.currency,
-        balanceUpdatedAt: new Date()
-      });
-
-      res.json({
-        balance: balanceInfo.balance,
-        currency: balanceInfo.currency,
-        updatedAt: new Date()
-      });
-    } catch (error) {
-      console.error("Update provider balance error:", error);
-      res.status(500).json({ message: "Failed to update provider balance" });
-    }
-  });
+    },
+  );
 
   // Get SMM orders for current user with pagination and auto sync status
   app.get("/api/smm/orders", requireAuth, async (req, res) => {
@@ -1308,16 +1465,17 @@ export function registerRoutes(app: Express): Server {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       const offset = (page - 1) * limit;
-      
+
       // Fetch orders from database
       const orders = await storage.getSmmOrdersByUserId(user.id, limit, offset);
-      
+
       // Auto sync status untuk orders yang belum complete
-      const ordersToSync = orders.filter(order => 
-        order.status !== 'completed' && 
-        order.status !== 'cancelled' && 
-        order.status !== 'refunded' &&
-        order.providerOrderId
+      const ordersToSync = orders.filter(
+        (order) =>
+          order.status !== "completed" &&
+          order.status !== "cancelled" &&
+          order.status !== "refunded" &&
+          order.providerOrderId,
       );
 
       // MULTITHREADING: Sync status dengan provider menggunakan parallel processing
@@ -1332,27 +1490,35 @@ export function registerRoutes(app: Express): Server {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
 
-            const statusResponse = await fetch(`${provider.apiEndpoint}?key=${provider.apiKey}&action=status&order=${order.providerOrderId}`, {
-              signal: controller.signal
-            });
+            const statusResponse = await fetch(
+              `${provider.apiEndpoint}?key=${provider.apiKey}&action=status&order=${order.providerOrderId}`,
+              {
+                signal: controller.signal,
+              },
+            );
             clearTimeout(timeoutId);
 
             if (statusResponse.ok) {
               const statusData = await statusResponse.json();
-              
+
               if (statusData && statusData.status) {
                 // Map provider status ke system status
                 const systemStatus = mapProviderStatus(statusData.status);
-                
+
                 // Update status jika berbeda
                 if (systemStatus !== order.status) {
                   await storage.updateSmmOrder(order.id, {
                     status: systemStatus,
                     startCount: statusData.start_count || order.startCount,
-                    remains: statusData.remains || order.remains
+                    remains: statusData.remains || order.remains,
                   });
-                  
-                  return { orderId: order.id, updated: true, oldStatus: order.status, newStatus: systemStatus };
+
+                  return {
+                    orderId: order.id,
+                    updated: true,
+                    oldStatus: order.status,
+                    newStatus: systemStatus,
+                  };
                 }
               }
             }
@@ -1365,14 +1531,20 @@ export function registerRoutes(app: Express): Server {
         // ASYNC: Execute all sync operations in parallel
         const syncResults = await Promise.allSettled(syncPromises);
         syncResults.forEach((result) => {
-          if (result.status === 'fulfilled' && result.value?.updated) {
-            console.log(`✅ Auto-sync updated order ${result.value.orderId}: ${result.value.oldStatus} -> ${result.value.newStatus}`);
+          if (result.status === "fulfilled" && result.value?.updated) {
+            console.log(
+              `✅ Auto-sync updated order ${result.value.orderId}: ${result.value.oldStatus} -> ${result.value.newStatus}`,
+            );
           }
         });
       }
-      
+
       // Fetch updated orders setelah sync
-      const updatedOrders = await storage.getSmmOrdersByUserId(user.id, limit, offset);
+      const updatedOrders = await storage.getSmmOrdersByUserId(
+        user.id,
+        limit,
+        offset,
+      );
       res.json(updatedOrders);
     } catch (error) {
       console.error("Get SMM orders error:", error);
@@ -1383,56 +1555,67 @@ export function registerRoutes(app: Express): Server {
   // Manual sync orders status endpoint - OPTIMIZED WITH MULTITHREADING + MONITORING
   app.post("/api/smm/orders/sync", requireAuth, async (req, res) => {
     const operationId = `sync_orders_${Date.now()}_${req.user!.id}`;
-    
+
     try {
       const user = req.user!;
-      
+
       // SAFETY CHECK: Monitor system health before starting
-      const healthCheck = threadingMonitor.getSystemHealth();
-      if (healthCheck.status === 'critical') {
-        return res.status(503).json({ 
-          success: false,
-          message: "Sistem sedang overload. Coba lagi dalam beberapa menit.",
-          recommendations: healthCheck.recommendations
-        });
-      }
-      
+      // const healthCheck = threadingMonitor.getSystemHealth();
+      // if (healthCheck.status === "critical") {
+      //   return res.status(503).json({
+      //     success: false,
+      //     message: "Sistem sedang overload. Coba lagi dalam beberapa menit.",
+      //     recommendations: healthCheck.recommendations,
+      //   });
+      // }
+
       // Get all orders for the user that might need syncing - ASYNC
       const [allOrders] = await Promise.all([
-        storage.getSmmOrdersByUserId(user.id, 1000, 0)
+        storage.getSmmOrdersByUserId(user.id, 1000, 0),
       ]);
-      
+
       if (!allOrders || allOrders.length === 0) {
-        return res.json({ 
-          success: true, 
+        return res.json({
+          success: true,
           message: "Tidak ada order untuk disinkronisasi",
           syncedCount: 0,
-          updatedCount: 0
+          updatedCount: 0,
         });
       }
 
-      const ordersToSync = allOrders.filter(order => 
-        order.status !== 'completed' && 
-        order.status !== 'cancelled' && 
-        order.status !== 'refunded' &&
-        order.providerOrderId &&
-        order.providerOrderId.trim() !== ''
+      const ordersToSync = allOrders.filter(
+        (order) =>
+          order.status !== "completed" &&
+          order.status !== "cancelled" &&
+          order.status !== "refunded" &&
+          order.providerOrderId &&
+          order.providerOrderId.trim() !== "",
       );
 
       // SAFETY CHECK: Monitor operation start
-      if (!threadingMonitor.startOperation(operationId, 'order_sync', ordersToSync.length)) {
-        return res.status(503).json({ 
-          success: false,
-          message: "Sistem sedang busy. Operasi ditolak untuk menjaga stabilitas.",
-          currentOperations: threadingMonitor.getSystemHealth().metrics.currentConcurrency
-        });
-      }
+      // if (
+      //   !threadingMonitor.startOperation(
+      //     operationId,
+      //     "order_sync",
+      //     ordersToSync.length,
+      //   )
+      // ) {
+      //   return res.status(503).json({
+      //     success: false,
+      //     message:
+      //       "Sistem sedang busy. Operasi ditolak untuk menjaga stabilitas.",
+      //     currentOperations:
+      //       threadingMonitor.getSystemHealth().metrics.currentConcurrency,
+      //   });
+      // }
 
       let syncedCount = 0;
       let updatedCount = 0;
       let errorCount = 0;
 
-      console.log(`🔄 MONITORED SYNC: Starting parallel sync for ${ordersToSync.length} orders (OpID: ${operationId})...`);
+      console.log(
+        `🔄 MONITORED SYNC: Starting parallel sync for ${ordersToSync.length} orders (OpID: ${operationId})...`,
+      );
 
       // MULTITHREADING: Process orders in parallel batches
       const batchSize = 10; // Process 10 orders simultaneously
@@ -1448,90 +1631,124 @@ export function registerRoutes(app: Express): Server {
             const provider = await storage.getSmmProvider(order.providerId);
             if (!provider) {
               console.warn(`⚠️ Provider not found for order ${order.id}`);
-              return { success: false, orderId: order.id, error: 'Provider not found' };
+              return {
+                success: false,
+                orderId: order.id,
+                error: "Provider not found",
+              };
             }
 
             // ASYNC with timeout for API call
             const statusUrl = `${provider.apiEndpoint}?key=${provider.apiKey}&action=status&order=${order.providerOrderId}`;
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout for faster response
-            
+
             const statusResponse = await fetch(statusUrl, {
-              method: 'GET',
-              signal: controller.signal
+              method: "GET",
+              signal: controller.signal,
             });
-            
+
             clearTimeout(timeoutId);
-            
+
             if (statusResponse.ok) {
               const statusData = await statusResponse.json();
-              
+
               if (statusData && statusData.status) {
                 // Map provider status ke system status
                 const systemStatus = mapProviderStatus(statusData.status);
-                
+
                 // Update status jika berbeda
                 if (systemStatus !== order.status) {
                   await storage.updateSmmOrder(order.id, {
                     status: systemStatus,
                     startCount: statusData.start_count || order.startCount,
-                    remains: statusData.remains || order.remains
+                    remains: statusData.remains || order.remains,
                   });
-                  
-                  return { success: true, orderId: order.id, updated: true, oldStatus: order.status, newStatus: systemStatus };
+
+                  return {
+                    success: true,
+                    orderId: order.id,
+                    updated: true,
+                    oldStatus: order.status,
+                    newStatus: systemStatus,
+                  };
                 } else {
-                  return { success: true, orderId: order.id, updated: false, status: order.status };
+                  return {
+                    success: true,
+                    orderId: order.id,
+                    updated: false,
+                    status: order.status,
+                  };
                 }
               } else {
-                return { success: false, orderId: order.id, error: 'Invalid response data' };
+                return {
+                  success: false,
+                  orderId: order.id,
+                  error: "Invalid response data",
+                };
               }
             } else {
-              return { success: false, orderId: order.id, error: `HTTP ${statusResponse.status}` };
+              return {
+                success: false,
+                orderId: order.id,
+                error: `HTTP ${statusResponse.status}`,
+              };
             }
           } catch (syncError) {
-            return { success: false, orderId: order.id, error: syncError.message };
+            return {
+              success: false,
+              orderId: order.id,
+              error: syncError.message,
+            };
           }
         });
 
         // MULTITHREADING: Process batch in parallel and collect results
         const batchResults = await Promise.allSettled(batchPromises);
-        
+
         batchResults.forEach((result) => {
-          if (result.status === 'fulfilled') {
+          if (result.status === "fulfilled") {
             syncedCount++;
             if (result.value.updated) {
               updatedCount++;
-              console.log(`✅ Updated order ${result.value.orderId}: ${result.value.oldStatus} -> ${result.value.newStatus}`);
+              console.log(
+                `✅ Updated order ${result.value.orderId}: ${result.value.oldStatus} -> ${result.value.newStatus}`,
+              );
             }
           } else {
             errorCount++;
           }
         });
       }
-      
-      console.log(`📊 MONITORED SYNC COMPLETED: ${syncedCount} checked, ${updatedCount} updated, ${errorCount} errors`);
-      
+
+      console.log(
+        `📊 MONITORED SYNC COMPLETED: ${syncedCount} checked, ${updatedCount} updated, ${errorCount} errors`,
+      );
+
       // MONITORING: Complete operation successfully
       threadingMonitor.completeOperation(operationId, updatedCount);
-      
-      res.json({ 
-        success: true, 
-        message: `Berhasil sinkronisasi ${syncedCount} order, ${updatedCount} order diperbarui${errorCount > 0 ? `, ${errorCount} error` : ''}`,
+
+      res.json({
+        success: true,
+        message: `Berhasil sinkronisasi ${syncedCount} order, ${updatedCount} order diperbarui${errorCount > 0 ? `, ${errorCount} error` : ""}`,
         syncedCount,
         updatedCount,
         errorCount,
-        systemHealth: threadingMonitor.getSystemHealth().status
+        systemHealth: threadingMonitor.getSystemHealth().status,
       });
     } catch (error) {
       console.error("Manual sync orders error:", error);
-      
+
       // MONITORING: Fail operation
-      threadingMonitor.failOperation(operationId, error instanceof Error ? error.message : 'Unknown error');
-      
-      res.status(500).json({ 
+      threadingMonitor.failOperation(
+        operationId,
+        error instanceof Error ? error.message : "Unknown error",
+      );
+
+      res.status(500).json({
         success: false,
         message: "Gagal melakukan sinkronisasi",
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
@@ -1541,11 +1758,11 @@ export function registerRoutes(app: Express): Server {
     try {
       const health = threadingMonitor.getSystemHealth();
       const summary = threadingMonitor.getPerformanceSummary();
-      
+
       res.json({
         ...health,
         summary,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       console.error("Get system health error:", error);
@@ -1557,10 +1774,10 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/system/reset-metrics", requireAdmin, async (req, res) => {
     try {
       threadingMonitor.resetMetrics();
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: "Performance metrics reset successfully",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       console.error("Reset metrics error:", error);
@@ -1572,11 +1789,11 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/system/cleanup", requireAdmin, async (req, res) => {
     try {
       const cleaned = threadingMonitor.cleanupStuckOperations();
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: `Successfully cleaned up ${cleaned} stuck operations`,
         cleanedCount: cleaned,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       console.error("Cleanup stuck operations error:", error);
@@ -1587,17 +1804,19 @@ export function registerRoutes(app: Express): Server {
   // Helper function untuk mapping status provider ke system status
   function mapProviderStatus(providerStatus: string): string {
     const statusMap: { [key: string]: string } = {
-      'pending': 'pending',
-      'in progress': 'processing',
-      'processing': 'processing',
-      'partial': 'partial',
-      'completed': 'completed',
-      'canceled': 'cancelled',
-      'cancelled': 'cancelled',
-      'refunded': 'refunded'
+      pending: "pending",
+      "in progress": "processing",
+      processing: "processing",
+      partial: "partial",
+      completed: "completed",
+      canceled: "cancelled",
+      cancelled: "cancelled",
+      refunded: "refunded",
     };
-    
-    return statusMap[providerStatus.toLowerCase()] || providerStatus.toLowerCase();
+
+    return (
+      statusMap[providerStatus.toLowerCase()] || providerStatus.toLowerCase()
+    );
   }
 
   // Create new SMM order
@@ -1608,7 +1827,9 @@ export function registerRoutes(app: Express): Server {
 
       // Validate input
       if (!serviceId || !link || !quantity) {
-        return res.status(400).json({ message: "Service, link, and quantity are required" });
+        return res
+          .status(400)
+          .json({ message: "Service, link, and quantity are required" });
       }
 
       // Get service details
@@ -1619,8 +1840,8 @@ export function registerRoutes(app: Express): Server {
 
       // Validate quantity
       if (quantity < service.min || quantity > service.max) {
-        return res.status(400).json({ 
-          message: `Quantity must be between ${service.min} and ${service.max}` 
+        return res.status(400).json({
+          message: `Quantity must be between ${service.min} and ${service.max}`,
         });
       }
 
@@ -1632,7 +1853,7 @@ export function registerRoutes(app: Express): Server {
 
       // Calculate amount
       const rate = parseFloat(service.rate);
-      const amount = (rate * quantity / 1000).toFixed(2);
+      const amount = ((rate * quantity) / 1000).toFixed(2);
 
       // Generate unique order ID
       const orderId = `ORD_${user.id}_${Date.now()}`;
@@ -1643,13 +1864,13 @@ export function registerRoutes(app: Express): Server {
         const providerResponse = await smmApi.createOrder(
           service.serviceIdApi, // Use the API service ID from the service
           link,
-          quantity
+          quantity,
         );
 
         if (providerResponse.error) {
-          return res.status(400).json({ 
-            message: "Failed to send order to provider", 
-            error: providerResponse.error 
+          return res.status(400).json({
+            message: "Failed to send order to provider",
+            error: providerResponse.error,
           });
         }
 
@@ -1664,20 +1885,19 @@ export function registerRoutes(app: Express): Server {
           quantity: quantity,
           amount: amount,
           status: "processing", // Set to processing since it was sent to provider
-          paymentStatus: "completed" // Assuming payment is handled separately
+          paymentStatus: "completed", // Assuming payment is handled separately
         };
 
         const newOrder = await storage.createSmmOrder(orderData);
-        
+
         res.json({
           ...newOrder,
           providerOrderId: providerResponse.order,
-          message: "Order successfully sent to provider"
+          message: "Order successfully sent to provider",
         });
-
       } catch (providerError: any) {
         console.error("Provider API error:", providerError);
-        
+
         // Create order with failed status for tracking
         const orderData = {
           userId: user.id,
@@ -1689,17 +1909,17 @@ export function registerRoutes(app: Express): Server {
           amount: amount,
           status: "failed",
           paymentStatus: "pending",
-          errorMessage: providerError.message || "Failed to send order to provider"
+          errorMessage:
+            providerError.message || "Failed to send order to provider",
         };
 
         await storage.createSmmOrder(orderData);
-        
-        return res.status(500).json({ 
-          message: "Failed to send order to provider", 
-          error: `Failed to create order: ${providerError.message || 'Unknown error'}`
+
+        return res.status(500).json({
+          message: "Failed to send order to provider",
+          error: `Failed to create order: ${providerError.message || "Unknown error"}`,
         });
       }
-
     } catch (error) {
       console.error("Create SMM order error:", error);
       res.status(500).json({ message: "Failed to create order" });
@@ -1707,86 +1927,93 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Update SMM order status
-  app.post("/api/smm/orders/:id/update-status", requireAuth, async (req, res) => {
-    try {
-      const user = req.user!;
-      const orderId = parseInt(req.params.id);
-
-      // Get order details
-      const order = await storage.getSmmOrder(orderId);
-      if (!order || order.userId !== user.id) {
-        return res.status(404).json({ message: "Order not found" });
-      }
-
-      // If order doesn't have provider order ID, can't check status
-      if (!order.providerOrderId) {
-        return res.status(400).json({ message: "Order has no provider order ID to check" });
-      }
-
-      // Get provider details
-      const provider = await storage.getSmmProvider(order.providerId);
-      if (!provider) {
-        return res.status(404).json({ message: "Provider not found" });
-      }
-
+  app.post(
+    "/api/smm/orders/:id/update-status",
+    requireAuth,
+    async (req, res) => {
       try {
-        // Get status from SMM provider
-        const smmApi = new SmmPanelAPI(provider.apiKey, provider.apiEndpoint);
-        const statusResponse = await smmApi.getOrderStatus(order.providerOrderId);
+        const user = req.user!;
+        const orderId = parseInt(req.params.id);
 
-        // Map provider status to our internal status
-        const mappedStatus = mapProviderStatus(statusResponse.status);
-        
-        // Update order with latest status
-        const updatedOrder = await storage.updateSmmOrder(orderId, {
-          status: mappedStatus,
-          startCount: parseInt(statusResponse.start_count) || order.startCount,
-          remains: parseInt(statusResponse.remains) || order.remains,
-          updatedAt: new Date()
-        });
+        // Get order details
+        const order = await storage.getSmmOrder(orderId);
+        if (!order || order.userId !== user.id) {
+          return res.status(404).json({ message: "Order not found" });
+        }
 
-        res.json({
-          ...updatedOrder,
-          providerStatus: statusResponse,
-          message: "Order status updated successfully"
-        });
+        // If order doesn't have provider order ID, can't check status
+        if (!order.providerOrderId) {
+          return res
+            .status(400)
+            .json({ message: "Order has no provider order ID to check" });
+        }
 
-      } catch (providerError: any) {
-        console.error("Provider status check error:", providerError);
-        res.status(500).json({ 
-          message: "Failed to check order status from provider", 
-          error: providerError.message 
-        });
+        // Get provider details
+        const provider = await storage.getSmmProvider(order.providerId);
+        if (!provider) {
+          return res.status(404).json({ message: "Provider not found" });
+        }
+
+        try {
+          // Get status from SMM provider
+          const smmApi = new SmmPanelAPI(provider.apiKey, provider.apiEndpoint);
+          const statusResponse = await smmApi.getOrderStatus(
+            order.providerOrderId,
+          );
+
+          // Map provider status to our internal status
+          const mappedStatus = mapProviderStatus(statusResponse.status);
+
+          // Update order with latest status
+          const updatedOrder = await storage.updateSmmOrder(orderId, {
+            status: mappedStatus,
+            startCount:
+              parseInt(statusResponse.start_count) || order.startCount,
+            remains: parseInt(statusResponse.remains) || order.remains,
+            updatedAt: new Date(),
+          });
+
+          res.json({
+            ...updatedOrder,
+            providerStatus: statusResponse,
+            message: "Order status updated successfully",
+          });
+        } catch (providerError: any) {
+          console.error("Provider status check error:", providerError);
+          res.status(500).json({
+            message: "Failed to check order status from provider",
+            error: providerError.message,
+          });
+        }
+      } catch (error) {
+        console.error("Update order status error:", error);
+        res.status(500).json({ message: "Failed to update order status" });
       }
-
-    } catch (error) {
-      console.error("Update order status error:", error);
-      res.status(500).json({ message: "Failed to update order status" });
-    }
-  });
+    },
+  );
 
   // Auto Bot Routes
-  
+
   // Validate bot token
   app.post("/api/autobots/validate-token", requireAuth, async (req, res) => {
     try {
       const { token } = req.body;
-      
+
       if (!token) {
         return res.status(400).json({ message: "Bot token is required" });
       }
 
       const validation = await autoBotManager.validateBotToken(token);
-      
+
       if (validation.valid) {
         res.json({
           valid: true,
-          botInfo: validation.botInfo
+          botInfo: validation.botInfo,
         });
       } else {
         res.status(400).json({
           valid: false,
-          error: validation.error
+          error: validation.error,
         });
       }
     } catch (error) {
@@ -1811,37 +2038,52 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/autobots", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
-      const { token, botName, botUsername, welcomeMessage, keyboardConfig, isActive } = req.body;
+      const {
+        token,
+        botName,
+        botUsername,
+        welcomeMessage,
+        keyboardConfig,
+        isActive,
+      } = req.body;
 
-      console.log('🚀 Creating auto bot with data:', { 
-        token: token ? `${token.substring(0, 10)}...` : 'missing',
-        botName, 
-        botUsername, 
-        keyboardConfig: keyboardConfig ? 'provided' : 'empty'
+      console.log("🚀 Creating auto bot with data:", {
+        token: token ? `${token.substring(0, 10)}...` : "missing",
+        botName,
+        botUsername,
+        keyboardConfig: keyboardConfig ? "provided" : "empty",
       });
 
       // Validate required fields
       if (!token || !botName || !botUsername) {
-        return res.status(400).json({ message: "Token, nama bot, dan username bot harus diisi" });
+        return res
+          .status(400)
+          .json({ message: "Token, nama bot, dan username bot harus diisi" });
       }
 
       // Validate keyboard configuration JSON
       if (keyboardConfig) {
         try {
-          if (typeof keyboardConfig === 'string') {
+          if (typeof keyboardConfig === "string") {
             JSON.parse(keyboardConfig);
           } else if (Array.isArray(keyboardConfig)) {
             // Validate array structure
             keyboardConfig.forEach((button, index) => {
               if (!button.id || !button.text || !button.callbackData) {
-                throw new Error(`Button ${index + 1} harus memiliki id, text, dan callbackData`);
+                throw new Error(
+                  `Button ${index + 1} harus memiliki id, text, dan callbackData`,
+                );
               }
             });
           }
         } catch (parseError) {
-          console.error('❌ Keyboard config validation error:', parseError);
-          return res.status(400).json({ 
-            message: "Konfigurasi keyboard tidak valid: " + (parseError instanceof Error ? parseError.message : 'Format JSON salah')
+          console.error("❌ Keyboard config validation error:", parseError);
+          return res.status(400).json({
+            message:
+              "Konfigurasi keyboard tidak valid: " +
+              (parseError instanceof Error
+                ? parseError.message
+                : "Format JSON salah"),
           });
         }
       }
@@ -1849,48 +2091,55 @@ export function registerRoutes(app: Express): Server {
       // Check if token is already in use
       const existingBot = await storage.getAutoBotByToken(token);
       if (existingBot) {
-        return res.status(400).json({ message: "Token bot ini sudah digunakan" });
+        return res
+          .status(400)
+          .json({ message: "Token bot ini sudah digunakan" });
       }
 
       // Validate token first
-      console.log('🔍 Validating bot token...');
+      console.log("🔍 Validating bot token...");
       const validation = await autoBotManager.validateBotToken(token);
       if (!validation.valid) {
-        console.error('❌ Token validation failed:', validation.error);
-        return res.status(400).json({ message: validation.error || "Token bot tidak valid" });
+        console.error("❌ Token validation failed:", validation.error);
+        return res
+          .status(400)
+          .json({ message: validation.error || "Token bot tidak valid" });
       }
 
-      console.log('✅ Token valid, creating bot in database...');
+      console.log("✅ Token valid, creating bot in database...");
       const autoBot = await storage.createAutoBot({
         userId: user.id,
         token,
         botName,
         botUsername,
-        welcomeMessage: welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:",
+        welcomeMessage:
+          welcomeMessage || "Selamat datang! Silakan pilih opsi di bawah ini:",
         keyboardConfig: keyboardConfig || [],
-        isActive: isActive !== false
+        isActive: isActive !== false,
       });
 
       // Start the bot if it's active
       if (autoBot.isActive) {
-        console.log('🚀 Starting auto bot...');
+        console.log("🚀 Starting auto bot...");
         const startResult = await autoBotManager.startAutoBot(autoBot);
         if (!startResult.success) {
-          console.error('❌ Failed to start bot:', startResult.error);
+          console.error("❌ Failed to start bot:", startResult.error);
           // Update bot to inactive if start failed
           await storage.updateAutoBot(autoBot.id, { isActive: false });
-          return res.status(500).json({ 
-            message: `Bot berhasil dibuat tapi gagal dijalankan: ${startResult.error}`
+          return res.status(500).json({
+            message: `Bot berhasil dibuat tapi gagal dijalankan: ${startResult.error}`,
           });
         }
       }
 
-      console.log('✅ Auto bot created successfully');
+      console.log("✅ Auto bot created successfully");
       res.json(autoBot);
     } catch (error) {
       console.error("❌ Create auto bot error:", error);
-      res.status(500).json({ 
-        message: "Gagal membuat auto bot: " + (error instanceof Error ? error.message : 'Unknown error')
+      res.status(500).json({
+        message:
+          "Gagal membuat auto bot: " +
+          (error instanceof Error ? error.message : "Unknown error"),
       });
     }
   });
@@ -2004,7 +2253,7 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/system/security-status", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
-      if (user.role !== 'admin') {
+      if (user.role !== "admin") {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -2012,12 +2261,12 @@ export function registerRoutes(app: Express): Server {
         status: "active",
         protections: {
           rateLimiting: "enabled",
-          securityFiltering: "enabled", 
+          securityFiltering: "enabled",
           logSanitization: "enabled",
-          threatDetection: "enabled"
+          threatDetection: "enabled",
         },
         timestamp: new Date().toISOString(),
-        message: "Semua sistem keamanan aktif dan melindungi aplikasi"
+        message: "Semua sistem keamanan aktif dan melindungi aplikasi",
       });
     } catch (error) {
       console.error("Security status error:", error);
