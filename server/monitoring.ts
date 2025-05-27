@@ -23,9 +23,9 @@ export class ThreadingMonitor extends EventEmitter {
     lastUpdated: new Date()
   };
 
-  private maxConcurrency = 50; // Safety limit
-  private responseTimeThreshold = 10000; // 10 seconds
-  private memoryThreshold = 0.85; // 85% memory usage threshold
+  private maxConcurrency = 100; // Increased limit for better performance
+  private responseTimeThreshold = 30000; // 30 seconds - more reasonable for import operations
+  private memoryThreshold = 0.90; // 90% memory usage threshold - less aggressive
 
   /**
    * Start monitoring an operation

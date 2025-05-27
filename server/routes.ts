@@ -907,11 +907,11 @@ export function registerRoutes(app: Express): Server {
     try {
       const user = req.user!;
       const providerId = parseInt(req.params.id);
-      const { services: selectedServices, batchSize = 10 } = req.body;
+      const { services: selectedServices, batchSize = 3 } = req.body;
 
       // SAFETY CHECK: Monitor system health before starting
       const healthCheck = threadingMonitor.getSystemHealth();
-      if (healthCheck.status === 'critical') {
+      if (healthCheck.status === 'critical' && healthCheck.metrics.currentConcurrency > 80) {
         return res.status(503).json({ 
           success: false,
           message: "Sistem sedang overload. Import dibatalkan untuk menjaga stabilitas.",
