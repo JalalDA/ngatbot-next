@@ -2309,21 +2309,24 @@ export function registerRoutes(app: Express): Server {
       console.log("Creating API key for user:", user.id, "with name:", keyName);
 
       if (!keyName || keyName.trim().length === 0) {
+        console.log("Missing keyName in request");
         return res.status(400).json({ message: "API key name is required" });
       }
 
       const apiKey = generateApiKey();
       console.log("Generated API key:", apiKey);
       
-      const newApiKey = await storage.createUserApiKey({
-        userId: user.id,
-        keyName: keyName.trim(),
-        apiKey,
-        isActive: true,
-      });
+      // Simpan API key langsung ke database
+      const result = await pool.query(
+        `INSERT INTO api_keys (name, user_id, api_key, api_endpoint, is_active, created_at, updated_at) 
+         VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING *`,
+        [keyName.trim(), user.id, apiKey, 'https://your-domain.replit.app/api/v2', true]
+      );
 
-      console.log("Created API key:", newApiKey);
-      res.json(newApiKey);
+      const createdApiKey = result.rows[0];
+      console.log("Successfully created API key:", createdApiKey);
+      
+      res.json(createdApiKey);
     } catch (error) {
       console.error("Create API key error:", error);
       res.status(500).json({ message: "Failed to create API key" });
