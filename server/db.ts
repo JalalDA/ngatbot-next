@@ -5,22 +5,23 @@ import * as schema from "@shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
-// CRITICAL: Force database separation for production
-const isProduction = process.env.NODE_ENV === 'production';
-
-// Get database URL with strict environment separation
+// Environment-based database separation
 const getDatabaseUrl = () => {
-  console.log(`🔍 Environment Check: NODE_ENV = ${process.env.NODE_ENV}`);
+  const nodeEnv = process.env.NODE_ENV;
+  console.log(`🔍 Environment Check: NODE_ENV = ${nodeEnv}`);
   
-  if (isProduction) {
-    // Production MUST use different database instance
-    console.log('🚀 PRODUCTION MODE: Creating fresh database instance');
-    // Force new database creation for production
-    return process.env.DATABASE_URL;
+  if (nodeEnv === 'production') {
+    // Production: Menggunakan Neon database yang fresh
+    const prodUrl = process.env.DATABASE_URL_PROD || 'postgresql://neondb_owner:npg_Qvh3W8YfkaKZ@ep-quiet-bird-a5oij1nj.us-east-2.aws.neon.tech/neondb?sslmode=require';
+    console.log('🚀 PRODUCTION MODE: Using Neon database (fresh)');
+    console.log(`🔗 Production DB: ${prodUrl.substring(0, 50)}...`);
+    return prodUrl;
   } else {
-    // Development uses preserved data
+    // Development: Menggunakan database development terpisah
+    const devUrl = process.env.DATABASE_URL_DEV || process.env.DATABASE_URL;
     console.log('🔧 DEVELOPMENT MODE: Using development database');
-    return process.env.DATABASE_URL;
+    console.log(`🔗 Development DB: ${devUrl.substring(0, 50)}...`);
+    return devUrl;
   }
 };
 

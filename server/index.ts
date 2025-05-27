@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { securityLogger } from "./security-logger";
+import { cleanupProductionDatabase, verifyCleanDatabase } from "./production-cleanup";
 
 const app = express();
 
@@ -43,6 +44,13 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize production database cleanup if needed
+  if (process.env.NODE_ENV === 'production') {
+    console.log('🚀 PRODUCTION INITIALIZATION: Starting database cleanup...');
+    await cleanupProductionDatabase();
+    await verifyCleanDatabase();
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
