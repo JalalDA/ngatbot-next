@@ -1,299 +1,395 @@
-import { useState, useRef } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  Plus, Edit, Trash2, Package, Users, Heart, Eye, MessageCircle, 
-  ArrowRight, Zap, Settings, QrCode, Save, X, GripVertical, Move
+  Plus, Edit, Trash2, Save, X, CreditCard, Zap, ArrowDown, Link2
 } from 'lucide-react';
 
-interface ServiceButton {
+interface WhiteboardButton {
   id: string;
   text: string;
-  stepType: 'category' | 'service' | 'quantity' | 'price' | 'payment';
-  isActive: boolean;
-  order: number;
-  x?: number;
-  y?: number;
-  config: {
-    name?: string;
-    quantity?: number;
-    price?: number;
-    description?: string;
-    icon?: string;
-    integrationSettings?: {
-      midtransQR?: boolean;
-      smmPanel?: boolean;
-      customAction?: boolean;
-    };
-  };
+  callbackData: string;
+  url?: string;
+  responseText?: string;
+  responseImage?: string;
+  x: number;
+  y: number;
+  parentId?: string;
+  children: string[];
+  isPaymentConnected: boolean;
+  isSmmConnected: boolean;
 }
 
-interface FormData {
+interface ButtonFormData {
   text: string;
-  name: string;
-  quantity: string;
-  price: string;
-  description: string;
-  icon: string;
-  midtransQR: boolean;
-  smmPanel: boolean;
-  customAction: boolean;
+  callbackData: string;
+  url: string;
+  responseText: string;
+  responseImage: string;
 }
-
-const categoryIcons = {
-  followers: Users,
-  likes: Heart,
-  views: Eye,
-  comments: MessageCircle,
-  package: Package,
-};
-
-const stepColumns = [
-  { key: 'category', title: 'Menu utama / KATAGORY', color: 'bg-blue-50 border-blue-200' },
-  { key: 'service', title: 'NAMA LAYANAN', color: 'bg-green-50 border-green-200' },
-  { key: 'quantity', title: 'JUMLAH', color: 'bg-yellow-50 border-yellow-200' },
-  { key: 'price', title: 'HARGA', color: 'bg-orange-50 border-orange-200' },
-  { key: 'payment', title: 'BAYAR', color: 'bg-purple-50 border-purple-200' }
-];
 
 export default function ServiceManagementWhiteboard() {
   const { toast } = useToast();
   const [showDialog, setShowDialog] = useState(false);
-  const [editingButton, setEditingButton] = useState<ServiceButton | null>(null);
-  const [selectedStep, setSelectedStep] = useState<string>('category');
-  const [draggedButton, setDraggedButton] = useState<ServiceButton | null>(null);
-
-  // Service buttons management
-  const [serviceButtons, setServiceButtons] = useState<ServiceButton[]>([
-    {
-      id: 'btn_1',
-      text: 'Instagram Followers',
-      stepType: 'category',
-      isActive: true,
-      order: 1,
-      config: {
-        name: 'Instagram Followers',
-        description: 'High quality Instagram followers',
-        icon: 'followers',
-        integrationSettings: {
-          midtransQR: false,
-          smmPanel: true,
-          customAction: false
-        }
-      }
-    },
-    {
-      id: 'btn_2', 
-      text: 'Instagram Likes',
-      stepType: 'category',
-      isActive: true,
-      order: 2,
-      config: {
-        name: 'Instagram Likes',
-        description: 'Instant Instagram likes',
-        icon: 'likes',
-        integrationSettings: {
-          midtransQR: false,
-          smmPanel: true,
-          customAction: false
-        }
-      }
-    },
-    {
-      id: 'btn_3',
-      text: '1000 Followers',
-      stepType: 'service',
-      isActive: true,
-      order: 1,
-      config: {
-        name: '1000 Followers Package',
-        quantity: 1000,
-        icon: 'followers',
-        integrationSettings: {
-          smmPanel: true
-        }
-      }
-    },
-    {
-      id: 'btn_4',
-      text: 'Rp 15.000',
-      stepType: 'price',
-      isActive: true,
-      order: 1,
-      config: {
-        price: 15000,
-        icon: 'package'
-      }
-    }
-  ]);
-
-  // Form data for adding/editing buttons
-  const [formData, setFormData] = useState<FormData>({
+  const [editingButton, setEditingButton] = useState<WhiteboardButton | null>(null);
+  const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
+  
+  // Whiteboard buttons state
+  const [buttons, setButtons] = useState<WhiteboardButton[]>([]);
+  
+  // Special buttons
+  const [paymentButton, setPaymentButton] = useState<WhiteboardButton | null>(null);
+  const [smmButton, setSmmButton] = useState<WhiteboardButton | null>(null);
+  
+  // Form data
+  const [formData, setFormData] = useState<ButtonFormData>({
     text: '',
-    name: '',
-    quantity: '',
-    price: '',
-    description: '',
-    icon: 'package',
-    midtransQR: false,
-    smmPanel: false,
-    customAction: false
+    callbackData: '',
+    url: '',
+    responseText: '',
+    responseImage: ''
   });
 
-  const getIconComponent = (iconName: string) => {
-    const IconComponent = categoryIcons[iconName as keyof typeof categoryIcons] || Package;
-    return IconComponent;
-  };
-
-  // Get buttons for specific step
-  const getButtonsForStep = (stepType: string) => {
-    return serviceButtons.filter(btn => btn.stepType === stepType);
-  };
-
-  // Add new button function
-  const handleAddButton = (stepType: string) => {
-    setSelectedStep(stepType);
+  // Add main button
+  const handleAddMainButton = () => {
+    setSelectedParentId(null);
     setEditingButton(null);
     setFormData({
       text: '',
-      name: '',
-      quantity: '',
-      price: '',
-      description: '',
-      icon: 'package',
-      midtransQR: false,
-      smmPanel: false,
-      customAction: false
+      callbackData: '',
+      url: '',
+      responseText: '',
+      responseImage: ''
     });
     setShowDialog(true);
   };
 
-  // Edit button function
-  const handleEditButton = (button: ServiceButton) => {
+  // Add sub button
+  const handleAddSubButton = (parentId: string) => {
+    setSelectedParentId(parentId);
+    setEditingButton(null);
+    setFormData({
+      text: '',
+      callbackData: '',
+      url: '',
+      responseText: '',
+      responseImage: ''
+    });
+    setShowDialog(true);
+  };
+
+  // Edit button
+  const handleEditButton = (button: WhiteboardButton) => {
     setEditingButton(button);
-    setSelectedStep(button.stepType);
     setFormData({
       text: button.text,
-      name: button.config.name || '',
-      quantity: button.config.quantity?.toString() || '',
-      price: button.config.price?.toString() || '',
-      description: button.config.description || '',
-      icon: button.config.icon || 'package',
-      midtransQR: button.config.integrationSettings?.midtransQR || false,
-      smmPanel: button.config.integrationSettings?.smmPanel || false,
-      customAction: button.config.integrationSettings?.customAction || false
+      callbackData: button.callbackData,
+      url: button.url || '',
+      responseText: button.responseText || '',
+      responseImage: button.responseImage || ''
     });
     setShowDialog(true);
   };
 
-  // Save button function
+  // Save button
   const handleSaveButton = () => {
-    if (!formData.text.trim()) {
+    if (!formData.text.trim() || !formData.callbackData.trim()) {
       toast({
         title: "Error",
-        description: "Nama tombol tidak boleh kosong",
+        description: "Nama button dan callback data harus diisi",
         variant: "destructive",
       });
       return;
     }
 
-    const newButton: ServiceButton = {
+    const newButton: WhiteboardButton = {
       id: editingButton?.id || `btn_${Date.now()}`,
       text: formData.text,
-      stepType: selectedStep as any,
-      isActive: true,
-      order: editingButton?.order || getButtonsForStep(selectedStep).length + 1,
-      config: {
-        name: formData.name,
-        quantity: formData.quantity ? parseInt(formData.quantity) : undefined,
-        price: formData.price ? parseInt(formData.price) : undefined,
-        description: formData.description,
-        icon: formData.icon,
-        integrationSettings: {
-          midtransQR: formData.midtransQR,
-          smmPanel: formData.smmPanel,
-          customAction: formData.customAction
-        }
-      }
+      callbackData: formData.callbackData,
+      url: formData.url,
+      responseText: formData.responseText,
+      responseImage: formData.responseImage,
+      x: editingButton?.x || Math.random() * 400 + 100,
+      y: editingButton?.y || Math.random() * 300 + 100,
+      parentId: selectedParentId || editingButton?.parentId,
+      children: editingButton?.children || [],
+      isPaymentConnected: editingButton?.isPaymentConnected || false,
+      isSmmConnected: editingButton?.isSmmConnected || false,
     };
 
     if (editingButton) {
-      setServiceButtons(prev => prev.map(btn => 
+      setButtons(prev => prev.map(btn => 
         btn.id === editingButton.id ? newButton : btn
       ));
       toast({
         title: "Berhasil",
-        description: "Tombol berhasil diperbarui",
+        description: "Button berhasil diperbarui",
       });
     } else {
-      setServiceButtons(prev => [...prev, newButton]);
+      setButtons(prev => [...prev, newButton]);
+      
+      // Update parent's children array
+      if (selectedParentId) {
+        setButtons(prev => prev.map(btn => 
+          btn.id === selectedParentId 
+            ? { ...btn, children: [...btn.children, newButton.id] }
+            : btn
+        ));
+      }
+      
       toast({
         title: "Berhasil", 
-        description: "Tombol baru berhasil ditambahkan",
+        description: "Button baru berhasil ditambahkan",
       });
     }
 
     setShowDialog(false);
     setEditingButton(null);
+    setSelectedParentId(null);
   };
 
-  // Delete button function
+  // Delete button
   const handleDeleteButton = (buttonId: string) => {
-    setServiceButtons(prev => prev.filter(btn => btn.id !== buttonId));
+    const buttonToDelete = buttons.find(btn => btn.id === buttonId);
+    if (!buttonToDelete) return;
+
+    // Remove from parent's children array
+    if (buttonToDelete.parentId) {
+      setButtons(prev => prev.map(btn => 
+        btn.id === buttonToDelete.parentId 
+          ? { ...btn, children: btn.children.filter(childId => childId !== buttonId) }
+          : btn
+      ));
+    }
+
+    // Remove button and all its children
+    const getAllChildren = (btnId: string): string[] => {
+      const btn = buttons.find(b => b.id === btnId);
+      if (!btn) return [];
+      
+      let allChildren = [...btn.children];
+      btn.children.forEach(childId => {
+        allChildren = [...allChildren, ...getAllChildren(childId)];
+      });
+      return allChildren;
+    };
+
+    const childrenToDelete = getAllChildren(buttonId);
+    setButtons(prev => prev.filter(btn => 
+      btn.id !== buttonId && !childrenToDelete.includes(btn.id)
+    ));
+
     toast({
       title: "Berhasil",
-      description: "Tombol berhasil dihapus",
+      description: "Button dan sub-button berhasil dihapus",
     });
   };
 
-  // Toggle button status
-  const handleToggleButton = (buttonId: string) => {
-    setServiceButtons(prev => prev.map(btn => 
-      btn.id === buttonId ? { ...btn, isActive: !btn.isActive } : btn
-    ));
-  };
-
-  // Drag and drop handlers
-  const handleDragStart = (e: React.DragEvent, button: ServiceButton) => {
-    setDraggedButton(button);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDrop = (e: React.DragEvent, targetStepType: string) => {
-    e.preventDefault();
-    if (draggedButton && draggedButton.stepType !== targetStepType) {
-      setServiceButtons(prev => prev.map(btn => 
-        btn.id === draggedButton.id 
-          ? { ...btn, stepType: targetStepType as any, order: getButtonsForStep(targetStepType).length + 1 }
-          : btn
-      ));
+  // Add payment button
+  const handleAddPaymentButton = () => {
+    if (paymentButton) {
       toast({
-        title: "Berhasil",
-        description: `Tombol dipindahkan ke ${stepColumns.find(col => col.key === targetStepType)?.title}`,
+        title: "Info",
+        description: "Payment button sudah ada",
+        variant: "destructive",
       });
+      return;
     }
-    setDraggedButton(null);
+
+    const newPaymentButton: WhiteboardButton = {
+      id: `payment_${Date.now()}`,
+      text: '💳 PAYMENT',
+      callbackData: 'payment_process',
+      responseText: 'Memproses pembayaran...',
+      x: 600,
+      y: 100,
+      parentId: undefined,
+      children: [],
+      isPaymentConnected: false,
+      isSmmConnected: false,
+    };
+
+    setPaymentButton(newPaymentButton);
+    toast({
+      title: "Berhasil",
+      description: "Payment button berhasil ditambahkan",
+    });
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
+  // Add SMM button
+  const handleAddSmmButton = () => {
+    if (smmButton) {
+      toast({
+        title: "Info",
+        description: "SMM button sudah ada",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newSmmButton: WhiteboardButton = {
+      id: `smm_${Date.now()}`,
+      text: '⚡ SMM PANEL',
+      callbackData: 'smm_process',
+      responseText: 'Memproses layanan SMM...',
+      x: 600,
+      y: 200,
+      parentId: undefined,
+      children: [],
+      isPaymentConnected: false,
+      isSmmConnected: false,
+    };
+
+    setSmmButton(newSmmButton);
+    toast({
+      title: "Berhasil",
+      description: "SMM button berhasil ditambahkan",
+    });
+  };
+
+  // Connect to payment
+  const handleConnectPayment = (buttonId: string) => {
+    if (!paymentButton) {
+      toast({
+        title: "Error",
+        description: "Tambahkan payment button terlebih dahulu",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if any button already connected to payment
+    const alreadyConnected = buttons.some(btn => btn.isPaymentConnected);
+    if (alreadyConnected) {
+      toast({
+        title: "Error",
+        description: "Hanya satu button yang bisa terhubung ke payment",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setButtons(prev => prev.map(btn => 
+      btn.id === buttonId ? { ...btn, isPaymentConnected: true } : btn
+    ));
+
+    toast({
+      title: "Berhasil",
+      description: "Button berhasil terhubung ke payment",
+    });
+  };
+
+  // Connect to SMM
+  const handleConnectSmm = (buttonId: string) => {
+    if (!smmButton) {
+      toast({
+        title: "Error",
+        description: "Tambahkan SMM button terlebih dahulu",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if any button already connected to SMM
+    const alreadyConnected = buttons.some(btn => btn.isSmmConnected);
+    if (alreadyConnected) {
+      toast({
+        title: "Error",
+        description: "Hanya satu button yang bisa terhubung ke SMM",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setButtons(prev => prev.map(btn => 
+      btn.id === buttonId ? { ...btn, isSmmConnected: true } : btn
+    ));
+
+    toast({
+      title: "Berhasil",
+      description: "Button berhasil terhubung ke SMM Panel",
+    });
+  };
+
+  // Get main buttons (no parent)
+  const getMainButtons = () => {
+    return buttons.filter(btn => !btn.parentId);
+  };
+
+  // Get children of a button
+  const getChildButtons = (parentId: string) => {
+    return buttons.filter(btn => btn.parentId === parentId);
+  };
+
+  // Render button connections
+  const renderConnections = () => {
+    const connections = [];
+    
+    buttons.forEach(button => {
+      // Payment connection
+      if (button.isPaymentConnected && paymentButton) {
+        connections.push(
+          <svg key={`payment-${button.id}`} className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
+            <line
+              x1={button.x + 75}
+              y1={button.y + 25}
+              x2={paymentButton.x}
+              y2={paymentButton.y + 25}
+              stroke="#10b981"
+              strokeWidth="2"
+              strokeDasharray="5,5"
+              markerEnd="url(#arrowhead)"
+            />
+          </svg>
+        );
+      }
+
+      // SMM connection  
+      if (button.isSmmConnected && smmButton) {
+        connections.push(
+          <svg key={`smm-${button.id}`} className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
+            <line
+              x1={button.x + 75}
+              y1={button.y + 25}
+              x2={smmButton.x}
+              y2={smmButton.y + 25}
+              stroke="#8b5cf6"
+              strokeWidth="2"
+              strokeDasharray="5,5"
+              markerEnd="url(#arrowhead)"
+            />
+          </svg>
+        );
+      }
+
+      // Parent-child connections
+      button.children.forEach(childId => {
+        const childButton = buttons.find(b => b.id === childId);
+        if (childButton) {
+          connections.push(
+            <svg key={`connection-${button.id}-${childId}`} className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
+              <line
+                x1={button.x + 75}
+                y1={button.y + 50}
+                x2={childButton.x + 75}
+                y2={childButton.y}
+                stroke="#6b7280"
+                strokeWidth="2"
+                markerEnd="url(#arrowhead)"
+              />
+            </svg>
+          );
+        }
+      });
+    });
+
+    return connections;
   };
 
   return (
@@ -303,281 +399,340 @@ export default function ServiceManagementWhiteboard() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Service Management Whiteboard
+              Telegram Bot Whiteboard
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Drag & drop tombol antar kolom atau klik + untuk menambah tombol baru
+              Drag & drop, tambah button dan hubungkan dengan integrasi
             </p>
           </div>
           <div className="flex space-x-2">
-            <Button variant="outline">
-              <Save className="h-4 w-4 mr-2" />
-              Simpan Konfigurasi
+            <Button onClick={handleAddMainButton} className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Button Utama
+            </Button>
+            <Button onClick={handleAddPaymentButton} variant="outline" className="border-green-500 text-green-600 hover:bg-green-50">
+              <CreditCard className="h-4 w-4 mr-2" />
+              Payment
+            </Button>
+            <Button onClick={handleAddSmmButton} variant="outline" className="border-purple-500 text-purple-600 hover:bg-purple-50">
+              <Zap className="h-4 w-4 mr-2" />
+              SMM Panel
             </Button>
           </div>
         </div>
       </div>
 
       {/* Whiteboard Canvas */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 p-6 min-h-[600px]">
-        <div className="grid grid-cols-5 gap-6 h-full">
-          {stepColumns.map((column, index) => (
-            <div key={column.key} className="flex flex-col">
-              {/* Column Header */}
-              <div className={`rounded-lg border-2 ${column.color} dark:bg-gray-700 dark:border-gray-600 p-4 mb-4`}>
+      <div className="relative bg-white dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 p-6 min-h-[700px] overflow-hidden">
+        
+        {/* Arrow markers for SVG */}
+        <svg className="absolute inset-0 pointer-events-none" style={{ zIndex: 0 }}>
+          <defs>
+            <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+             refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill="#6b7280" />
+            </marker>
+          </defs>
+        </svg>
+
+        {/* Render connections */}
+        {renderConnections()}
+
+        {/* Main Buttons */}
+        {getMainButtons().map((button) => (
+          <div key={button.id}>
+            {/* Main Button */}
+            <Card 
+              className="absolute cursor-move shadow-lg border-2 border-blue-300 bg-blue-50 dark:bg-blue-900/20"
+              style={{ 
+                left: button.x, 
+                top: button.y, 
+                width: '150px',
+                zIndex: 10
+              }}
+            >
+              <CardContent className="p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-sm text-gray-800 dark:text-gray-200 text-center w-full">
-                    {column.title}
-                  </h3>
+                  <h4 className="font-semibold text-sm text-blue-800 dark:text-blue-200 truncate">
+                    {button.text}
+                  </h4>
+                  <div className="flex space-x-1">
+                    {button.isPaymentConnected && (
+                      <Badge variant="outline" className="text-xs bg-green-100 text-green-700">
+                        💳
+                      </Badge>
+                    )}
+                    {button.isSmmConnected && (
+                      <Badge variant="outline" className="text-xs bg-purple-100 text-purple-700">
+                        ⚡
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-                <Button 
-                  onClick={() => handleAddButton(column.key)}
-                  className="w-full h-10 bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 border-2 border-dashed border-gray-400 dark:border-gray-500 text-gray-600 dark:text-gray-300"
-                  variant="outline"
-                >
-                  <Plus className="h-5 w-5" />
-                </Button>
-              </div>
-
-              {/* Drop Zone */}
-              <div 
-                className="flex-1 min-h-[400px] p-2 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700 space-y-3"
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, column.key)}
-              >
-                {getButtonsForStep(column.key).map((button) => {
-                  const IconComponent = getIconComponent(button.config.icon || 'package');
-                  return (
-                    <div
-                      key={button.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, button)}
-                      className={`group relative cursor-move ${
-                        button.isActive 
-                          ? 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 shadow-md' 
-                          : 'bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 opacity-70'
-                      } rounded-lg p-3 transition-all hover:shadow-lg hover:scale-105`}
-                    >
-                      {/* Drag Handle */}
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <GripVertical className="h-4 w-4 text-gray-400" />
-                      </div>
-
-                      <div className="flex items-start space-x-2">
-                        <IconComponent className={`h-5 w-5 mt-0.5 ${
-                          button.isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'
-                        }`} />
-                        <div className="flex-1 min-w-0">
-                          <h4 className={`font-medium text-sm ${
-                            button.isActive ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'
-                          }`}>
-                            {button.text}
-                          </h4>
-                          {button.config.description && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              {button.config.description}
-                            </p>
-                          )}
-                          
-                          {/* Additional info */}
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {button.config.quantity && (
-                              <Badge variant="outline" className="text-xs">
-                                {button.config.quantity.toLocaleString()}
-                              </Badge>
-                            )}
-                            {button.config.price && (
-                              <Badge variant="outline" className="text-xs">
-                                {formatCurrency(button.config.price)}
-                              </Badge>
-                            )}
-                          </div>
-
-                          {/* Integration badges */}
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {button.config.integrationSettings?.midtransQR && (
-                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                                QRIS
-                              </Badge>
-                            )}
-                            {button.config.integrationSettings?.smmPanel && (
-                              <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-                                SMM
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Action buttons */}
-                      <div className="flex justify-between items-center mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
-                        <div className="flex space-x-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleToggleButton(button.id)}
-                            className={`h-6 px-2 text-xs ${button.isActive 
-                              ? 'text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20' 
-                              : 'text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800'
-                            }`}
-                          >
-                            {button.isActive ? 'ON' : 'OFF'}
-                          </Button>
-                        </div>
-                        <div className="flex space-x-1">
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            onClick={() => handleEditButton(button)}
-                            className="h-6 px-2 text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            onClick={() => handleDeleteButton(button.id)}
-                            className="h-6 px-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Empty state with add button */}
-                {getButtonsForStep(column.key).length === 0 && (
-                  <div className="flex items-center justify-center h-32">
+                
+                <div className="text-xs text-gray-600 dark:text-gray-300 mb-2">
+                  Callback: {button.callbackData}
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <Button 
+                    size="sm" 
+                    variant="ghost"
+                    onClick={() => handleAddSubButton(button.id)}
+                    className="h-6 px-2 text-xs"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Sub
+                  </Button>
+                  <div className="flex space-x-1">
                     <Button 
-                      onClick={() => handleAddButton(column.key)}
-                      variant="ghost"
-                      className="h-full w-full border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500 hover:border-gray-400 dark:hover:border-gray-500"
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={() => handleEditButton(button)}
+                      className="h-6 px-1"
                     >
-                      <Plus className="h-6 w-6" />
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => handleDeleteButton(button.id)}
+                      className="h-6 px-1 text-red-600"
+                    >
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
-                )}
-              </div>
-
-              {/* Arrow to next column */}
-              {index < stepColumns.length - 1 && (
-                <div className="absolute top-1/2 -right-3 transform -translate-y-1/2 z-10">
-                  <div className="bg-white dark:bg-gray-800 rounded-full p-1 border border-gray-300 dark:border-gray-600 shadow-sm">
-                    <ArrowRight className="h-4 w-4 text-gray-400" />
-                  </div>
                 </div>
-              )}
+
+                {/* Connection buttons */}
+                <div className="flex space-x-1 mt-2">
+                  {!button.isPaymentConnected && paymentButton && (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleConnectPayment(button.id)}
+                      className="h-5 px-1 text-xs border-green-300 text-green-600"
+                    >
+                      <Link2 className="h-2 w-2 mr-1" />
+                      Pay
+                    </Button>
+                  )}
+                  {!button.isSmmConnected && smmButton && (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleConnectSmm(button.id)}
+                      className="h-5 px-1 text-xs border-purple-300 text-purple-600"
+                    >
+                      <Link2 className="h-2 w-2 mr-1" />
+                      SMM
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Sub Buttons */}
+            {getChildButtons(button.id).map((subButton, index) => (
+              <Card 
+                key={subButton.id}
+                className="absolute cursor-move shadow-md border border-gray-300 bg-gray-50 dark:bg-gray-700"
+                style={{ 
+                  left: button.x + (index * 160) + 20, 
+                  top: button.y + 120,
+                  width: '140px',
+                  zIndex: 10
+                }}
+              >
+                <CardContent className="p-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <h5 className="font-medium text-xs text-gray-800 dark:text-gray-200 truncate">
+                      {subButton.text}
+                    </h5>
+                  </div>
+                  
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    {subButton.callbackData}
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => handleAddSubButton(subButton.id)}
+                      className="h-5 px-1 text-xs"
+                    >
+                      <Plus className="h-2 w-2 mr-1" />
+                      Sub
+                    </Button>
+                    <div className="flex space-x-1">
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={() => handleEditButton(subButton)}
+                        className="h-5 px-1"
+                      >
+                        <Edit className="h-2 w-2" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={() => handleDeleteButton(subButton.id)}
+                        className="h-5 px-1 text-red-600"
+                      >
+                        <Trash2 className="h-2 w-2" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ))}
+
+        {/* Payment Button */}
+        {paymentButton && (
+          <Card 
+            className="absolute shadow-lg border-2 border-green-400 bg-green-50 dark:bg-green-900/20"
+            style={{ 
+              left: paymentButton.x, 
+              top: paymentButton.y, 
+              width: '120px',
+              zIndex: 10
+            }}
+          >
+            <CardContent className="p-3 text-center">
+              <div className="text-green-700 dark:text-green-300 font-semibold text-sm">
+                {paymentButton.text}
+              </div>
+              <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                {paymentButton.callbackData}
+              </div>
+              <Button 
+                size="sm" 
+                variant="ghost"
+                onClick={() => setPaymentButton(null)}
+                className="h-5 px-1 mt-2 text-red-600"
+              >
+                <Trash2 className="h-2 w-2" />
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* SMM Button */}
+        {smmButton && (
+          <Card 
+            className="absolute shadow-lg border-2 border-purple-400 bg-purple-50 dark:bg-purple-900/20"
+            style={{ 
+              left: smmButton.x, 
+              top: smmButton.y, 
+              width: '120px',
+              zIndex: 10
+            }}
+          >
+            <CardContent className="p-3 text-center">
+              <div className="text-purple-700 dark:text-purple-300 font-semibold text-sm">
+                {smmButton.text}
+              </div>
+              <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                {smmButton.callbackData}
+              </div>
+              <Button 
+                size="sm" 
+                variant="ghost"
+                onClick={() => setSmmButton(null)}
+                className="h-5 px-1 mt-2 text-red-600"
+              >
+                <Trash2 className="h-2 w-2" />
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Empty state */}
+        {buttons.length === 0 && !paymentButton && !smmButton && (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <Plus className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                Mulai Membuat Bot Menu
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-4">
+                Klik "Add Button Utama" untuk membuat button pertama
+              </p>
+              <Button onClick={handleAddMainButton}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Button Utama
+              </Button>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Add/Edit Dialog */}
+      {/* Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>
-              {editingButton ? 'Edit Tombol' : 'Tambah Tombol Baru'}
+              {editingButton ? 'Edit Button' : selectedParentId ? 'Tambah Sub Button' : 'Tambah Button Utama'}
             </DialogTitle>
             <DialogDescription>
-              {editingButton ? 'Edit pengaturan tombol' : `Tambah tombol baru untuk kolom ${stepColumns.find(col => col.key === selectedStep)?.title}`}
+              Isi informasi button untuk bot Telegram Anda
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
             <div>
-              <Label htmlFor="text">Nama Tombol *</Label>
+              <Label htmlFor="text">Nama Button *</Label>
               <Input
                 id="text"
                 value={formData.text}
                 onChange={(e) => setFormData(prev => ({ ...prev, text: e.target.value }))}
-                placeholder="Masukkan nama tombol"
+                placeholder="Contoh: Instagram Followers"
               />
             </div>
 
             <div>
-              <Label htmlFor="description">Deskripsi</Label>
+              <Label htmlFor="callbackData">Callback Data *</Label>
+              <Input
+                id="callbackData"
+                value={formData.callbackData}
+                onChange={(e) => setFormData(prev => ({ ...prev, callbackData: e.target.value }))}
+                placeholder="Contoh: ig_followers"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="url">URL (Opsional)</Label>
+              <Input
+                id="url"
+                value={formData.url}
+                onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                placeholder="https://example.com"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="responseText">Pesan Respons</Label>
               <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Deskripsi singkat tombol"
-                rows={2}
+                id="responseText"
+                value={formData.responseText}
+                onChange={(e) => setFormData(prev => ({ ...prev, responseText: e.target.value }))}
+                placeholder="Pesan yang dikirim ketika button diklik"
+                rows={3}
               />
             </div>
 
             <div>
-              <Label htmlFor="icon">Icon</Label>
-              <Select value={formData.icon} onValueChange={(value) => setFormData(prev => ({ ...prev, icon: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih icon" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="followers">👥 Followers</SelectItem>
-                  <SelectItem value="likes">❤️ Likes</SelectItem>
-                  <SelectItem value="views">👁️ Views</SelectItem>
-                  <SelectItem value="comments">💬 Comments</SelectItem>
-                  <SelectItem value="package">📦 Package</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="responseImage">URL Gambar Respons</Label>
+              <Input
+                id="responseImage"
+                value={formData.responseImage}
+                onChange={(e) => setFormData(prev => ({ ...prev, responseImage: e.target.value }))}
+                placeholder="https://example.com/image.jpg"
+              />
             </div>
-
-            {(selectedStep === 'quantity' || selectedStep === 'service') && (
-              <div>
-                <Label htmlFor="quantity">Jumlah</Label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
-                  placeholder="Masukkan jumlah"
-                />
-              </div>
-            )}
-
-            {(selectedStep === 'price' || selectedStep === 'service') && (
-              <div>
-                <Label htmlFor="price">Harga (IDR)</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  value={formData.price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                  placeholder="Masukkan harga"
-                />
-              </div>
-            )}
-
-            {selectedStep === 'payment' && (
-              <div className="space-y-3">
-                <Label>Integrasi Pembayaran</Label>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      checked={formData.midtransQR}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, midtransQR: checked }))}
-                    />
-                    <Label className="text-sm">Integrasi Midtrans QR</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      checked={formData.smmPanel}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, smmPanel: checked }))}
-                    />
-                    <Label className="text-sm">Integrasi SMM Panel Service</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      checked={formData.customAction}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, customAction: checked }))}
-                    />
-                    <Label className="text-sm">Custom Action</Label>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">
