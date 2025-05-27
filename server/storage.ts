@@ -81,6 +81,10 @@ export interface IStorage {
   getPaymentSettings(userId: number): Promise<PaymentSettings | undefined>;
   savePaymentSettings(userId: number, settings: { serverKey: string; clientKey: string; isProduction: boolean }): Promise<PaymentSettings>;
   deletePaymentSettings(userId: number): Promise<boolean>;
+
+  // Service Management methods
+  getServiceCategories(): Promise<any[]>;
+  getServicePackages(): Promise<any[]>;
   
   sessionStore: any;
 }
@@ -603,6 +607,17 @@ export class DatabaseStorage implements IStorage {
       .delete(paymentSettings)
       .where(eq(paymentSettings.userId, userId));
     return true;
+  }
+
+  // Service Management methods
+  async getServiceCategories(): Promise<any[]> {
+    const categories = await db.select().from(serviceCategories);
+    return categories;
+  }
+
+  async getServicePackages(): Promise<any[]> {
+    const packages = await db.select().from(servicePackages);
+    return packages;
   }
 
 }

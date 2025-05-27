@@ -128,17 +128,20 @@ export class AutoBotManager {
         // Check if Service Management Integration is enabled
         if ((autoBot as any).enableServiceManagement) {
           try {
-            // Get Service Management data
-            const { db } = await import('./db');
-            const categories = await db.query('SELECT * FROM service_categories WHERE is_active = true ORDER BY display_order, name');
+            // Get Service Management data using storage interface
+            const { storage } = await import('./storage');
+            const categories = await storage.getServiceCategories();
             
             // Create buttons from Service Management categories
-            buttonsToShow = categories.rows.map((category: any, index: number) => ({
-              id: `category_${category.id}`,
-              text: `${category.icon} ${category.name}`,
-              callbackData: `category_${category.id}`,
-              level: 0
-            }));
+            buttonsToShow = categories
+              .filter(category => category.isActive)
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((category, index) => ({
+                id: `service_category_${category.id}`,
+                text: `${this.getCategoryIcon(category.icon)} ${category.name}`,
+                callbackData: `service_category_${category.id}`,
+                level: 0
+              }));
             
             console.log(`🎯 Service Management: Loaded ${buttonsToShow.length} categories for bot ${autoBot.botName}`);
           } catch (error) {
@@ -553,6 +556,24 @@ export class AutoBotManager {
       console.error(`Failed to stop auto bot:`, error);
       return { success: false, error: error.message };
     }
+  }
+
+  /**
+   * Get category icon based on icon type
+   */
+  private getCategoryIcon(iconType: string): string {
+    const iconMap: { [key: string]: string } = {
+      'followers': '👥',
+      'likes': '❤️',
+      'views': '👁️',
+      'comments': '💬',
+      'instagram': '📷',
+      'tiktok': '🎵',
+      'youtube': '📺',
+      'facebook': '📘',
+      'twitter': '🐦'
+    };
+    return iconMap[iconType.toLowerCase()] || '📋';
   }
 
   /**
