@@ -31,6 +31,7 @@ import {
 } from "./smm-panel";
 import { autoBotManager } from "./auto-bot";
 import { threadingMonitor } from "./monitoring";
+import { serviceTest } from "./service-management-test";
 import { 
   validateApiKey, 
   getBalance, 
@@ -2619,6 +2620,128 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Delete API key error:", error);
       res.status(500).json({ message: "Failed to delete API key" });
+    }
+  });
+
+  // =================================================================
+  // 🚀 SERVICE MANAGEMENT TEST API ENDPOINTS - TUTORIAL TESTING
+  // =================================================================
+  
+  // Test endpoint: Get Service Data untuk User
+  app.get("/api/test/service-data", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      console.log(`🧪 Testing service data for user ${user.id}`);
+      
+      const serviceData = await serviceTest.getServiceData(user.id);
+      
+      res.json({
+        success: true,
+        message: "Service data retrieved successfully",
+        data: serviceData,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("❌ Test service data error:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to get service data",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  // Test endpoint: Generate Bot Menu Structure
+  app.get("/api/test/bot-menu", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      console.log(`🤖 Generating bot menu for user ${user.id}`);
+      
+      const serviceData = await serviceTest.getServiceData(user.id);
+      const menuStructure = serviceTest.generateBotMenu(serviceData.categories, serviceData.packages);
+      const previewText = serviceTest.generatePreviewText(menuStructure);
+      
+      res.json({
+        success: true,
+        message: "Bot menu generated successfully",
+        data: {
+          menuStructure,
+          previewText,
+          stats: {
+            categories: serviceData.categories.length,
+            packages: serviceData.packages.length,
+            menuItems: menuStructure.mainMenu.length
+          }
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("❌ Test bot menu error:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to generate bot menu",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  // Test endpoint: Preview Auto Bot Integration
+  app.get("/api/test/auto-bot-preview", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      console.log(`🔗 Testing auto bot integration for user ${user.id}`);
+      
+      // Get service data
+      const serviceData = await serviceTest.getServiceData(user.id);
+      
+      // Generate menu structure
+      const menuStructure = serviceTest.generateBotMenu(serviceData.categories, serviceData.packages);
+      
+      // Get user's auto bots
+      const autoBots = await storage.getAutoBotsByUserId(user.id);
+      
+      // Generate integration preview
+      const integrationPreview = {
+        serviceManagement: {
+          status: serviceData.categories.length > 0 ? "configured" : "not_configured",
+          categories: serviceData.categories.length,
+          packages: serviceData.packages.length
+        },
+        autoBots: {
+          status: autoBots.length > 0 ? "available" : "not_created",
+          count: autoBots.length,
+          activeBots: autoBots.filter(bot => bot.isActive).length
+        },
+        integration: {
+          ready: serviceData.categories.length > 0 && autoBots.length > 0,
+          menuItems: menuStructure.mainMenu.length,
+          estimatedCommands: menuStructure.mainMenu.length * 2 + 5 // main + sub menus + system commands
+        }
+      };
+      
+      res.json({
+        success: true,
+        message: "Auto bot integration preview generated",
+        data: {
+          preview: integrationPreview,
+          menuStructure,
+          serviceData,
+          autoBots: autoBots.map(bot => ({
+            id: bot.id,
+            botName: bot.botName,
+            botUsername: bot.botUsername,
+            isActive: bot.isActive
+          }))
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("❌ Test auto bot preview error:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to generate auto bot preview",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
