@@ -342,10 +342,19 @@ export class AutoBotManager {
                 console.log(`🔍 Button pressed: "${pressedButton.text}" (ID: ${pressedButton.id}, Level: ${currentLevel})`);
                 console.log(`🔍 Looking for child menus with level ${currentLevel + 1} and parentId: ${pressedButton.id}`);
                 
+                // FIX: More flexible matching to handle ID inconsistencies
                 const childMenus = (autoBot.keyboardConfig || []).filter(btn => {
                   const isCorrectLevel = btn.level === currentLevel + 1;
-                  const hasMatchingParent = btn.parentId === pressedButton.id;
-                  console.log(`🔍 Checking button "${btn.text}": Level ${btn.level} (need ${currentLevel + 1}), ParentID "${btn.parentId}" (need "${pressedButton.id}") → Level Match: ${isCorrectLevel}, Parent Match: ${hasMatchingParent}`);
+                  
+                  // Try multiple matching strategies
+                  const exactParentMatch = btn.parentId === pressedButton.id;
+                  const stringParentMatch = String(btn.parentId) === String(pressedButton.id);
+                  const parentTextMatch = btn.parentId === pressedButton.text; // Some configs use text as parentId
+                  
+                  const hasMatchingParent = exactParentMatch || stringParentMatch || parentTextMatch;
+                  
+                  console.log(`🔍 Checking button "${btn.text}": Level ${btn.level} (need ${currentLevel + 1}), ParentID "${btn.parentId}" (need "${pressedButton.id}") → Level Match: ${isCorrectLevel}, Parent Match: ${hasMatchingParent} (exact: ${exactParentMatch}, string: ${stringParentMatch}, text: ${parentTextMatch})`);
+                  
                   return isCorrectLevel && hasMatchingParent;
                 });
                 
