@@ -222,19 +222,7 @@ export class AutoBotManager {
             return;
           }
 
-          // Handle All Show button
-          if (data === 'show_all_menus') {
-            const allShowMessage = this.createAllShowMessage(autoBot.keyboardConfig || []);
-            const keyboard = this.createAllShowKeyboard(autoBot.keyboardConfig || []);
-            
-            await bot.editMessageText(allShowMessage, {
-              chat_id: chatId,
-              message_id: msg.message_id,
-              reply_markup: keyboard,
-              parse_mode: 'Markdown'
-            });
-            return;
-          }
+          // All Show button removed
 
 
           
@@ -251,25 +239,10 @@ export class AutoBotManager {
                 );
                 
                 if (subMenus.length > 0) {
-                  // Find All Show button from config
-                  const allShowButton = (autoBot.keyboardConfig || []).find(btn => btn.isAllShow);
-                  // Add only All Show button if it exists in config (remove duplicate Menu Utama)
-                  const navigationButtons = [];
-                  if (allShowButton) {
-                    navigationButtons.push({
-                      id: 'all_show_sub_level',
-                      text: allShowButton.text || '📋 Lihat Semua Menu',
-                      callbackData: 'show_all_menus',
-                      level: 1
-                    });
-                  }
+                  // No navigation buttons needed
                   
-                  // Add back button at the end
-                  const subMenusWithNavigation = [
-                    ...subMenus,
-                    ...navigationButtons,
-                    this.createHomeButton('submenu')
-                  ];
+                  // Show sub menus only - no navigation buttons
+                  const subMenusWithNavigation = [...subMenus];
                   
 
                   
@@ -365,31 +338,8 @@ export class AutoBotManager {
                   const allShowButton = (autoBot.keyboardConfig || []).find(btn => btn.isAllShow);
                   console.log(`🔍 Level ${currentLevel + 1} - Found All Show button:`, allShowButton ? 'YES' : 'NO');
                   
-                  // This button has child menus, show them with navigation buttons
-                  const navigationButtons = [
-                    {
-                      id: `main_menu_button_level_${currentLevel + 1}`,
-                      text: '🏠 Menu Utama',
-                      callbackData: 'back_to_main',
-                      level: currentLevel + 1
-                    }
-                  ];
-                  
-                  // Add All Show button if it exists in config
-                  if (allShowButton) {
-                    navigationButtons.push({
-                      id: `all_show_level_${currentLevel + 1}`,
-                      text: allShowButton.text || '📋 Lihat Semua Menu',
-                      callbackData: 'show_all_menus',
-                      level: currentLevel + 1
-                    });
-                    console.log(`✅ Added All Show button to level ${currentLevel + 1}`);
-                  }
-                  
-                  const childMenusWithNavigation = [
-                    ...childMenus,
-                    ...navigationButtons
-                  ];
+                  // Show child menus only - no navigation buttons
+                  const childMenusWithNavigation = [...childMenus];
                   
                   console.log(`📋 Level ${currentLevel + 1} menu buttons:`, childMenusWithNavigation.map(btn => btn.text));
                   
