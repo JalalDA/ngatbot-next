@@ -1,4 +1,4 @@
-import { users, bots, knowledge, transactions, settings, smmProviders, smmServices, smmOrders, autoBots, apiKeys, type User, type InsertUser, type Bot, type InsertBot, type Knowledge, type InsertKnowledge, type Transaction, type InsertTransaction, type Setting, type InsertSetting, type SmmProvider, type InsertSmmProvider, type SmmService, type InsertSmmService, type SmmOrder, type InsertSmmOrder, type AutoBot, type InsertAutoBot } from "@shared/schema";
+import { users, bots, knowledge, transactions, settings, smmProviders, smmServices, smmOrders, autoBots, apiKeys, paymentSettings, type User, type InsertUser, type Bot, type InsertBot, type Knowledge, type InsertKnowledge, type Transaction, type InsertTransaction, type Setting, type InsertSetting, type SmmProvider, type InsertSmmProvider, type SmmService, type InsertSmmService, type SmmOrder, type InsertSmmOrder, type AutoBot, type InsertAutoBot, type PaymentSettings, type InsertPaymentSettings } from "@shared/schema";
 import session from "express-session";
 import { db, pool } from "./db";
 import { eq, and, desc } from "drizzle-orm";
@@ -76,6 +76,11 @@ export interface IStorage {
   deleteAutoBot(id: number): Promise<boolean>;
   getAllAutoBots(): Promise<AutoBot[]>;
   getAutoBotByToken(token: string): Promise<AutoBot | undefined>;
+
+  // Payment Settings management
+  getPaymentSettings(userId: number): Promise<PaymentSettings | undefined>;
+  savePaymentSettings(userId: number, settings: { serverKey: string; clientKey: string; isProduction: boolean }): Promise<PaymentSettings>;
+  deletePaymentSettings(userId: number): Promise<boolean>;
   
   sessionStore: any;
 }

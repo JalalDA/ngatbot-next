@@ -1881,6 +1881,133 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // PAYMENT METHOD SETTINGS ENDPOINTS
+  // Get current payment settings
+  app.get("/api/payment/settings", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      console.log(`💳 GET payment settings for user ${userId}`);
+      
+      const settings = await storage.getPaymentSettings(userId);
+      
+      res.json({
+        id: settings?.id || null,
+        serverKey: settings?.serverKey ? `${settings.serverKey.substring(0, 15)}...` : '',
+        clientKey: settings?.clientKey ? `${settings.clientKey.substring(0, 15)}...` : '',
+        isProduction: settings?.isProduction || false,
+        isConfigured: !!(settings?.serverKey && settings?.clientKey),
+        createdAt: settings?.createdAt || null,
+        updatedAt: settings?.updatedAt || null,
+      });
+    } catch (error) {
+      console.error("❌ Get payment settings error:", error);
+      res.status(500).json({ 
+        message: "Gagal mengambil pengaturan pembayaran",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Save/Update payment settings
+  app.post("/api/payment/settings", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const { serverKey, clientKey, isProduction } = req.body;
+      
+      console.log(`💳 POST payment settings for user ${userId}`);
+      
+      // Validate input
+      const paymentSchema = z.object({
+        serverKey: z.string().min(1, 'Server Key wajib diisi'),
+        clientKey: z.string().min(1, 'Client Key wajib diisi'),
+        isProduction: z.boolean().default(false),
+      });
+
+      const validData = paymentSchema.parse({ serverKey, clientKey, isProduction });
+      
+      // Save settings
+      const settings = await storage.savePaymentSettings(userId, validData);
+      
+      res.json({
+        success: true,
+        message: "Pengaturan pembayaran berhasil disimpan",
+        settings: {
+          id: settings.id,
+          isProduction: settings.isProduction,
+          isConfigured: true,
+          updatedAt: settings.updatedAt,
+        }
+      });
+    } catch (error) {
+      console.error("❌ Save payment settings error:", error);
+      res.status(500).json({ 
+        message: "Gagal menyimpan pengaturan pembayaran",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Test Midtrans connection
+  app.post("/api/payment/test-connection", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      console.log(`🔄 Test Midtrans connection for user ${userId}`);
+      
+      const settings = await storage.getPaymentSettings(userId);
+      
+      if (!settings || !settings.serverKey) {
+        return res.status(400).json({ 
+          message: "Pengaturan Midtrans belum dikonfigurasi" 
+        });
+      }
+
+      // Test connection with basic validation
+      if (settings.isProduction) {
+        if (!settings.serverKey.startsWith('Mid-server-')) {
+          throw new Error('Server Key production harus dimulai dengan "Mid-server-"');
+        }
+      } else {
+        if (!settings.serverKey.startsWith('SB-Mid-server-')) {
+          throw new Error('Server Key sandbox harus dimulai dengan "SB-Mid-server-"');
+        }
+      }
+      
+      res.json({
+        success: true,
+        message: "Koneksi Midtrans berhasil",
+        environment: settings.isProduction ? 'Production' : 'Sandbox',
+        serverKeyValid: true,
+        clientKeyValid: !!settings.clientKey,
+      });
+    } catch (error) {
+      console.error("❌ Test Midtrans connection error:", error);
+      res.status(400).json({ 
+        message: error instanceof Error ? error.message : "Koneksi Midtrans gagal"
+      });
+    }
+  });
+
+  // Delete payment settings
+  app.delete("/api/payment/settings", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      console.log(`🗑️ DELETE payment settings for user ${userId}`);
+      
+      await storage.deletePaymentSettings(userId);
+      
+      res.json({
+        success: true,
+        message: "Pengaturan pembayaran berhasil dihapus"
+      });
+    } catch (error) {
+      console.error("❌ Delete payment settings error:", error);
+      res.status(500).json({ 
+        message: "Gagal menghapus pengaturan pembayaran",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Helper function untuk mapping status provider ke system status
   function mapProviderStatus(providerStatus: string): string {
     const statusMap: { [key: string]: string } = {
