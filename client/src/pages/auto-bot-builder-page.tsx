@@ -1395,6 +1395,20 @@ export default function AutoBotBuilderPage() {
                       className="min-h-[100px]"
                     />
                   </div>
+                  
+                  <div>
+                    <Label htmlFor="welcomeImageUrlKeyboard">URL Gambar Sambutan (Opsional)</Label>
+                    <Input
+                      id="welcomeImageUrlKeyboard"
+                      type="url"
+                      placeholder="https://example.com/gambar.jpg"
+                      value={welcomeImageUrl}
+                      onChange={(e) => setWelcomeImageUrl(e.target.value)}
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Gambar akan ditampilkan bersama pesan sambutan.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Quick Actions - Same as Create Bot */}
