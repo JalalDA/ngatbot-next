@@ -480,7 +480,12 @@ export class DatabaseStorage implements IStorage {
       .where(eq(autoBots.id, id))
       .returning();
     return autoBot;
-  }
+  },
+
+  async getAutoBotByToken(token: string): Promise<AutoBot | null> {
+    const [bot] = await db.select().from(autoBots).where(eq(autoBots.token, token)).limit(1);
+    return bot || null;
+  },
 
   async deleteAutoBot(id: number): Promise<boolean> {
     const result = await db

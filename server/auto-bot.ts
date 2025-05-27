@@ -148,7 +148,62 @@ export class AutoBotManager {
         
         const keyboard = this.createInlineKeyboard(buttonsToShow);
         
-        // Asynchronous image and text sending to avoid blocking
+        // Check if Payment Integration is enabled
+        if (autoBot.paymentIntegration) {
+          console.log(`💳 Payment Integration enabled for bot ${autoBot.botName}`);
+          
+          // Generate QRIS for payment
+          try {
+            const orderId = `payment_${Date.now()}_${chatId}`;
+            const amount = 50000; // Default amount 50k IDR
+            
+            // Call our QRIS generation API
+            const response = await fetch(`${process.env.BASE_URL || 'http://localhost:5000'}/api/payment/generate-qris`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${autoBot.token}` // Use bot token for auth
+              },
+              body: JSON.stringify({
+                amount,
+                orderId,
+                botToken: autoBot.token,
+                telegramUserId: chatId.toString()
+              })
+            });
+            
+            if (response.ok) {
+              const qrisData = await response.json();
+              
+              // Send QRIS image with payment info
+              const paymentMessage = `💳 *Pembayaran via QRIS*\n\n` +
+                `💰 Amount: Rp ${amount.toLocaleString('id-ID')}\n` +
+                `🆔 Order ID: \`${orderId}\`\n\n` +
+                `📱 Scan QR Code di bawah untuk melakukan pembayaran:`;
+              
+              // Send QRIS QR code
+              await bot.sendPhoto(chatId, qrisData.qrString, {
+                caption: paymentMessage,
+                parse_mode: 'Markdown',
+                reply_markup: {
+                  inline_keyboard: [
+                    [{ text: '✅ Konfirmasi Pembayaran', callback_data: `confirm_payment_${orderId}` }],
+                    [{ text: '🏠 Kembali ke Menu', callback_data: 'back_to_main' }]
+                  ]
+                }
+              });
+              
+              console.log(`💳 QRIS sent successfully for order ${orderId}`);
+              return; // Exit early since we're showing payment
+            } else {
+              console.log(`❌ Failed to generate QRIS: ${response.statusText}`);
+            }
+          } catch (error) {
+            console.log(`❌ Error generating QRIS:`, error);
+          }
+        }
+        
+        // Default behavior - send welcome message with keyboard
         try {
           if (welcomeImageUrl && welcomeImageUrl.trim()) {
             // Send image with caption and keyboard asynchronously
@@ -229,6 +284,94 @@ export class AutoBotManager {
                 reply_markup: keyboard,
                 parse_mode: 'Markdown'
               });
+            }
+            return;
+          }
+          
+          // Handle payment confirmation
+          if (data.startsWith('confirm_payment_')) {
+            console.log(`💳 Handling payment confirmation: ${data}`);
+            const orderId = data.replace('confirm_payment_', '');
+            
+            try {
+              // Check payment status with Midtrans
+              const response = await fetch(`${process.env.BASE_URL || 'http://localhost:5000'}/api/payment/check-status`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${autoBot.token}`
+                },
+                body: JSON.stringify({
+                  orderId,
+                  botToken: autoBot.token
+                })
+              });
+              
+              if (response.ok) {
+                const statusData = await response.json();
+                
+                if (statusData.status === 'settlement' || statusData.status === 'success') {
+                  // Payment successful
+                  await bot.editMessageText(
+                    `✅ *Pembayaran Berhasil!*\n\n` +
+                    `🎉 Terima kasih! Pembayaran Anda telah dikonfirmasi.\n` +
+                    `🆔 Order ID: \`${orderId}\`\n` +
+                    `💰 Amount: ${statusData.amount || 'Rp 50,000'}\n\n` +
+                    `📞 Tim support akan segera menghubungi Anda untuk proses selanjutnya.`,
+                    {
+                      chat_id: chatId,
+                      message_id: msg.message_id,
+                      parse_mode: 'Markdown',
+                      reply_markup: {
+                        inline_keyboard: [
+                          [{ text: '🏠 Kembali ke Menu', callback_data: 'back_to_main' }]
+                        ]
+                      }
+                    }
+                  );
+                  console.log(`✅ Payment confirmed for order ${orderId}`);
+                } else {
+                  // Payment pending or failed
+                  await bot.editMessageText(
+                    `⏳ *Menunggu Pembayaran*\n\n` +
+                    `🔄 Status: ${statusData.status || 'pending'}\n` +
+                    `🆔 Order ID: \`${orderId}\`\n\n` +
+                    `💡 Silakan selesaikan pembayaran terlebih dahulu, kemudian klik tombol konfirmasi lagi.`,
+                    {
+                      chat_id: chatId,
+                      message_id: msg.message_id,
+                      parse_mode: 'Markdown',
+                      reply_markup: {
+                        inline_keyboard: [
+                          [{ text: '🔄 Cek Lagi', callback_data: `confirm_payment_${orderId}` }],
+                          [{ text: '🏠 Kembali ke Menu', callback_data: 'back_to_main' }]
+                        ]
+                      }
+                    }
+                  );
+                }
+              } else {
+                throw new Error('Failed to check payment status');
+              }
+            } catch (error) {
+              console.log(`❌ Error checking payment:`, error);
+              await bot.editMessageText(
+                `❌ *Error Cek Pembayaran*\n\n` +
+                `🔧 Terjadi kesalahan saat mengecek status pembayaran.\n` +
+                `🆔 Order ID: \`${orderId}\`\n\n` +
+                `💡 Silakan coba lagi atau hubungi support.`,
+                {
+                  chat_id: chatId,
+                  message_id: msg.message_id,
+                  parse_mode: 'Markdown',
+                  reply_markup: {
+                    inline_keyboard: [
+                      [{ text: '🔄 Coba Lagi', callback_data: `confirm_payment_${orderId}` }],
+                      [{ text: '🏠 Kembali ke Menu', callback_data: 'back_to_main' }]
+                    ]
+                  }
+                }
+              );
             }
             return;
           }
