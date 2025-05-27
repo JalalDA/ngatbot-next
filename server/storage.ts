@@ -1,4 +1,4 @@
-import { users, bots, knowledge, transactions, settings, smmProviders, smmServices, smmOrders, autoBots, type User, type InsertUser, type Bot, type InsertBot, type Knowledge, type InsertKnowledge, type Transaction, type InsertTransaction, type Setting, type InsertSetting, type SmmProvider, type InsertSmmProvider, type SmmService, type InsertSmmService, type SmmOrder, type InsertSmmOrder, type AutoBot, type InsertAutoBot } from "@shared/schema";
+import { users, bots, knowledge, transactions, settings, smmProviders, smmServices, smmOrders, autoBots, apiKeys, type User, type InsertUser, type Bot, type InsertBot, type Knowledge, type InsertKnowledge, type Transaction, type InsertTransaction, type Setting, type InsertSetting, type SmmProvider, type InsertSmmProvider, type SmmService, type InsertSmmService, type SmmOrder, type InsertSmmOrder, type AutoBot, type InsertAutoBot } from "@shared/schema";
 import session from "express-session";
 import { db, pool } from "./db";
 import { eq, and, desc } from "drizzle-orm";
@@ -501,47 +501,54 @@ export class DatabaseStorage implements IStorage {
 
   // API Keys methods
   async getUserApiKeys(userId: number): Promise<any[]> {
-    return await db
-      .select()
-      .from(apiKeys)
-      .where(eq(apiKeys.userId, userId))
-      .orderBy(desc(apiKeys.createdAt));
+    const result = await pool.query(
+      'SELECT * FROM api_keys WHERE user_id = $1 ORDER BY created_at DESC',
+      [userId]
+    );
+    return result.rows;
   }
 
   async createUserApiKey(data: any): Promise<any> {
-    const [newApiKey] = await db
-      .insert(apiKeys)
-      .values({
-        userId: data.userId,
-        keyName: data.keyName,
-        apiKey: data.apiKey,
-        isActive: data.isActive,
-      })
-      .returning();
-    return newApiKey;
+    const result = await pool.query(
+      'INSERT INTO api_keys (name, user_id, api_key, is_active) VALUES ($1, $2, $3, $4) RETURNING *',
+      [data.keyName, data.userId, data.apiKey, data.isActive ?? true]
+    );
+    return result.rows[0];
   }
 
   async getUserApiKey(id: number): Promise<any | undefined> {
-    const [apiKey] = await db
-      .select()
-      .from(apiKeys)
-      .where(eq(apiKeys.id, id));
-    return apiKey;
+    const result = await pool.query(
+      'SELECT * FROM api_keys WHERE id = $1',
+      [id]
+    );
+    return result.rows[0];
   }
 
   async updateUserApiKey(id: number, updates: any): Promise<any | undefined> {
-    const [updatedKey] = await db
-      .update(apiKeys)
-      .set(updates)
-      .where(eq(apiKeys.id, id))
-      .returning();
-    return updatedKey;
+    const setFields = [];
+    const values = [];
+    let valueIndex = 1;
+    
+    for (const [key, value] of Object.entries(updates)) {
+      setFields.push(`${key} = $${valueIndex}`);
+      values.push(value);
+      valueIndex++;
+    }
+    
+    values.push(id);
+    
+    const result = await pool.query(
+      `UPDATE api_keys SET ${setFields.join(', ')} WHERE id = $${valueIndex} RETURNING *`,
+      values
+    );
+    return result.rows[0];
   }
 
   async deleteUserApiKey(id: number): Promise<void> {
-    await db
-      .delete(apiKeys)
-      .where(eq(apiKeys.id, id));
+    await pool.query(
+      'DELETE FROM api_keys WHERE id = $1',
+      [id]
+    );
   }
 
 }
