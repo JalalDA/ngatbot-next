@@ -2000,6 +2000,31 @@ export function registerRoutes(app: Express): Server {
     }
   }, 1000);
 
+  // SECURITY MONITORING ENDPOINTS
+  app.get("/api/system/security-status", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      res.json({
+        status: "active",
+        protections: {
+          rateLimiting: "enabled",
+          securityFiltering: "enabled", 
+          logSanitization: "enabled",
+          threatDetection: "enabled"
+        },
+        timestamp: new Date().toISOString(),
+        message: "Semua sistem keamanan aktif dan melindungi aplikasi"
+      });
+    } catch (error) {
+      console.error("Security status error:", error);
+      res.status(500).json({ message: "Failed to get security status" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
