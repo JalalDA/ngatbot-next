@@ -29,9 +29,11 @@ const databaseUrl = getDatabaseUrl();
 
 if (!databaseUrl) {
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+    "DATABASE_URL_DEV/DATABASE_URL_PROD must be set. Did you forget to provision a database?",
   );
 }
+
+console.log(`🔗 Using database: ${databaseUrl.substring(0, 50)}...`);
 
 console.log(`🗄️  Database Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`🔗 Database URL prefix: ${databaseUrl.substring(0, 50)}...`);
