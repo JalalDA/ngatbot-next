@@ -29,20 +29,11 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
-  // Force session cleanup for production fresh start
-  const isProduction = process.env.NODE_ENV === 'production';
-  
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET!,
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
-    cookie: {
-      maxAge: isProduction ? 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000, // 24 hours
-      secure: isProduction, // HTTPS only in production
-      httpOnly: true,
-      sameSite: 'lax'
-    }
   };
 
   app.set("trust proxy", 1);

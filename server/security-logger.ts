@@ -142,7 +142,7 @@ export class SecurityLogger {
 
     const now = Date.now();
     const windowMs = 60 * 1000; // 1 minute window
-    const maxRequests = 1000; // Max 1000 requests per minute for development
+    const maxRequests = 100; // Max 100 requests per minute
 
     const record = this.requestCounts.get(ip);
     
@@ -235,7 +235,7 @@ export class SecurityLogger {
   /**
    * Rate limiting per IP
    */
-  rateLimitMiddleware(maxRequests: number = 500, windowMs: number = 60000) {
+  rateLimitMiddleware(maxRequests: number = 100, windowMs: number = 60000) {
     return (req: Request, res: Response, next: NextFunction) => {
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
       
