@@ -441,6 +441,20 @@ export default function ServiceManagementWhiteboard() {
         {/* Main Buttons */}
         {getMainButtons().map((button) => (
           <div key={button.id}>
+            {/* Add Button for Main Button (Right side) */}
+            <Button
+              size="sm"
+              className="absolute w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg border-2 border-white"
+              style={{
+                left: button.x + 160,
+                top: button.y + 20,
+                zIndex: 15
+              }}
+              onClick={() => handleAddSubButton(button.id)}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+
             {/* Main Button */}
             <Card 
               className="absolute cursor-move shadow-lg border-2 border-blue-300 bg-blue-50 dark:bg-blue-900/20"
@@ -475,15 +489,6 @@ export default function ServiceManagementWhiteboard() {
                 </div>
                 
                 <div className="flex justify-between items-center">
-                  <Button 
-                    size="sm" 
-                    variant="ghost"
-                    onClick={() => handleAddSubButton(button.id)}
-                    className="h-6 px-2 text-xs"
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Sub
-                  </Button>
                   <div className="flex space-x-1">
                     <Button 
                       size="sm" 
@@ -534,16 +539,59 @@ export default function ServiceManagementWhiteboard() {
 
             {/* Sub Buttons */}
             {getChildButtons(button.id).map((subButton, index) => (
-              <Card 
-                key={subButton.id}
-                className="absolute cursor-move shadow-md border border-gray-300 bg-gray-50 dark:bg-gray-700"
-                style={{ 
-                  left: button.x + (index * 160) + 20, 
-                  top: button.y + 120,
-                  width: '140px',
-                  zIndex: 10
-                }}
-              >
+              <div key={subButton.id}>
+                {/* Add Buttons for Sub Button (Top, Bottom, Right) */}
+                <Button
+                  size="sm"
+                  className="absolute w-6 h-6 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-md border border-white"
+                  style={{
+                    left: button.x + (index * 160) + 20 + 60,
+                    top: button.y + 120 - 15,
+                    zIndex: 15
+                  }}
+                  onClick={() => handleAddSubButton(subButton.id)}
+                  title="Add Top"
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+                
+                <Button
+                  size="sm"
+                  className="absolute w-6 h-6 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-md border border-white"
+                  style={{
+                    left: button.x + (index * 160) + 20 + 60,
+                    top: button.y + 120 + 65,
+                    zIndex: 15
+                  }}
+                  onClick={() => handleAddSubButton(subButton.id)}
+                  title="Add Bottom"
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+                
+                <Button
+                  size="sm"
+                  className="absolute w-6 h-6 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-md border border-white"
+                  style={{
+                    left: button.x + (index * 160) + 20 + 150,
+                    top: button.y + 120 + 25,
+                    zIndex: 15
+                  }}
+                  onClick={() => handleAddSubButton(subButton.id)}
+                  title="Add Right"
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+
+                <Card 
+                  className="absolute cursor-move shadow-md border border-gray-300 bg-gray-50 dark:bg-gray-700"
+                  style={{ 
+                    left: button.x + (index * 160) + 20, 
+                    top: button.y + 120,
+                    width: '140px',
+                    zIndex: 10
+                  }}
+                >
                 <CardContent className="p-2">
                   <div className="flex items-center justify-between mb-1">
                     <h5 className="font-medium text-xs text-gray-800 dark:text-gray-200 truncate">
@@ -586,6 +634,7 @@ export default function ServiceManagementWhiteboard() {
                   </div>
                 </CardContent>
               </Card>
+              </div>
             ))}
           </div>
         ))}
