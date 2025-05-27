@@ -499,6 +499,50 @@ export class DatabaseStorage implements IStorage {
     return autoBot;
   }
 
+  // API Keys methods
+  async getUserApiKeys(userId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(apiKeys)
+      .where(eq(apiKeys.userId, userId))
+      .orderBy(desc(apiKeys.createdAt));
+  }
+
+  async createUserApiKey(data: any): Promise<any> {
+    const [newApiKey] = await db
+      .insert(apiKeys)
+      .values({
+        userId: data.userId,
+        keyName: data.keyName,
+        apiKey: data.apiKey,
+        isActive: data.isActive,
+      })
+      .returning();
+    return newApiKey;
+  }
+
+  async getUserApiKey(id: number): Promise<any | undefined> {
+    const [apiKey] = await db
+      .select()
+      .from(apiKeys)
+      .where(eq(apiKeys.id, id));
+    return apiKey;
+  }
+
+  async updateUserApiKey(id: number, updates: any): Promise<any | undefined> {
+    const [updatedKey] = await db
+      .update(apiKeys)
+      .set(updates)
+      .where(eq(apiKeys.id, id))
+      .returning();
+    return updatedKey;
+  }
+
+  async deleteUserApiKey(id: number): Promise<void> {
+    await db
+      .delete(apiKeys)
+      .where(eq(apiKeys.id, id));
+  }
 
 }
 

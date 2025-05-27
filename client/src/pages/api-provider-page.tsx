@@ -38,11 +38,21 @@ export default function ApiProviderPage() {
 
   // Create API key mutation
   const createApiKeyMutation = useMutation({
-    mutationFn: (keyName: string) =>
-      apiRequest("/api/api-keys", {
+    mutationFn: async (keyName: string) => {
+      const response = await fetch("/api/api-keys", {
         method: "POST",
-        body: { keyName },
-      }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ keyName }),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to create API key");
+      }
+      
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/api-keys"] });
       setIsCreateModalOpen(false);
@@ -63,11 +73,21 @@ export default function ApiProviderPage() {
 
   // Toggle API key status
   const toggleApiKeyMutation = useMutation({
-    mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
-      apiRequest(`/api/api-keys/${id}/toggle`, {
+    mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
+      const response = await fetch(`/api/api-keys/${id}/toggle`, {
         method: "PATCH",
-        body: { isActive },
-      }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ isActive }),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to update API key");
+      }
+      
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/api-keys"] });
       toast({
