@@ -1015,6 +1015,7 @@ export function registerRoutes(app: Express): Server {
 
   // Get services from SMM provider (without importing)
   app.get("/api/smm/providers/:id/services", requireAuth, async (req, res) => {
+    console.log(`🔄 START: Loading services for provider ID: ${req.params.id}`);
     try {
       const user = req.user!;
       const providerId = parseInt(req.params.id);
