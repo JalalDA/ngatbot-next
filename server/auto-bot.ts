@@ -513,39 +513,7 @@ export class AutoBotManager {
     return { inline_keyboard: keyboard };
   }
 
-  /**
-   * Send response message with text and/or image
-   */
-  private async sendResponseMessage(bot: any, chatId: number | string, button: InlineKeyboard): Promise<void> {
-    try {
-      // If button has responseImage, send photo first
-      if (button.responseImage && button.responseImage.trim()) {
-        const caption = button.responseText || `✅ Anda telah memilih: *${button.text}*`;
-        await bot.sendPhoto(chatId, button.responseImage, {
-          caption: caption,
-          parse_mode: 'Markdown'
-        });
-      } else if (button.responseText && button.responseText.trim()) {
-        // Send text message only
-        await bot.sendMessage(chatId, button.responseText, {
-          parse_mode: 'Markdown'
-        });
-      } else {
-        // Default message if no custom response
-        await bot.sendMessage(chatId, `✅ Anda telah memilih: *${button.text}*`, {
-          parse_mode: 'Markdown'
-        });
-      }
-    } catch (error) {
-      console.error('Error sending response message:', error);
-      // Fallback to simple text message
-      try {
-        await bot.sendMessage(chatId, `✅ Anda telah memilih: ${button.text}`);
-      } catch (fallbackError) {
-        console.error('Error sending fallback message:', fallbackError);
-      }
-    }
-  }
+
 
   /**
    * Restart all active auto bots
