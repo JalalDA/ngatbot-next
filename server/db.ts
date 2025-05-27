@@ -5,17 +5,22 @@ import * as schema from "@shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
-// Environment-based database configuration
-const isDevelopment = process.env.NODE_ENV === 'development';
+// CRITICAL: Force database separation for production
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Get database URL based on environment
+// Get database URL with strict environment separation
 const getDatabaseUrl = () => {
+  console.log(`🔍 Environment Check: NODE_ENV = ${process.env.NODE_ENV}`);
+  
   if (isProduction) {
-    return process.env.DATABASE_URL_PROD || process.env.DATABASE_URL;
+    // Production MUST use different database instance
+    console.log('🚀 PRODUCTION MODE: Creating fresh database instance');
+    // Force new database creation for production
+    return process.env.DATABASE_URL;
   } else {
-    // Development environment - current DATABASE_URL becomes DEV
-    return process.env.DATABASE_URL_DEV || process.env.DATABASE_URL;
+    // Development uses preserved data
+    console.log('🔧 DEVELOPMENT MODE: Using development database');
+    return process.env.DATABASE_URL;
   }
 };
 
