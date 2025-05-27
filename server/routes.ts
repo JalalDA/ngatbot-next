@@ -59,6 +59,12 @@ function requireAdmin(req: any, res: any, next: any) {
 }
 
 export function registerRoutes(app: Express): Server {
+  // Global request logging
+  app.use((req, res, next) => {
+    console.log(`📥 REQUEST: ${req.method} ${req.url}`);
+    next();
+  });
+
   // Setup authentication routes
   setupAuth(app);
 
