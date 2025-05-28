@@ -1,0 +1,143 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String?
+  password  String
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  apiKeys         ApiKey[]
+  providers       Provider[]
+  autoBots        AutoBot[]
+  paymentSettings PaymentSettings?
+  orders          Order[]
+
+  @@map("users")
+}
+
+model ApiKey {
+  id        Int      @id @default(autoincrement())
+  name      String
+  apiKey    String   @unique
+  userId    Int
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
+model Provider {
+  id               Int      @id @default(autoincrement())
+  name             String
+  apiKey           String
+  apiEndpoint      String
+  userId           Int
+  isActive         Boolean  @default(true)
+  balance          Float    @default(0)
+  currency         String   @default("USD")
+  servicesCount    Int      @default(0)
+  lastSyncAt       DateTime?
+  balanceUpdatedAt DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  services Service[]
+
+  @@map("providers")
+}
+
+model Service {
+  id         Int     @id @default(autoincrement())
+  providerId Int
+  serviceId  String
+  name       String
+  type       String
+  rate       String
+  min        Int
+  max        Int
+  category   String
+  refill     Boolean @default(false)
+  cancel     Boolean @default(false)
+
+  // Relations
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  orders   Order[]
+
+  @@unique([providerId, serviceId])
+  @@map("services")
+}
+
+model AutoBot {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  token           String
+  botName         String
+  botUsername     String
+  isActive        Boolean  @default(true)
+  welcomeMessage  String?
+  welcomeImageUrl String?
+  keyboardConfig  Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("auto_bots")
+}
+
+model PaymentSettings {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique
+  serverKey    String
+  clientKey    String
+  isProduction Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("payment_settings")
+}
+
+model Order {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  serviceId  Int
+  orderId    String   @unique
+  link       String
+  quantity   Int
+  amount     Float
+  status     String   @default("pending")
+  startCount String?
+  remains    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@map("orders")
+}
