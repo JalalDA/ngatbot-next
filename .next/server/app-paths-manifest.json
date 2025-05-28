@@ -1,1 +1,9 @@
-{}
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/dashboard/route": "app/api/dashboard/route.js",
+  "/api/payment/settings/route": "app/api/payment/settings/route.js",
+  "/api/payment/test-connection/route": "app/api/payment/test-connection/route.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/page": "app/page.js",
+  "/payment/page": "app/payment/page.js"
+}
