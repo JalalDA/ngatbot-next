@@ -1,4 +1,4 @@
-const { spawn } = require('child_process');
+import { spawn } from 'child_process';
 
 console.log('Starting Next.js development server...');
 
@@ -7,7 +7,7 @@ const server = spawn('node', ['./node_modules/next/dist/bin/next', 'dev', '--hos
   env: { ...process.env, NODE_ENV: 'development' }
 });
 
-server.on('error', (err) => {
+server.on('error', (err: Error) => {
   console.error('Failed to start server:', err);
   process.exit(1);
 });
