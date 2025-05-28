@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Key, Activity, DollarSign, Users } from 'lucide-react'
 
 export default function DashboardPage() {
@@ -34,7 +33,7 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto bg-blue-5000 min-h-screen">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">API Provider Dashboard</h1>
         <p className="text-gray-600">Kelola API keys dan monitor transaksi customer Anda</p>

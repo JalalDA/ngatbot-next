@@ -1,1 +1,6 @@
-{}
+{
+  "/api/payment/settings/route": "app/api/payment/settings/route.js",
+  "/page": "app/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/payment/page": "app/payment/page.js"
+}
