@@ -133,6 +133,10 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Bot token already in use" });
       }
 
+      if (!req.user?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       // Create bot
       const bot = await storage.createBot({
         ...validatedData,
@@ -164,9 +168,11 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ message: "Failed to create bot" });
     }
   });
-
   app.get("/api/bots", requireAuth, async (req, res) => {
     try {
+      if (!req.user?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       // MULTITHREADING: Load bots with parallel data fetching
       const [bots] = await Promise.all([storage.getBotsByUserId(req.user.id)]);
       res.json(bots);
@@ -175,7 +181,6 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ message: "Failed to retrieve bots" });
     }
   });
-
   app.delete("/api/bots/:id", requireAuth, async (req, res) => {
     try {
       const botId = parseInt(req.params.id);
@@ -308,6 +313,10 @@ export function registerRoutes(app: Express): Server {
   // User profile routes
   app.get("/api/profile", requireAuth, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const user = await storage.getUser(req.user.id);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -321,7 +330,6 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ message: "Failed to retrieve profile" });
     }
   });
-
   // Admin routes
   app.post("/api/admin/validate-secret", async (req, res) => {
     try {
@@ -1065,121 +1073,89 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Import services from SMM provider with batch processing + MONITORING
-<<<<<<< HEAD
-  app.post(
-    "/api/smm/providers/:id/import-services",
-    requireAuth,
-    async (req, res) => {
-      const operationId = `import_services_${Date.now()}_${req.params.id}`;
-
-      try {
-        const user = req.user!;
-        const providerId = parseInt(req.params.id);
-        const { services: selectedServices, batchSize = 10 } = req.body;
-=======
   app.post("/api/smm/providers/:id/import-services", requireAuth, async (req, res) => {
     const operationId = `import_services_${Date.now()}_${req.params.id}`;
-    
+  
     try {
       const user = req.user!;
       const providerId = parseInt(req.params.id);
       const { services: selectedServices, batchSize = 100 } = req.body;
-
-      // SAFETY CHECK: Monitor system health before starting
-      // const healthCheck = threadingMonitor.getSystemHealth();
-      // if (healthCheck.status === 'critical') {
-      //   return res.status(503).json({ 
-      //     success: false,
-      //     message: "Sistem sedang overload. Import dibatalkan untuk menjaga stabilitas.",
-      //     recommendations: healthCheck.recommendations
-      //   });
-      // }
->>>>>>> b2ca51dba4873e15d9d676164059c0c4c29ab4ad
-
-        // SAFETY CHECK: Monitor system health before starting
-        // const healthCheck = threadingMonitor.getSystemHealth();
-        // if (healthCheck.status === 'critical') {
-        //   return res.status(503).json({
-        //     success: false,
-        //     message: "Sistem sedang overload. Import dibatalkan untuk menjaga stabilitas.",
-        //     recommendations: healthCheck.recommendations
-        //   });
-        // }
-
-<<<<<<< HEAD
-        // Check if provider belongs to user
-        const provider = await storage.getSmmProvider(providerId);
-        if (!provider || provider.userId !== user.id) {
-          return res.status(404).json({ message: "SMM provider not found" });
-=======
+  
       if (!selectedServices || !Array.isArray(selectedServices)) {
         return res.status(400).json({ message: "No services provided for import" });
       }
-
-      // SAFETY CHECK: Monitor operation start
-      // if (!threadingMonitor.startOperation(operationId, 'service_import', selectedServices.length)) {
-      //   return res.status(503).json({ 
+  
+      // Get used MIDs for this user
+      const usedMids = await storage.getUsedMids(user.id);
+      let importedCount = 0;
+      const errors: string[] = [];
+  
+      // SAFETY CHECK: Optional system health check
+      // const healthCheck = threadingMonitor.getSystemHealth();
+      // if (healthCheck.status === 'critical') {
+      //   return res.status(503).json({
       //     success: false,
-      //     message: "Sistem sedang busy. Import ditolak untuk menjaga stabilitas.",
+      //     message: "Sistem sedang overload. Import dibatalkan.",
+      //     recommendations: healthCheck.recommendations
+      //   });
+      // }
+  
+      // Start operation monitoring
+      // if (!threadingMonitor.startOperation(operationId, 'service_import', selectedServices.length)) {
+      //   return res.status(503).json({
+      //     success: false,
+      //     message: "Sistem sedang sibuk. Import ditolak.",
       //     currentOperations: threadingMonitor.getSystemHealth().metrics.currentConcurrency
       //   });
       // }
-
-      // Get used MIDs for this user
-      const usedMids = await storage.getUsedMids(user.id);
-      
-      let importedCount = 0;
-      const errors: string[] = [];
-
-      // Process services in batches to avoid request size limits
+  
+      // Process services in batches
       const batches = [];
       for (let i = 0; i < selectedServices.length; i += batchSize) {
         batches.push(selectedServices.slice(i, i + batchSize));
       }
-
+  
       console.log(`Processing ${selectedServices.length} services in ${batches.length} batches of ${batchSize}`);
-
-      // MULTITHREADING: Process batches with parallel operations
+  
+      // Process each batch sequentially
       for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
         const batch = batches[batchIndex];
-        console.log(`🚀 Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} services using multithreading...`);
-
-        // PARALLEL: Process services in current batch simultaneously
+        console.log(`🚀 Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} services...`);
+  
+        // Process services in current batch concurrently
         const batchPromises = batch.map(async (service) => {
           try {
-            // Auto-assign MID (1-10) - thread-safe
             const mid = generateMid(usedMids);
-            if (mid) {
-              usedMids.push(mid);
-
-              await storage.createSmmService({
-                userId: user.id,
-                providerId: provider.id,
-                mid,
-                name: service.name,
-                description: service.category || "",
-                min: service.min,
-                max: service.max,
-                rate: parseRate(service.rate).toString(),
-                category: service.category,
-                serviceIdApi: (service.service || service.id).toString(),
-                isActive: true
-              });
-
-              return { success: true, serviceName: service.name };
-            } else {
-              return { success: false, serviceName: service.name, error: 'No available MID' };
+            if (!mid) {
+              return { success: false, serviceName: service.name, error: "No available MID" };
             }
+  
+            usedMids.push(mid);
+  
+            await storage.createSmmService({
+              userId: user.id,
+              providerId,
+              mid,
+              name: service.name,
+              description: service.category || "",
+              min: service.min,
+              max: service.max,
+              rate: parseRate(service.rate).toString(),
+              category: service.category,
+              serviceIdApi: (service.service || service.id).toString(),
+              isActive: true
+            });
+  
+            return { success: true, serviceName: service.name };
           } catch (error) {
             return { success: false, serviceName: service.name, error: (error as Error).message };
           }
         });
-
-        // ASYNC: Wait for all services in batch to complete
+  
         const batchResults = await Promise.allSettled(batchPromises);
-        
+  
         batchResults.forEach((result) => {
-          if (result.status === 'fulfilled') {
+          if (result.status === "fulfilled") {
             if (result.value.success) {
               importedCount++;
             } else {
@@ -1189,139 +1165,37 @@ export function registerRoutes(app: Express): Server {
             errors.push(`Unknown error: ${result.reason}`);
           }
         });
-
-        // Small delay between batches to prevent overwhelming the database
+  
+        // Delay antar batch
         if (batchIndex < batches.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 50)); // Reduced delay
->>>>>>> b2ca51dba4873e15d9d676164059c0c4c29ab4ad
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
-
-        if (!selectedServices || !Array.isArray(selectedServices)) {
-          return res
-            .status(400)
-            .json({ message: "No services provided for import" });
-        }
-
-        // SAFETY CHECK: Monitor operation start
-        // if (!threadingMonitor.startOperation(operationId, 'service_import', selectedServices.length)) {
-        //   return res.status(503).json({
-        //     success: false,
-        //     message: "Sistem sedang busy. Import ditolak untuk menjaga stabilitas.",
-        //     currentOperations: threadingMonitor.getSystemHealth().metrics.currentConcurrency
-        //   });
-        // }
-
-        // Get used MIDs for this user
-        const usedMids = await storage.getUsedMids(user.id);
-
-        let importedCount = 0;
-        const errors: string[] = [];
-
-        // Process services in batches to avoid request size limits
-        const batches = [];
-        for (let i = 0; i < selectedServices.length; i += batchSize) {
-          batches.push(selectedServices.slice(i, i + batchSize));
-        }
-
-        console.log(
-          `Processing ${selectedServices.length} services in ${batches.length} batches of ${batchSize}`,
-        );
-
-        // MULTITHREADING: Process batches with parallel operations
-        for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
-          const batch = batches[batchIndex];
-          console.log(
-            `🚀 Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} services using multithreading...`,
-          );
-
-          // PARALLEL: Process services in current batch simultaneously
-          const batchPromises = batch.map(async (service) => {
-            try {
-              // Auto-assign MID (1-10) - thread-safe
-              const mid = generateMid(usedMids);
-              if (mid) {
-                usedMids.push(mid);
-
-                await storage.createSmmService({
-                  userId: user.id,
-                  providerId: provider.id,
-                  mid,
-                  name: service.name,
-                  description: service.category || "",
-                  min: service.min,
-                  max: service.max,
-                  rate: parseRate(service.rate).toString(),
-                  category: service.category,
-                  serviceIdApi: (service.service || service.id).toString(),
-                  isActive: true,
-                });
-
-                return { success: true, serviceName: service.name };
-              } else {
-                return {
-                  success: false,
-                  serviceName: service.name,
-                  error: "No available MID",
-                };
-              }
-            } catch (error) {
-              return {
-                success: false,
-                serviceName: service.name,
-                error: (error as Error).message,
-              };
-            }
-          });
-
-          // ASYNC: Wait for all services in batch to complete
-          const batchResults = await Promise.allSettled(batchPromises);
-
-          batchResults.forEach((result) => {
-            if (result.status === "fulfilled") {
-              if (result.value.success) {
-                importedCount++;
-              } else {
-                errors.push(
-                  `${result.value.serviceName}: ${result.value.error}`,
-                );
-              }
-            } else {
-              errors.push(`Unknown error: ${result.reason}`);
-            }
-          });
-
-          // Small delay between batches to prevent overwhelming the database
-          if (batchIndex < batches.length - 1) {
-            await new Promise((resolve) => setTimeout(resolve, 50)); // Reduced delay
-          }
-        }
-
-        // MONITORING: Complete operation successfully
-        threadingMonitor.completeOperation(operationId, importedCount);
-
-        res.json({
-          message: `Successfully imported ${importedCount} services`,
-          importedCount,
-          totalRequested: selectedServices.length,
-          batchesProcessed: batches.length,
-          errors: errors.length > 0 ? errors : undefined,
-          systemHealth: threadingMonitor.getSystemHealth().status,
-        });
-      } catch (error) {
-        console.error("Import services error:", error);
-
-        // MONITORING: Fail operation
-        threadingMonitor.failOperation(
-          operationId,
-          error instanceof Error ? error.message : "Unknown error",
-        );
-
-        res
-          .status(500)
-          .json({ message: "Failed to import services from provider" });
       }
-    },
-  );
+  
+      // Selesai operasi
+      threadingMonitor.completeOperation(operationId, importedCount);
+  
+      res.json({
+        message: `Successfully imported ${importedCount} services`,
+        importedCount,
+        totalRequested: selectedServices.length,
+        batchesProcessed: batches.length,
+        errors: errors.length > 0 ? errors : undefined,
+        systemHealth: threadingMonitor.getSystemHealth().status,
+      });
+  
+    } catch (error) {
+      console.error("Import services error:", error);
+  
+      threadingMonitor.failOperation(
+        operationId,
+        error instanceof Error ? error.message : "Unknown error"
+      );
+  
+      res.status(500).json({ message: "Failed to import services from provider" });
+    }
+  });
+  
 
   // Batch import endpoint for very large service imports
   app.post(
