@@ -204,7 +204,6 @@ export const autoBots = pgTable("auto_bots", {
     responseText?: string; // Teks respons yang dikirim ketika tombol diklik
     isAllShow?: boolean; // Property untuk tombol All Show
   }[]>(),
-  paymentIntegration: boolean("payment_integration").notNull().default(false), // Toggle untuk payment integration
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
