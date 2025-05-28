@@ -1065,6 +1065,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Import services from SMM provider with batch processing + MONITORING
+<<<<<<< HEAD
   app.post(
     "/api/smm/providers/:id/import-services",
     requireAuth,
@@ -1075,6 +1076,25 @@ export function registerRoutes(app: Express): Server {
         const user = req.user!;
         const providerId = parseInt(req.params.id);
         const { services: selectedServices, batchSize = 10 } = req.body;
+=======
+  app.post("/api/smm/providers/:id/import-services", requireAuth, async (req, res) => {
+    const operationId = `import_services_${Date.now()}_${req.params.id}`;
+    
+    try {
+      const user = req.user!;
+      const providerId = parseInt(req.params.id);
+      const { services: selectedServices, batchSize = 100 } = req.body;
+
+      // SAFETY CHECK: Monitor system health before starting
+      // const healthCheck = threadingMonitor.getSystemHealth();
+      // if (healthCheck.status === 'critical') {
+      //   return res.status(503).json({ 
+      //     success: false,
+      //     message: "Sistem sedang overload. Import dibatalkan untuk menjaga stabilitas.",
+      //     recommendations: healthCheck.recommendations
+      //   });
+      // }
+>>>>>>> b2ca51dba4873e15d9d676164059c0c4c29ab4ad
 
         // SAFETY CHECK: Monitor system health before starting
         // const healthCheck = threadingMonitor.getSystemHealth();
@@ -1086,10 +1106,94 @@ export function registerRoutes(app: Express): Server {
         //   });
         // }
 
+<<<<<<< HEAD
         // Check if provider belongs to user
         const provider = await storage.getSmmProvider(providerId);
         if (!provider || provider.userId !== user.id) {
           return res.status(404).json({ message: "SMM provider not found" });
+=======
+      if (!selectedServices || !Array.isArray(selectedServices)) {
+        return res.status(400).json({ message: "No services provided for import" });
+      }
+
+      // SAFETY CHECK: Monitor operation start
+      // if (!threadingMonitor.startOperation(operationId, 'service_import', selectedServices.length)) {
+      //   return res.status(503).json({ 
+      //     success: false,
+      //     message: "Sistem sedang busy. Import ditolak untuk menjaga stabilitas.",
+      //     currentOperations: threadingMonitor.getSystemHealth().metrics.currentConcurrency
+      //   });
+      // }
+
+      // Get used MIDs for this user
+      const usedMids = await storage.getUsedMids(user.id);
+      
+      let importedCount = 0;
+      const errors: string[] = [];
+
+      // Process services in batches to avoid request size limits
+      const batches = [];
+      for (let i = 0; i < selectedServices.length; i += batchSize) {
+        batches.push(selectedServices.slice(i, i + batchSize));
+      }
+
+      console.log(`Processing ${selectedServices.length} services in ${batches.length} batches of ${batchSize}`);
+
+      // MULTITHREADING: Process batches with parallel operations
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
+        console.log(`🚀 Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} services using multithreading...`);
+
+        // PARALLEL: Process services in current batch simultaneously
+        const batchPromises = batch.map(async (service) => {
+          try {
+            // Auto-assign MID (1-10) - thread-safe
+            const mid = generateMid(usedMids);
+            if (mid) {
+              usedMids.push(mid);
+
+              await storage.createSmmService({
+                userId: user.id,
+                providerId: provider.id,
+                mid,
+                name: service.name,
+                description: service.category || "",
+                min: service.min,
+                max: service.max,
+                rate: parseRate(service.rate).toString(),
+                category: service.category,
+                serviceIdApi: (service.service || service.id).toString(),
+                isActive: true
+              });
+
+              return { success: true, serviceName: service.name };
+            } else {
+              return { success: false, serviceName: service.name, error: 'No available MID' };
+            }
+          } catch (error) {
+            return { success: false, serviceName: service.name, error: (error as Error).message };
+          }
+        });
+
+        // ASYNC: Wait for all services in batch to complete
+        const batchResults = await Promise.allSettled(batchPromises);
+        
+        batchResults.forEach((result) => {
+          if (result.status === 'fulfilled') {
+            if (result.value.success) {
+              importedCount++;
+            } else {
+              errors.push(`${result.value.serviceName}: ${result.value.error}`);
+            }
+          } else {
+            errors.push(`Unknown error: ${result.reason}`);
+          }
+        });
+
+        // Small delay between batches to prevent overwhelming the database
+        if (batchIndex < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 50)); // Reduced delay
+>>>>>>> b2ca51dba4873e15d9d676164059c0c4c29ab4ad
         }
 
         if (!selectedServices || !Array.isArray(selectedServices)) {

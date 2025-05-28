@@ -163,18 +163,23 @@ export class SecurityLogger {
 
   private isRapidRequests(ip: string | undefined): boolean {
     if (!ip) return false;
-
+  
+    // Bypass rate limit in development
+    if (process.env.NODE_ENV === 'development') {
+      return false;
+    }
+  
     const now = Date.now();
     const windowMs = 60 * 1000; // 1 minute window
     const maxRequests = 100; // Max 100 requests per minute
-
+  
     const record = this.requestCounts.get(ip);
     
     if (!record || now - record.lastReset > windowMs) {
       this.requestCounts.set(ip, { count: 1, lastReset: now });
       return false;
     }
-
+  
     record.count++;
     return record.count > maxRequests;
   }

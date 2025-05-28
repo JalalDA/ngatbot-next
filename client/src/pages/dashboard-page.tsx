@@ -181,7 +181,9 @@ export default function DashboardPage() {
   // Fetch services from provider mutation
   const fetchServicesMutation = useMutation({
     mutationFn: async (providerId: number) => {
+      console.log(providerId);
       const res = await apiRequest("GET", `/api/smm/providers/${providerId}/services`);
+      console.log(res);
       return res.json();
     },
     onSuccess: (data) => {
