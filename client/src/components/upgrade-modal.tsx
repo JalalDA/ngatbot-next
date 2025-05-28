@@ -143,6 +143,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
   const handleSelectPlan = (plan: string) => {
     setSelectedPlan(plan);
     upgradeMutation.mutate(plan);
+    onClose();
   };
 
   const plans = [

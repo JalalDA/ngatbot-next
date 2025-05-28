@@ -907,17 +907,17 @@ export function registerRoutes(app: Express): Server {
     try {
       const user = req.user!;
       const providerId = parseInt(req.params.id);
-      const { services: selectedServices, batchSize = 10 } = req.body;
+      const { services: selectedServices, batchSize = 100 } = req.body;
 
       // SAFETY CHECK: Monitor system health before starting
-      const healthCheck = threadingMonitor.getSystemHealth();
-      if (healthCheck.status === 'critical') {
-        return res.status(503).json({ 
-          success: false,
-          message: "Sistem sedang overload. Import dibatalkan untuk menjaga stabilitas.",
-          recommendations: healthCheck.recommendations
-        });
-      }
+      // const healthCheck = threadingMonitor.getSystemHealth();
+      // if (healthCheck.status === 'critical') {
+      //   return res.status(503).json({ 
+      //     success: false,
+      //     message: "Sistem sedang overload. Import dibatalkan untuk menjaga stabilitas.",
+      //     recommendations: healthCheck.recommendations
+      //   });
+      // }
 
       // Check if provider belongs to user
       const provider = await storage.getSmmProvider(providerId);
@@ -930,13 +930,13 @@ export function registerRoutes(app: Express): Server {
       }
 
       // SAFETY CHECK: Monitor operation start
-      if (!threadingMonitor.startOperation(operationId, 'service_import', selectedServices.length)) {
-        return res.status(503).json({ 
-          success: false,
-          message: "Sistem sedang busy. Import ditolak untuk menjaga stabilitas.",
-          currentOperations: threadingMonitor.getSystemHealth().metrics.currentConcurrency
-        });
-      }
+      // if (!threadingMonitor.startOperation(operationId, 'service_import', selectedServices.length)) {
+      //   return res.status(503).json({ 
+      //     success: false,
+      //     message: "Sistem sedang busy. Import ditolak untuk menjaga stabilitas.",
+      //     currentOperations: threadingMonitor.getSystemHealth().metrics.currentConcurrency
+      //   });
+      // }
 
       // Get used MIDs for this user
       const usedMids = await storage.getUsedMids(user.id);

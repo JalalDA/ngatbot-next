@@ -6,8 +6,8 @@ import { securityLogger } from "./security-logger";
 const app = express();
 
 // SECURITY: Apply security middleware first
-app.use(securityLogger.securityMiddleware());
-app.use(securityLogger.rateLimitMiddleware(150, 60000)); // 150 requests per minute
+// app.use(securityLogger.securityMiddleware());
+// app.use(securityLogger.rateLimitMiddleware(150, 60000)); // 150 requests per minute
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
